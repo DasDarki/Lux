@@ -1,0 +1,456 @@
+﻿using System.ComponentModel;
+
+namespace Lux.IR;
+
+/// <summary>
+/// The kind of a type. This is used to distinguish different types in the type system, such as primitive types, table
+/// types, function types, etc.
+/// </summary>
+public enum TypeKind
+{
+    [Description("nil")]
+    PrimitiveNil,
+    [Description("any")]
+    PrimitiveAny,
+    [Description("number")]
+    PrimitiveNumber,
+    [Description("boolean")]
+    PrimitiveBool,
+    [Description("string")]
+    PrimitiveString,
+    TableArray,
+    TableMap,
+    Tuple,
+    Union,
+    Struct,
+    Function
+}
+
+/// <summary>
+/// Represents a type in the type system. A type is a set of values that share common properties and operations. 
+/// </summary>
+public class Type(TypeKind kind)
+{
+    /// <summary>
+    /// The type ID. This is a unique identifier for the type.
+    /// </summary>
+    public TypID ID { get; set; } = TypID.Invalid;
+    
+    /// <summary>
+    /// The type kind. This is used to distinguish different types in the type system, such as primitive types, table types, function types, etc.
+    /// </summary>
+    public TypeKind Kind { get; } = kind;
+
+    /// <summary>
+    /// The type key. This is a string representation of the type, and is used to identify the type in the type table.
+    /// </summary>
+    public TypeKey Key => field ??= GenerateNewKey();
+
+    /// <summary>
+    /// Generates a new type key based on the type and its information.
+    /// </summary>
+    protected virtual TypeKey GenerateNewKey()
+    {
+        return Kind.ToString();
+    }
+    
+    public static implicit operator TypeKey(Type type) => type.Key;
+    public static implicit operator TypID(Type type) => type.ID;
+}
+
+/// <summary>
+/// Represents a table array type, which is a type of table that maps integer keys to values of a certain type. This is
+/// used to represent arrays in the IR, where the keys are the indices of the array and the values are the elements of
+/// the array. The element type of the table array type can be any type in the type system, including primitive types,
+/// other table types, function types, etc.
+/// </summary>
+public sealed class TableArrayType(Type elementType) : Type(TypeKind.TableArray)
+{
+    /// <summary>
+    /// The element type of the table array type. This is the type of the values that are mapped by the integer keys in
+    /// the table array type.
+    /// </summary>
+    public Type ElementType { get; } = elementType;
+
+    protected override TypeKey GenerateNewKey()
+    {
+        return $"array<{ElementType.Key}>";
+    }
+}
+
+/// <summary>
+/// Represents a table map type, which is a type of table that maps keys of a certain type to values of another type.
+/// This is used to represent maps in the IR, where the keys can be of any type in the type system, and the values can
+/// also be of any type in the type system. The key type and the value type of the table map type can be any types in
+/// the type system, including primitive types, other table types, function types, etc.
+/// </summary>
+public sealed class TableMapType(Type keyType, Type valueType) : Type(TypeKind.TableMap)
+{
+    /// <summary>
+    /// The key type of the table map type. This is the type of the keys that are mapped to the values in the table map type.
+    /// </summary>
+    public Type KeyType { get; } = keyType;
+    
+    /// <summary>
+    /// The value type of the table map type. This is the type of the values that are mapped by the keys in the table map type.
+    /// </summary>
+    public Type ValueType { get; } = valueType;
+
+    protected override TypeKey GenerateNewKey()
+    {
+        return $"map<{KeyType.Key},{ValueType.Key}>";
+    }
+}
+
+/// <summary>
+/// Represents a tuple type, which is a type that represents a fixed-size collection of values of different types. Each
+/// value in the tuple is called a field, and each field has a name (which can be null for unnamed fields) and a type.
+/// The fields of the tuple type can be of any types in the type system, including primitive types, other table types,
+/// function types, etc. The tuple type is used to represent tuples in the IR, where the fields of the tuple correspond
+/// to the elements of the tuple.
+/// </summary>
+public sealed class TupleType(IEnumerable<TupleType.Field> fields) : Type(TypeKind.Tuple)
+{
+    /// <summary>
+    /// The fields of the tuple type. Each field has a name (which can be null for unnamed fields) and a type.
+    /// </summary>
+    public List<Field> Fields { get; } = fields.ToList();
+
+    protected override TypeKey GenerateNewKey()
+    {
+        var fieldKeys = Fields.Select(f => f.ToString());
+        return $"tuple<{string.Join(",", fieldKeys)}>";
+    }
+    
+    /// <summary>
+    /// Represents a field in a tuple type.
+    /// </summary>
+    public sealed class Field(NameRef? name, Type type)
+    {
+        /// <summary>
+        /// The name of the field. Can be null for unnamed fields, such as in a tuple type. For named fields, this is the actual name of the field, such as "x", "y", "z", etc.
+        /// </summary>
+        public NameRef? Name { get; } = name;
+        /// <summary>
+        /// The type of the field.
+        /// </summary>
+        public Type Type { get; } = type;
+        
+        /// <summary>
+        /// Creates a new field with the specified type and no name. This is used for unnamed fields, such as in a tuple type.
+        /// </summary>
+        public Field(Type type) : this(null, type)
+        {
+        }
+        
+        public override string ToString()
+        {
+            return Name is null ? Type.Key.Value : $"{Name.Name}:{Type.Key.Value}";
+        }
+    }
+}
+
+public sealed class UnionType(IEnumerable<Type> types) : Type(TypeKind.Union)
+{
+    public List<Type> Types { get; } = types.ToList();
+
+    protected override TypeKey GenerateNewKey()
+    {
+        var typeKeys = Types.Select(t => t.Key);
+        return $"union<{string.Join("|", typeKeys)}>";
+    }
+}
+
+public sealed class StructType(IEnumerable<StructType.Field> fields) : Type(TypeKind.Struct)
+{
+    public List<Field> Fields { get; } = fields.ToList();
+
+    protected override TypeKey GenerateNewKey()
+    {
+        var fieldKeys = Fields.Select(f => f.ToString());
+        return $"struct<{string.Join(",", fieldKeys)}>";
+    }
+    
+    public sealed class Field(NameRef name, Type type)
+    {
+        public NameRef Name { get; } = name;
+        public Type Type { get; } = type;
+
+        public override string ToString()
+        {
+            return $"{Name.Name}:{Type.Key.Value}";
+        }
+    }
+}
+
+public sealed class FunctionType(IEnumerable<Type> paramTypes, Type returnType) : Type(TypeKind.Function)
+{
+    public List<Type> ParamTypes { get; } = paramTypes.ToList();
+    public Type ReturnType { get; } = returnType;
+
+    protected override TypeKey GenerateNewKey()
+    {
+        var paramKeys = ParamTypes.Select(t => t.Key);
+        return $"func<{string.Join(",", paramKeys)}->{ReturnType.Key}>";
+    }
+}
+
+/// <summary>
+/// Represents a type table that maps type keys to their corresponding types. This is used to keep track of the types in
+/// the IR, and to ensure that the types are unique and do not conflict with each other.
+/// </summary>
+public sealed class TypeTable
+{
+    /// <summary>
+    /// The ID of the primitive nil.
+    /// </summary>
+    public Type PrimNil { get; }
+    
+    /// <summary>
+    /// The ID of the primitive any.
+    /// </summary>
+    public Type PrimAny { get; }
+    
+    /// <summary>
+    /// The ID of the primitive number.
+    /// </summary>
+    public Type PrimNumber { get; }
+    
+    /// <summary>
+    /// The ID of the primitive boolean.
+    /// </summary>
+    public Type PrimBool { get; }
+    
+    /// <summary>
+    /// The ID of the primitive string.
+    /// </summary>
+    public Type PrimString { get; }
+    
+    private readonly IDAlloc<TypID> _typeAlloc;
+    private readonly Dictionary<TypeKey, TypID> _types = new();
+    private readonly Dictionary<TypID, Type> _byID = new();
+
+    /// <summary>
+    /// Creates a new type table with the specified type ID allocator. The type ID allocator is used to generate unique type IDs for the types in the type table.
+    /// </summary>
+    public TypeTable(IDAlloc<TypID> typeAlloc)
+    {
+        _typeAlloc = typeAlloc;
+        
+        PrimNil = DeclareType(new Type(TypeKind.PrimitiveNil));
+        PrimAny = DeclareType(new Type(TypeKind.PrimitiveAny));
+        PrimNumber = DeclareType(new Type(TypeKind.PrimitiveNumber));
+        PrimBool = DeclareType(new Type(TypeKind.PrimitiveBool));
+        PrimString = DeclareType(new Type(TypeKind.PrimitiveString));
+    }
+
+    /// <summary>
+    /// Declares the specified type in the type table. If the type is already declared in the type table, this method
+    /// returns the existing type ID of the type. Otherwise, this method generates a new type ID for the type, adds the
+    /// type to the type table, and returns the new type ID.
+    /// </summary>
+    /// <param name="typ">The type to be declared in the type table.</param>
+    /// <returns>The type ID of the declared type. This is a unique identifier for the type, and is used to reference the type from other nodes or from external code.</returns>
+    public Type DeclareType(Type typ)
+    {
+        if (_types.TryGetValue(typ.Key, out var existingID))
+        {
+            return _byID[existingID];
+        }
+        
+        var newID = _typeAlloc.Next();
+        _types[typ.Key] = newID;
+        _byID[newID] = typ;
+        typ.ID = newID;
+        return typ;
+    }
+    
+    /// <summary>
+    /// Tries to get the type with the specified ID from the type table. If the type with the specified ID exists in the
+    /// type table, this method returns true and sets the output parameter to the type; otherwise, this method returns
+    /// false and sets the output parameter to null.
+    /// </summary>
+    /// <param name="id">The type ID of the type to be retrieved from the type table.</param>
+    /// <param name="typ">The output parameter that will contain the type with the specified ID if it exists in the type table; otherwise, null.</param>
+    /// <returns>true if the type with the specified ID exists in the type table; otherwise, false.</returns>
+    public bool GetByID(TypID id, out Type typ)
+    {
+        if (_byID.TryGetValue(id, out var outType))
+        {
+            typ = outType;
+            return true;
+        }
+        
+        typ = null!;
+        return false;
+    }
+
+    /// <summary>
+    /// Tries to get the type ID of the type with the specified key from the type table. If the type with the specified
+    /// key exists in the type table, this method returns true and sets the output parameter to the type ID; otherwise,
+    /// this method returns false and sets the output parameter to an invalid type ID.
+    /// </summary>
+    /// <param name="key">The type key of the type whose type ID is to be retrieved from the type table.</param>
+    /// <param name="typ">The output parameter that will contain the type ID of the type with the specified key if it exists in the type table; otherwise, an invalid type ID.</param>
+    /// <returns>true if the type with the specified key exists in the type table; otherwise, false.</returns>
+    public bool GetByType(TypeKey key, out TypID typ)
+    {
+        if (_types.TryGetValue(key, out var outID))
+        {
+            typ = outID;
+            return true;
+        }
+        
+        typ = TypID.Invalid;
+        return false;
+    }
+    
+    /// <summary>
+    /// Checks if the type with the specified ID is of the specified type kind. If the type with the specified ID does not exist in the type table, this method returns false.
+    /// </summary>
+    /// <param name="typ">The type ID of the type to be checked.</param>
+    /// <param name="base">The type kind to be checked against. This is used to distinguish different types in the type system, such as primitive types, table types, function types, etc.</param>
+    /// <returns>true if the type with the specified ID exists in the type table and is of the specified type kind; otherwise, false.</returns>
+    public bool IsTypeOfKind(TypID typ, TypeKind @base)
+    {
+        if (!GetByID(typ, out var actualType))
+        {
+            return false;
+        }
+        
+        return actualType.Kind == @base;
+    }
+    
+    /// <summary>
+    /// Creates a new table array type with the specified element type, declares the new type in the type table, and
+    /// returns the type ID of the new type.
+    /// </summary>
+    /// <param name="elementType">The element type of the table array type to be created.</param>
+    /// <returns>The type ID of the created table array type.</returns>
+    public TypID ArrayOf(Type elementType)
+    {
+        var arrayType = new TableArrayType(elementType);
+        return DeclareType(arrayType);
+    }
+    
+    /// <summary>
+    /// Creates a new table map type with the specified key type and value type, declares the new type in the type table, and
+    /// returns the type ID of the new type.
+    /// </summary>
+    /// <param name="keyType">The key type of the table map type to be created.</param>
+    /// <param name="valueType">The value type of the table map type to be created.</param>
+    /// <returns>The type ID of the created table map type.</returns>
+    public TypID MapOf(Type keyType, Type valueType)
+    {
+        var mapType = new TableMapType(keyType, valueType);
+        return DeclareType(mapType);
+    }
+    
+    /// <summary>
+    /// Creates a new tuple type with the specified fields, declares the new type in the type table, and returns the type ID of the new type.
+    /// </summary>
+    /// <param name="fields">The fields of the tuple type to be created. Each field has a name (which can be null for unnamed fields) and a type.</param>
+    /// <returns>The type ID of the created tuple type.</returns>
+    public TypID TupleOf(IEnumerable<TupleType.Field> fields)
+    {
+        var tupleType = new TupleType(fields);
+        return DeclareType(tupleType);
+    }
+    
+    /// <summary>
+    /// Creates a new tuple type with the specified fields, declares the new type in the type table, and returns the type ID of the new type.
+    /// This is an overload of the <see cref="TupleOf(IEnumerable{TupleType.Field})"/> method that allows passing the fields as a params array for convenience.
+    /// </summary>
+    /// <param name="fields">The fields of the tuple type to be created. Each field has a name (which can be null for unnamed fields) and a type.</param>
+    /// <returns>The type ID of the created tuple type.</returns>
+    public TypID TupleOf(params TupleType.Field[] fields)
+    {
+        return TupleOf((IEnumerable<TupleType.Field>)fields);
+    }
+
+    /// <summary>
+    /// Creates a new function type with the specified parameter types and return type, declares the new type in the
+    /// type table, and returns the type ID of the new type.
+    /// </summary>
+    public TypID FuncOf(IEnumerable<Type> paramTypes, Type returnType)
+    {
+        var funcType = new FunctionType(paramTypes, returnType);
+        return DeclareType(funcType);
+    }
+
+    /// <summary>
+    /// Creates a new union type containing the specified member types, declares the new type in the type table,
+    /// and returns the type ID of the new type.
+    /// </summary>
+    public TypID UnionOf(IEnumerable<Type> types)
+    {
+        var unionType = new UnionType(types);
+        return DeclareType(unionType);
+    }
+
+    /// <summary>
+    /// Creates a new struct type containing the specified fields, declares the new type in the type table,
+    /// and returns the type ID of the new type.
+    /// </summary>
+    public TypID StructOf(IEnumerable<StructType.Field> fields)
+    {
+        var structType = new StructType(fields);
+        return DeclareType(structType);
+    }
+}
+
+/// <summary>
+/// The type key is a string representation of the type. 
+/// </summary>
+public sealed class TypeKey(string value) : IEquatable<TypeKey>
+{
+    /// <summary>
+    /// The invalid type key. This is used to represent an invalid type, such as a type that cannot be resolved or a type that is not defined in the type table.
+    /// </summary>
+    public static readonly TypeKey Invalid = new("<invalid>");
+    
+    /// <summary>
+    /// The string representation of the type.
+    /// </summary>
+    public string Value { get; } = value;
+
+    #region General object overrides and operators
+
+    public override string ToString()
+    {
+        return Value;
+    }
+    
+    public static implicit operator string(TypeKey typeKey) => typeKey.Value;
+    
+    public static implicit operator TypeKey(string value) => new(value);
+
+    public bool Equals(TypeKey? other)
+    {
+        if (other is null) return false;
+        if (ReferenceEquals(this, other)) return true;
+        return Value == other.Value;
+    }
+
+    public override bool Equals(object? obj)
+    {
+        return ReferenceEquals(this, obj) || obj is TypeKey other && Equals(other);
+    }
+
+    public override int GetHashCode()
+    {
+        return Value.GetHashCode();
+    }
+
+    public static bool operator ==(TypeKey? left, TypeKey? right)
+    {
+        return Equals(left, right);
+    }
+
+    public static bool operator !=(TypeKey? left, TypeKey? right)
+    {
+        return !Equals(left, right);
+    }
+
+    #endregion
+}

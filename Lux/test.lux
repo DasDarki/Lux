@@ -1,0 +1,23 @@
+function add(a: number, b: number): number
+    return a + b
+end
+
+local result = add(1, 2)
+print("Result: " .. result)
+
+local arr = {10, 20, 30}
+local sum = 0
+for i = 0, 2 do
+    sum = sum + arr[i]
+end
+print(sum)
+
+function greet(name: string, greeting: string)
+    return greeting + ", " .. name + "!"
+end
+
+local msg = greet("World", "Hello")
+print(msg)
+
+local len = #arr
+print(len)

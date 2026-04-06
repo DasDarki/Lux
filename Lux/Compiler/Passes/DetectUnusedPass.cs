@@ -1,0 +1,410 @@
+﻿using Lux.IR;
+
+namespace Lux.Compiler.Passes;
+
+/// <summary>
+/// The detect unused pass is responsible for detecting unused variables, functions, and other declarations in the
+/// source code. It helps to identify and remove any code that is not being used, which can improve the performance and
+/// readability of the code.
+/// </summary>
+public sealed class DetectUnusedPass() : Pass(PassName, PassScope.PerBuild, dependencies: InferTypesPass.PassName)
+{
+    public const string PassName = "DetectUnused";
+
+    public override bool Run(PassContext context)
+    {
+        foreach (var pkg in context.Pkgs)
+        {
+            foreach (var f in pkg.Files)
+            {
+                MarkStmtListUnused(context, pkg, f.Hir.Body);
+
+                if (f.Hir.Return != null)
+                {
+                    MarkStmtUnused(context, pkg, f.Hir.Return);
+                }
+            }
+        }
+        
+        foreach (var pkg in context.Pkgs)
+        {
+            foreach (var f in pkg.Files)
+            {
+                TrackStmtListUsage(context, pkg, f.Hir.Body);
+
+                if (f.Hir.Return != null)
+                {
+                    TrackStmtUsage(context, pkg, f.Hir.Return);
+                }
+            }
+        }
+        
+        return true;
+    }
+    
+    private void MarkStmtListUnused(PassContext pc, PackageContext pkg, List<Stmt> stmts)
+    {
+        foreach (var stmt in stmts)
+        {
+            MarkStmtUnused(pc, pkg, stmt);
+        }
+    }
+
+    private void MarkStmtUnused(PassContext pc, PackageContext pkg, Stmt stmt)
+    {
+        switch (stmt)
+        {
+            case Decl decl:
+                MarkDeclUnused(pc, pkg, decl);
+                break;
+            case DoBlockStmt doBlockStmt:
+                MarkStmtListUnused(pc, pkg, doBlockStmt.Body);
+                break;
+            case WhileStmt whileStmt:
+                MarkStmtListUnused(pc, pkg, whileStmt.Body);
+                break;
+            case RepeatStmt repeatStmt:
+                MarkStmtListUnused(pc, pkg, repeatStmt.Body);
+                break;
+            case IfStmt ifStmt:
+                MarkStmtListUnused(pc, pkg, ifStmt.Body);
+                
+                foreach (var elseIf in ifStmt.ElseIfs)
+                {
+                    MarkStmtListUnused(pc, pkg, elseIf.Body);
+                }
+                
+                if (ifStmt.ElseBody != null)
+                {
+                    MarkStmtListUnused(pc, pkg, ifStmt.ElseBody);
+                }
+                break;
+            case NumericForStmt numericForStmt:
+            {
+                if (pkg.Syms.GetByID(numericForStmt.VarName.Sym, out var sym))
+                {
+                    sym.Flags |= SymbolFlags.Unused;
+                }
+                
+                MarkStmtListUnused(pc, pkg, numericForStmt.Body);
+                break;
+            }
+            case GenericForStmt genericForStmt:
+            {
+                foreach (var varName in genericForStmt.VarNames)
+                {
+                    if (pkg.Syms.GetByID(varName.Sym, out var sym))
+                    {
+                        sym.Flags |= SymbolFlags.Unused;
+                    }
+                }
+                
+                MarkStmtListUnused(pc, pkg, genericForStmt.Body);
+                break;
+            }
+            case ImportStmt importStmt:
+            {
+                if (importStmt.Alias != null)
+                {
+                    if (pkg.Syms.GetByID(importStmt.Alias.Sym, out var sym))
+                    {
+                        sym.Flags |= SymbolFlags.Unused;
+                    }
+                }
+                
+                break;
+            }
+            case ExportStmt exportStmt:
+                MarkDeclUnused(pc, pkg, exportStmt.Declaration);
+                break;
+        }
+    }
+
+    private void MarkDeclUnused(PassContext pc, PackageContext pkg, Decl decl)
+    {
+        switch (decl)
+        {
+            case FunctionDecl functionDecl:
+            {
+                foreach (var param in functionDecl.Parameters)
+                {
+                    if (pkg.Syms.GetByID(param.Name.Sym, out var sym))
+                    {
+                        sym.Flags |= SymbolFlags.Unused;
+                    }
+                }
+                
+                MarkStmtListUnused(pc, pkg, functionDecl.Body);
+                
+                if (functionDecl.ReturnStmt != null)
+                {
+                    MarkStmtUnused(pc, pkg, functionDecl.ReturnStmt);
+                }
+                break;
+            }
+            case LocalFunctionDecl localFunctionDecl:
+            {
+                if (pkg.Syms.GetByID(localFunctionDecl.Name.Sym, out var sym))
+                {
+                    sym.Flags |= SymbolFlags.Unused;
+                }
+                
+                MarkStmtListUnused(pc, pkg, localFunctionDecl.Body);
+                
+                if (localFunctionDecl.ReturnStmt != null)
+                {
+                    MarkStmtUnused(pc, pkg, localFunctionDecl.ReturnStmt);
+                }
+                break;
+            }
+            case LocalDecl localDecl:
+            {
+                foreach (var variable in localDecl.Variables)
+                {
+                    if (pkg.Syms.GetByID(variable.Name.Sym, out var sym))
+                    {
+                        sym.Flags |= SymbolFlags.Unused;
+                    }
+                }
+                
+                break;
+            }
+        }
+    }
+
+    private void TrackStmtListUsage(PassContext pc, PackageContext pkg, List<Stmt> stmts)
+    {
+        foreach (var stmt in stmts)
+        {
+            TrackStmtUsage(pc, pkg, stmt);
+        }
+    }
+
+    private void TrackStmtUsage(PassContext pc, PackageContext pkg, Stmt stmt)
+    {
+        switch (stmt)
+        {
+            case Decl decl:
+                TrackDeclUsage(pc, pkg, decl);
+                break;
+            case ExprStmt exprStmt:
+                TrackExprUsage(pc, pkg, exprStmt.Expression);
+                break;
+            case DoBlockStmt doBlockStmt:
+                TrackStmtListUsage(pc, pkg, doBlockStmt.Body);
+                break;
+            case WhileStmt whileStmt:
+                TrackExprUsage(pc, pkg, whileStmt.Condition);
+                TrackStmtListUsage(pc, pkg, whileStmt.Body);
+                break;
+            case RepeatStmt repeatStmt:
+                TrackStmtListUsage(pc, pkg, repeatStmt.Body);
+                TrackExprUsage(pc, pkg, repeatStmt.Condition);
+                break;
+            case IfStmt ifStmt:
+                TrackExprUsage(pc, pkg, ifStmt.Condition);
+                TrackStmtListUsage(pc, pkg, ifStmt.Body);
+                
+                foreach (var elseIf in ifStmt.ElseIfs)
+                {
+                    TrackExprUsage(pc, pkg, elseIf.Condition);
+                    TrackStmtListUsage(pc, pkg, elseIf.Body);
+                }
+                
+                if (ifStmt.ElseBody != null)
+                {
+                    TrackStmtListUsage(pc, pkg, ifStmt.ElseBody);
+                }
+                break;
+            case NumericForStmt numericForStmt:
+                TrackExprUsage(pc, pkg, numericForStmt.Start);
+                TrackExprUsage(pc, pkg, numericForStmt.Limit);
+                if (numericForStmt.Step != null)                {
+                    TrackExprUsage(pc, pkg, numericForStmt.Step);
+                }
+                TrackStmtListUsage(pc, pkg, numericForStmt.Body);
+                break;
+            case GenericForStmt genericForStmt:
+                foreach (var varName in genericForStmt.VarNames)
+                {
+                    if (pkg.Syms.GetByID(varName.Sym, out var sym))
+                    {
+                        sym.Flags &= ~SymbolFlags.Unused;
+                    }
+                }
+
+                foreach (var iterator in genericForStmt.Iterators)
+                {
+                    TrackExprUsage(pc, pkg, iterator);
+                }
+
+                TrackStmtListUsage(pc, pkg, genericForStmt.Body);
+                break;
+            case ReturnStmt returnStmt:
+                foreach (var value in returnStmt.Values)
+                {
+                    TrackExprUsage(pc, pkg, value);
+                }
+                break;
+            case ImportStmt importStmt:
+                if (importStmt.Alias != null)
+                {
+                    if (pkg.Syms.GetByID(importStmt.Alias.Sym, out var sym))
+                    {
+                        sym.Flags &= ~SymbolFlags.Unused;
+                    }
+                }
+                break;
+            case ExportStmt exportStmt:
+                TrackDeclUsage(pc, pkg, exportStmt.Declaration);
+                break;
+        }
+    }
+    
+    private void TrackDeclUsage(PassContext pc, PackageContext pkg, Decl decl)
+    {
+        switch (decl)
+        {
+            case FunctionDecl functionDecl:
+            {
+                foreach (var param in functionDecl.Parameters)
+                {
+                    if (pkg.Syms.GetByID(param.Name.Sym, out var sym))
+                    {
+                        sym.Flags &= ~SymbolFlags.Unused;
+                    }
+                    else
+                    {
+                        sym.Flags |= SymbolFlags.Unused;
+                    }
+                }
+                
+                TrackStmtListUsage(pc, pkg, functionDecl.Body);
+                
+                if (functionDecl.ReturnStmt != null)
+                {
+                    TrackStmtUsage(pc, pkg, functionDecl.ReturnStmt);
+                }
+                
+                break;
+            }
+            case LocalFunctionDecl localFunctionDecl:
+            {
+                if (pkg.Syms.GetByID(localFunctionDecl.Name.Sym, out var sym))
+                {
+                    sym.Flags &= ~SymbolFlags.Unused;
+                }
+                else
+                {
+                    sym.Flags |= SymbolFlags.Unused;
+                }
+                
+                TrackStmtListUsage(pc, pkg, localFunctionDecl.Body);
+                
+                if (localFunctionDecl.ReturnStmt != null)
+                {
+                    TrackStmtUsage(pc, pkg, localFunctionDecl.ReturnStmt);
+                }
+                
+                break;
+            }
+            case LocalDecl localDecl:
+            {
+                foreach (var variable in localDecl.Variables)
+                {
+                    if (pkg.Syms.GetByID(variable.Name.Sym, out var sym))
+                    {
+                        sym.Flags &= ~SymbolFlags.Unused;
+                    }
+                    else
+                    {
+                        sym.Flags |= SymbolFlags.Unused;
+                    }
+                }
+
+                break;
+            }
+        }
+    }
+
+    private void TrackExprUsage(PassContext pc, PackageContext pkg, Expr expr)
+    {
+        switch (expr)
+        {
+            case FunctionDefExpr functionDefExpr:
+            {
+                foreach (var param in functionDefExpr.Parameters)
+                {
+                    if (pkg.Syms.GetByID(param.Name.Sym, out var sym))
+                    {
+                        sym.Flags &= ~SymbolFlags.Unused;
+                    }
+                    else
+                    {
+                        sym.Flags |= SymbolFlags.Unused;
+                    }
+                }
+
+                TrackStmtListUsage(pc, pkg, functionDefExpr.Body);
+
+                if (functionDefExpr.ReturnStmt != null)
+                {
+                    TrackStmtUsage(pc, pkg, functionDefExpr.ReturnStmt);
+                }
+
+                break;
+            }
+            case BinaryExpr binaryExpr:
+                TrackExprUsage(pc, pkg, binaryExpr.Left);
+                TrackExprUsage(pc, pkg, binaryExpr.Right);
+                break;
+            case UnaryExpr unaryExpr:
+                TrackExprUsage(pc, pkg, unaryExpr.Operand);
+                break;
+            case NameExpr nameExpr:
+            {
+                if (pkg.Syms.GetByID(nameExpr.Name.Sym, out var sym))
+                {
+                    sym.Flags &= ~SymbolFlags.Unused;
+                }
+
+                break;
+            }
+            case ParenExpr parenExpr:
+                TrackExprUsage(pc, pkg, parenExpr.Inner);
+                break;
+            case DotAccessExpr dotAccessExpr:
+                TrackExprUsage(pc, pkg, dotAccessExpr.Object);
+                break;
+            case IndexAccessExpr indexAccessExpr:
+                TrackExprUsage(pc, pkg, indexAccessExpr.Object);
+                TrackExprUsage(pc, pkg, indexAccessExpr.Index);
+                break;
+            case FunctionCallExpr functionCallExpr:
+                TrackExprUsage(pc, pkg, functionCallExpr.Callee);
+                foreach (var arg in functionCallExpr.Arguments)
+                {
+                    TrackExprUsage(pc, pkg, arg);
+                }
+                break;
+            case MethodCallExpr methodCallExpr:
+                TrackExprUsage(pc, pkg, methodCallExpr.Object);
+                foreach (var arg in methodCallExpr.Arguments)
+                {
+                    TrackExprUsage(pc, pkg, arg);
+                }
+                break;
+            case TableConstructorExpr tableConstructorExpr:
+                foreach (var field in tableConstructorExpr.Fields)
+                {
+                    if (field.Key != null)
+                    {
+                        TrackExprUsage(pc, pkg, field.Key);
+                    }
+                    
+                    TrackExprUsage(pc, pkg, field.Value);
+                }
+                break;
+        }
+    }
+}
