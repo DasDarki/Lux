@@ -13,5 +13,7 @@
       <PackageReference Include="Tomlyn" Version="2.3.0" />
     </ItemGroup>
 
-
+    <PropertyGroup>
+        <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+    </PropertyGroup>
 </Project>

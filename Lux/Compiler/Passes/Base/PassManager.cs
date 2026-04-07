@@ -19,6 +19,7 @@ public sealed class PassManager
         ResolveTypeRefsPass.PassName,
         InferTypesPass.PassName,
         DetectUnusedPass.PassName,
+        DeclGenPass.PassName,
         ManglePase.PassName,
         CodegenPass.PassName
     ];
@@ -49,6 +50,7 @@ public sealed class PassManager
         Register(new ResolveTypeRefsPass());
         Register(new InferTypesPass());
         Register(new DetectUnusedPass());
+        Register(new DeclGenPass());
         Register(new ManglePase());
         Register(new CodegenPass());
     }

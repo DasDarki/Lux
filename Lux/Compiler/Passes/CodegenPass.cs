@@ -13,6 +13,8 @@ public sealed class CodegenPass() : Pass(PassName, PassScope.PerBuild, true, Man
         {
             foreach (var file in pkg.Files)
             {
+                if (file.IsDeclarationFile) continue;
+
                 var gen = new LuaGenerator(context.Config);
                 EmitFile(context, pkg, gen, file);
                 file.GeneratedLua = gen.Finish();
@@ -24,9 +26,61 @@ public sealed class CodegenPass() : Pass(PassName, PassScope.PerBuild, true, Man
 
     private void EmitFile(PassContext ctx, PackageContext pkg, LuaGenerator gen, PreparsedFile file)
     {
+        var exportedNames = new List<string>();
+        CollectExportNames(ctx, pkg, file.Hir.Body, exportedNames);
+
         EmitStmtList(ctx, pkg, gen, file.Hir.Body);
-        if (file.Hir.Return != null)
+
+        if (exportedNames.Count > 0)
+        {
+            if (file.Hir.Return != null)
+            {
+                EmitReturn(ctx, pkg, gen, file.Hir.Return);
+                // TODO: in the future we could merge exports into an existing return table
+            }
+            else
+            {
+                gen.Write("return {");
+                if (!gen.Minify) gen.NewLine();
+                gen.Indent();
+                for (var i = 0; i < exportedNames.Count; i++)
+                {
+                    gen.Write(exportedNames[i]);
+                    gen.Write(" = ");
+                    gen.Write(exportedNames[i]);
+                    if (i < exportedNames.Count - 1) gen.Write(",");
+                    if (!gen.Minify) gen.NewLine();
+                }
+                gen.Dedent();
+                gen.WriteLine("}");
+            }
+        }
+        else if (file.Hir.Return != null)
+        {
             EmitReturn(ctx, pkg, gen, file.Hir.Return);
+        }
+    }
+
+    private void CollectExportNames(PassContext ctx, PackageContext pkg, List<Stmt> stmts, List<string> names)
+    {
+        foreach (var stmt in stmts)
+        {
+            if (stmt is not ExportStmt export) continue;
+            switch (export.Declaration)
+            {
+                case FunctionDecl fd:
+                    if (fd.NamePath.Count > 0)
+                        names.Add(ResolveName(ctx, pkg, fd.NamePath[0]));
+                    break;
+                case LocalFunctionDecl lfd:
+                    names.Add(ResolveName(ctx, pkg, lfd.Name));
+                    break;
+                case LocalDecl ld:
+                    foreach (var v in ld.Variables)
+                        names.Add(ResolveName(ctx, pkg, v.Name));
+                    break;
+            }
+        }
     }
 
     #region Statements
@@ -41,8 +95,33 @@ public sealed class CodegenPass() : Pass(PassName, PassScope.PerBuild, true, Man
         gen.FlushHoisted();
     }
 
+    private bool ShouldStrip(PassContext ctx, PackageContext pkg, Stmt stmt)
+    {
+        if (!ctx.Config.Code.StripUnused) return false;
+        switch (stmt)
+        {
+            case LocalFunctionDecl lfd:
+                return pkg.Syms.GetByID(lfd.Name.Sym, out var lfSym) && lfSym.Flags.HasFlag(SymbolFlags.Unused);
+            case LocalDecl ld:
+                return ld.Variables.All(v => pkg.Syms.GetByID(v.Name.Sym, out var vSym) && vSym.Flags.HasFlag(SymbolFlags.Unused));
+            case ImportStmt import:
+                if (import.Kind == ImportKind.SideEffect) return false;
+                if (import.Alias != null)
+                    return pkg.Syms.GetByID(import.Alias.Sym, out var aSym) && aSym.Flags.HasFlag(SymbolFlags.Unused);
+                return import.Specifiers.Count > 0 && import.Specifiers.All(s =>
+                {
+                    var nr = s.Alias ?? s.Name;
+                    return pkg.Syms.GetByID(nr.Sym, out var sSym) && sSym.Flags.HasFlag(SymbolFlags.Unused);
+                });
+            default:
+                return false;
+        }
+    }
+
     private void EmitStmt(PassContext ctx, PackageContext pkg, LuaGenerator gen, Stmt stmt)
     {
+        if (ShouldStrip(ctx, pkg, stmt)) return;
+
         switch (stmt)
         {
             case FunctionDecl fd:

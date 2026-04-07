@@ -21,4 +21,6 @@ public sealed class PreparsedFile(string? filename, string content)
     public IRScript Hir { get; set; } = null!;
 
     public string? GeneratedLua { get; set; }
+
+    public bool IsDeclarationFile => Filename != null && Filename.EndsWith(".d.lux", StringComparison.OrdinalIgnoreCase);
 }

@@ -65,6 +65,11 @@ public sealed class Config
     public bool GenerateDocs { get; set; } = false;
     
     /// <summary>
+    /// Whether to generate type declarations for the transpiled code. If true, the transpiler will generate type declaration files based on the types used in the source code and the type annotations given.
+    /// </summary>
+    public bool GenerateDeclarations { get; set; } = true;
+    
+    /// <summary>
     /// A list of relative directories or type declaration files to include in the type universe.
     /// </summary>
     public List<string> Globals { get; set; } = [];
@@ -121,6 +126,7 @@ public sealed class Config
         Output = MergeVal(Output, config.Output, "out");
         Minify = MergeVal(Minify, config.Minify, false);
         GenerateDocs = MergeVal(GenerateDocs, config.GenerateDocs, false);
+        GenerateDeclarations = MergeVal(GenerateDeclarations, config.GenerateDeclarations, true);
         Source = MergeVal(Source, config.Source, "src");
         Globals.AddRange(config.Globals);
         Annotations.AddRange(config.Annotations);

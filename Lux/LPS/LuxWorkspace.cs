@@ -21,8 +21,11 @@ public sealed class LuxWorkspace
     private ILanguageServerFacade? _server;
     private Config _config = new();
 
+    private string? _rootPath;
+
     public void Initialize(string? rootPath)
     {
+        _rootPath = rootPath;
         if (rootPath != null)
         {
             var configPath = Path.Combine(rootPath, "lux.toml");

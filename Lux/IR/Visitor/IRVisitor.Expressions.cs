@@ -1,3 +1,5 @@
+using Lux.Diagnostics;
+
 namespace Lux.IR;
 
 internal partial class IRVisitor
@@ -43,13 +45,113 @@ internal partial class IRVisitor
     #region String Literals
 
     public override Node VisitDoubleQuotedStr(LuxParser.DoubleQuotedStrContext context)
-        => new StringLiteralExpr(NewNodeID, SpanFromCtx(context), StripQuotes(context.GetText()));
+    {
+        var raw = StripQuotes(context.GetText());
+        var span = SpanFromCtx(context);
+        return TryBuildInterpolated(raw, span) ?? new StringLiteralExpr(NewNodeID, span, raw);
+    }
 
     public override Node VisitSingleQuotedStr(LuxParser.SingleQuotedStrContext context)
         => new StringLiteralExpr(NewNodeID, SpanFromCtx(context), StripQuotes(context.GetText()));
 
     public override Node VisitLongStr(LuxParser.LongStrContext context)
         => new StringLiteralExpr(NewNodeID, SpanFromCtx(context), StripLongBrackets(context.GetText()));
+
+    private Expr? TryBuildInterpolated(string raw, TextSpan span)
+    {
+        var segments = new List<Expr>();
+        var textBuf = new System.Text.StringBuilder();
+        var i = 0;
+
+        while (i < raw.Length)
+        {
+            if (raw[i] == '\\' && i + 1 < raw.Length)
+            {
+                if (raw[i + 1] == '{')
+                {
+                    textBuf.Append('{');
+                    i += 2;
+                    continue;
+                }
+                textBuf.Append(raw[i]);
+                textBuf.Append(raw[i + 1]);
+                i += 2;
+                continue;
+            }
+
+            if (raw[i] == '{')
+            {
+                var depth = 1;
+                var start = i + 1;
+                var j = start;
+                while (j < raw.Length && depth > 0)
+                {
+                    if (raw[j] == '{') depth++;
+                    else if (raw[j] == '}') depth--;
+                    if (depth > 0) j++;
+                }
+
+                if (depth != 0) return null;
+
+                if (textBuf.Length > 0)
+                {
+                    segments.Add(new StringLiteralExpr(NewNodeID, span, textBuf.ToString()));
+                    textBuf.Clear();
+                }
+
+                var exprSource = raw[start..j];
+                var parsed = ParseInterpolationExpr(exprSource, span);
+                if (parsed == null) return null;
+                segments.Add(parsed);
+
+                i = j + 1;
+                continue;
+            }
+
+            textBuf.Append(raw[i]);
+            i++;
+        }
+
+        if (segments.Count == 0) return null;
+
+        if (textBuf.Length > 0)
+            segments.Add(new StringLiteralExpr(NewNodeID, span, textBuf.ToString()));
+
+        var result = WrapToString(segments[0], span);
+        for (var k = 1; k < segments.Count; k++)
+        {
+            result = new BinaryExpr(NewNodeID, span, BinaryOp.Concat, result, WrapToString(segments[k], span));
+        }
+        return result;
+    }
+
+    private Expr WrapToString(Expr expr, TextSpan span)
+    {
+        if (expr is StringLiteralExpr) return expr;
+        var tostring = new NameExpr(NewNodeID, span, NameRefFromText("tostring", span));
+        return new FunctionCallExpr(NewNodeID, span, tostring, [expr]);
+    }
+
+    private Expr? ParseInterpolationExpr(string exprSource, TextSpan span)
+    {
+        try
+        {
+            var input = new Antlr4.Runtime.AntlrInputStream(exprSource);
+            var lexer = new LuxLexer(input);
+            lexer.RemoveErrorListeners();
+            var tokens = new Antlr4.Runtime.CommonTokenStream(lexer);
+            var parser = new LuxParser(tokens);
+            parser.RemoveErrorListeners();
+            var tree = parser.expr();
+            if (parser.NumberOfSyntaxErrors > 0) return null;
+            var subVisitor = new IRVisitor(filename, nodeAlloc, diag);
+            return subVisitor.Visit(tree) as Expr;
+        }
+        catch
+        {
+            return null;
+        }
+    }
 
     #endregion
 

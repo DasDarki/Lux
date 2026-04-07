@@ -12,7 +12,7 @@ for i = 0, 2 do
 end
 print(sum)
 
-function greet(name: string, greeting: string)
+export function greet(name: string, greeting: string)
     return greeting + ", " .. name + "!"
 end
 

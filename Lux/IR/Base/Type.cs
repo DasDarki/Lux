@@ -152,12 +152,39 @@ public sealed class TupleType(IEnumerable<TupleType.Field> fields) : Type(TypeKi
 
 public sealed class UnionType(IEnumerable<Type> types) : Type(TypeKind.Union)
 {
-    public List<Type> Types { get; } = types.ToList();
+    public List<Type> Types { get; } = ConvertTypes(types);
 
     protected override TypeKey GenerateNewKey()
     {
         var typeKeys = Types.Select(t => t.Key);
         return $"union<{string.Join("|", typeKeys)}>";
+    }
+
+    private static List<Type> ConvertTypes(IEnumerable<Type> types)
+    {
+        var result = new List<Type>();
+        foreach (var t in types)
+        {
+            if (t is UnionType ut)
+            {                
+                foreach (var member in ut.Types)
+                {
+                    if (result.All(existing => existing.Key != member.Key))
+                    {
+                        result.Add(member);
+                    }
+                }
+            }
+            else
+            {
+                if (result.All(existing => existing.Key != t.Key))
+                {
+                    result.Add(t);
+                }
+            }
+        }
+        
+        return result;
     }
 }
 

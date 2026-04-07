@@ -104,13 +104,15 @@ public class LuxCompiler
     /// Compiles the added source files into the final output.
     /// </summary>
     /// <returns>true if the compilation was successful, false otherwise.</returns>
+    public Dictionary<string, object> Cache { get; } = new();
+
     public bool Compile()
     {
         var pm = new PassManager();
         pm.BuildOrder(PassManager.CompilerPipeline);
 
         return pm.Run(Diagnostics, Packages.Values.ToList(), TypeUniverse, SymAlloc, ScopeAlloc, Names,
-            new Dictionary<string, object>(), Config);
+            Cache, Config);
     }
 
     /// <summary>
