@@ -22,5 +22,5 @@ print(msg)
 local len = #arr
 print(len)
 
-local strInterp = "The sum of 1 and 2 is ${result}"
+local strInterp = `The sum of 1 and 2 is {result}`
 print(strInterp)
