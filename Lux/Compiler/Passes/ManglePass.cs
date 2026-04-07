@@ -43,9 +43,9 @@ public sealed class ManglePase() : Pass(PassName, PassScope.PerFile, true, Detec
         return true;
     }
 
-    private bool ShouldMangleSymbol(PassContext ctx, Configuration.MangleSection mc, Symbol sym)
+    private bool ShouldMangleSymbol(PassContext pc, Configuration.MangleSection mc, Symbol sym)
     {
-        var isTopLevel = sym.Owner == ctx.Pkg!.Root;
+        var isTopLevel = sym.Owner == pc.Pkg!.Root;
 
         if (sym.Kind == SymbolKind.Function)
         {

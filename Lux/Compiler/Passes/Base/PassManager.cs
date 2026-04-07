@@ -130,6 +130,7 @@ public sealed class PassManager
     /// <param name="scopeAlloc">The scope ID allocator that is used to allocate new scope IDs for the scopes that are defined during the pass execution.</param>
     /// <param name="names">The name map that is used to manage the original and mangled names of the symbols that are defined during the pass execution.</param>
     /// <param name="cache">The cache that is used to store any intermediate results or data that the passes may need to share during the pass execution.</param>
+    /// <param name="config">The configuration that contains all the settings and options that may affect the behavior of the passes during the pass execution.</param>
     /// <returns>true if all the passes executed successfully, or false if any pass failed and the compilation process should be aborted.</returns>
     /// <exception cref="ArgumentOutOfRangeException">Thrown when a pass has an invalid scope.</exception>
     /// <exception cref="InvalidOperationException">Thrown when a pass is not registered.</exception>

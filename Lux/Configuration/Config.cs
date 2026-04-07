@@ -73,7 +73,11 @@ public sealed class Config
     /// A list of relative directories or Lux files to load annotation plugins from.
     /// </summary>
     public List<string> Annotations { get; set; } = [];
-    
+
+    public string Source { get; set; } = "src";
+
+    public ScriptsSection Scripts { get; set; } = new();
+
     public CodeSection Code { get; set; } = new();
 
     public MangleSection Mangle { get; set; } = new();
@@ -117,9 +121,11 @@ public sealed class Config
         Output = MergeVal(Output, config.Output, "out");
         Minify = MergeVal(Minify, config.Minify, false);
         GenerateDocs = MergeVal(GenerateDocs, config.GenerateDocs, false);
+        Source = MergeVal(Source, config.Source, "src");
         Globals.AddRange(config.Globals);
         Annotations.AddRange(config.Annotations);
-        
+
+        Scripts.Merge(config.Scripts);
         Code.Merge(config.Code);
         Mangle.Merge(config.Mangle);
         Rules.Merge(config.Rules);

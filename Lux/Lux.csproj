@@ -9,7 +9,9 @@
 
     <ItemGroup>
       <PackageReference Include="Antlr4.Runtime.Standard" Version="4.13.1" />
+      <PackageReference Include="OmniSharp.Extensions.LanguageServer" Version="0.19.9" />
       <PackageReference Include="Tomlyn" Version="2.3.0" />
     </ItemGroup>
+
 
 </Project>
