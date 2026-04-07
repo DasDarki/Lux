@@ -270,8 +270,6 @@ pre_build = ["echo Building..."]
 post_build = ["echo Done!"]
 
 [code]
-index_base = 0              # 0-based indexing (default)
-concat_operator = "+"       # use + for string concat (default)
 string_interpolation = true
 semicolons = "optional"     # optional, required, or forbidden
 import_statement = "require(%s)"
