@@ -1706,4 +1706,16 @@ public interface ILuxListener : IParseTreeListener {
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	void ExitLongStr([NotNull] LuxParser.LongStrContext context);
+	/// <summary>
+	/// Enter a parse tree produced by the <c>InterpolatedStr</c>
+	/// labeled alternative in <see cref="LuxParser.str"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void EnterInterpolatedStr([NotNull] LuxParser.InterpolatedStrContext context);
+	/// <summary>
+	/// Exit a parse tree produced by the <c>InterpolatedStr</c>
+	/// labeled alternative in <see cref="LuxParser.str"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void ExitInterpolatedStr([NotNull] LuxParser.InterpolatedStrContext context);
 }

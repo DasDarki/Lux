@@ -7,7 +7,7 @@ namespace Lux.Compiler.Passes;
 /// <summary>
 /// The pass context is the context in which a pass is executed. It contains all the information that a pass needs to execute.
 /// </summary>
-public sealed class PassContext(DiagnosticsBag diag, List<PackageContext> pkgs, PackageContext? pkg, PreparsedFile? file, TypeTable types, IDAlloc<SymID> symAlloc, IDAlloc<ScopeID> scopeAlloc, NameMap names, Dictionary<string, object> cache, Config config)
+public sealed class PassContext(DiagnosticsBag diag, List<PackageContext> pkgs, PackageContext? pkg, PreparsedFile? file, TypeTable types, IDAlloc<SymID> symAlloc, IDAlloc<ScopeID> scopeAlloc, IDAlloc<NodeID> nodeAlloc, NameMap names, Dictionary<string, object> cache, Config config)
 {
     /// <summary>
     /// The configuration of the compiler. This is used to access language-level configuration such as the concat
@@ -53,7 +53,9 @@ public sealed class PassContext(DiagnosticsBag diag, List<PackageContext> pkgs, 
     /// The scope allocator of the current build. This is used to allocate new scope IDs during the pass execution.
     /// </summary>
     public IDAlloc<ScopeID> ScopeAlloc { get; } = scopeAlloc;
-    
+
+    public IDAlloc<NodeID> NodeAlloc { get; } = nodeAlloc;
+
     /// <summary>
     /// The name map of the current build. This is used to map symbol IDs to their original names and to their mangled
     /// names during the pass execution, such as for name resolution and name mangling.
@@ -70,8 +72,8 @@ public sealed class PassContext(DiagnosticsBag diag, List<PackageContext> pkgs, 
     /// Creates a new pass context with the specified diagnostics bag, package contexts, current package context, current file,
     /// type table, symbol allocator, scope allocator, and name map. Used for passes that use the <see cref="PassScope.PerBuild"/>.
     /// </summary>
-    public PassContext(DiagnosticsBag diag, List<PackageContext> pkgs, TypeTable types, IDAlloc<SymID> symAlloc, IDAlloc<ScopeID> scopeAlloc, NameMap names, Dictionary<string, object> cache, Config config)
-        : this(diag, pkgs, null, null, types, symAlloc, scopeAlloc, names, cache, config)
+    public PassContext(DiagnosticsBag diag, List<PackageContext> pkgs, TypeTable types, IDAlloc<SymID> symAlloc, IDAlloc<ScopeID> scopeAlloc, IDAlloc<NodeID> nodeAlloc, NameMap names, Dictionary<string, object> cache, Config config)
+        : this(diag, pkgs, null, null, types, symAlloc, scopeAlloc, nodeAlloc, names, cache, config)
     {
     }
 }

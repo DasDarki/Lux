@@ -110,7 +110,7 @@ public sealed class LuxWorkspace
         {
             var pm = new PassManager();
             pm.BuildOrder(PassManager.CheckPipeline);
-            pm.Run(diag, [pkg], types, symAlloc, scopeAlloc, names, new Dictionary<string, object>(), _config);
+            pm.Run(diag, [pkg], types, symAlloc, scopeAlloc, nodeAlloc, names, new Dictionary<string, object>(), _config);
         }
         catch
         {

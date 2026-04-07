@@ -86,7 +86,12 @@ public enum DiagnosticCode
     [Category(DiagnosticCategory.Semantic)]
     [Format("Code is unreachable and will never be executed")]
     WrnUnreachableCode = 0x1005,
-    
+
+    [Level(DiagnosticLevel.Error)]
+    [Category(DiagnosticCategory.Semantic)]
+    [Format("String interpolation is disabled in the configuration. Enable [code] string_interpolation = true to use backtick strings.")]
+    ErrStringInterpolationDisabled = 0x1006,
+
     #endregion
 
     #region Type

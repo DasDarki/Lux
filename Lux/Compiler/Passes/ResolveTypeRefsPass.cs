@@ -276,6 +276,15 @@ public class ResolveTypeRefsPass() : Pass(PassName, PassScope.PerBuild, dependen
                 }
                 
                 break;
+            case InterpolatedStringExpr interpolatedStringExpr:
+                foreach (var part in interpolatedStringExpr.Parts)
+                {
+                    if (part is InterpExprPart exprPart)
+                    {
+                        ResolveExprTypes(tt, exprPart.Expression);
+                    }
+                }
+                break;
             case TableConstructorExpr tableConstructorExpr:
                 foreach (var field in tableConstructorExpr.Fields)
                 {

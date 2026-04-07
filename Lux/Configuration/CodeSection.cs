@@ -38,6 +38,8 @@ public sealed class CodeSection
     /// </summary>
     public bool StripUnused { get; set; } = true;
 
+    public List<string> Libs { get; set; } = [];
+
     internal void Merge(CodeSection section)
     {
         IndexBase = Config.MergeVal(IndexBase, section.IndexBase, 0);
@@ -46,5 +48,6 @@ public sealed class CodeSection
         Semicolons = Config.MergeVal(Semicolons, section.Semicolons, Policy.Optional);
         ImportStatement = Config.MergeVal(ImportStatement, section.ImportStatement, "require(%s)");
         StripUnused = Config.MergeVal(StripUnused, section.StripUnused, true);
+        if (section.Libs.Count > 0) Libs = section.Libs;
     }
 }

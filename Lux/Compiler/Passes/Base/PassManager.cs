@@ -15,6 +15,7 @@ public sealed class PassManager
     public static readonly string[] CompilerPipeline = [
         ResolveLibsPass.PassName,
         BindDeclarePass.PassName,
+        ResolveImportsPass.PassName,
         ResolveNamesPass.PassName,
         ResolveTypeRefsPass.PassName,
         InferTypesPass.PassName,
@@ -30,6 +31,7 @@ public sealed class PassManager
     public static readonly string[] CheckPipeline = [
         ResolveLibsPass.PassName,
         BindDeclarePass.PassName,
+        ResolveImportsPass.PassName,
         ResolveNamesPass.PassName,
         ResolveTypeRefsPass.PassName,
         InferTypesPass.PassName,
@@ -46,6 +48,7 @@ public sealed class PassManager
     {
         Register(new ResolveLibsPass());
         Register(new BindDeclarePass());
+        Register(new ResolveImportsPass());
         Register(new ResolveNamesPass());
         Register(new ResolveTypeRefsPass());
         Register(new InferTypesPass());
@@ -137,13 +140,13 @@ public sealed class PassManager
     /// <exception cref="ArgumentOutOfRangeException">Thrown when a pass has an invalid scope.</exception>
     /// <exception cref="InvalidOperationException">Thrown when a pass is not registered.</exception>
     public bool Run(DiagnosticsBag diag, List<PackageContext> pkgs, TypeTable types, IDAlloc<SymID> symAlloc,
-        IDAlloc<ScopeID> scopeAlloc, NameMap names, Dictionary<string, object> cache, Configuration.Config config)
+        IDAlloc<ScopeID> scopeAlloc, IDAlloc<NodeID> nodeAlloc, NameMap names, Dictionary<string, object> cache, Configuration.Config config)
     {
         if (_passOrder.Count == 0)
         {
             throw new InvalidOperationException("Pass order is not built. Please call BuildOrder before running the passes.");
         }
-        
+
         foreach (var passName in _passOrder)
         {
             if (_passes.TryGetValue(passName, out var pass))
@@ -156,13 +159,13 @@ public sealed class PassManager
                 switch (pass.Scope)
                 {
                     case PassScope.PerFile:
-                        if (pkgs.Any(pkg => pkg.Files.Select(file => new PassContext(diag, pkgs, pkg, file, types, symAlloc, scopeAlloc, names, cache, config)).Any(ctx => !pass.Run(ctx))))
+                        if (pkgs.Any(pkg => pkg.Files.Select(file => new PassContext(diag, pkgs, pkg, file, types, symAlloc, scopeAlloc, nodeAlloc, names, cache, config)).Any(ctx => !pass.Run(ctx))))
                         {
                             return false;
                         }
                         break;
                     case PassScope.PerBuild:
-                        if (!pass.Run(new PassContext(diag, pkgs, types, symAlloc, scopeAlloc, names, cache, config)))
+                        if (!pass.Run(new PassContext(diag, pkgs, types, symAlloc, scopeAlloc, nodeAlloc, names, cache, config)))
                         {
                             return false;
                         }

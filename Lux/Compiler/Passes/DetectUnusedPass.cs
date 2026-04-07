@@ -394,6 +394,15 @@ public sealed class DetectUnusedPass() : Pass(PassName, PassScope.PerBuild, depe
                     TrackExprUsage(pc, pkg, arg);
                 }
                 break;
+            case InterpolatedStringExpr interpolatedStringExpr:
+                foreach (var part in interpolatedStringExpr.Parts)
+                {
+                    if (part is InterpExprPart exprPart)
+                    {
+                        TrackExprUsage(pc, pkg, exprPart.Expression);
+                    }
+                }
+                break;
             case TableConstructorExpr tableConstructorExpr:
                 foreach (var field in tableConstructorExpr.Fields)
                 {

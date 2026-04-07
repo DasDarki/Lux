@@ -595,6 +595,7 @@ str
     : NORMAL_STRING                                             # DoubleQuotedStr
     | CHAR_STRING                                               # SingleQuotedStr
     | LONG_STRING                                               # LongStr
+    | INTERP_STRING                                             # InterpolatedStr
     ;
 
 
@@ -700,6 +701,18 @@ CHAR_STRING
 
 LONG_STRING
     : LONG_BRACKET_OPEN .*? LONG_BRACKET_CLOSE
+    ;
+
+INTERP_STRING
+    : '`' (InterpEscape | InterpBraceGroup | ~[`\\])* '`'
+    ;
+
+fragment InterpEscape
+    : '\\' [`{}abfnrtvz"'\\]
+    ;
+
+fragment InterpBraceGroup
+    : '{' (InterpBraceGroup | ~[{}])* '}'
     ;
 
 // ─────────────────────────────────────────────────────────────────────────────

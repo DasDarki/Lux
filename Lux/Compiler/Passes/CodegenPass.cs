@@ -520,6 +520,46 @@ public sealed class CodegenPass() : Pass(PassName, PassScope.PerBuild, true, Man
             case TableConstructorExpr tc:
                 EmitTableConstructor(ctx, pkg, gen, tc);
                 break;
+            case InterpolatedStringExpr interp:
+                EmitInterpolatedString(ctx, pkg, gen, interp);
+                break;
+        }
+    }
+
+    private void EmitInterpolatedString(PassContext ctx, PackageContext pkg, LuaGenerator gen, InterpolatedStringExpr interp)
+    {
+        if (interp.Parts.Count == 0)
+        {
+            gen.Write("\"\"");
+            return;
+        }
+
+        var first = true;
+        foreach (var part in interp.Parts)
+        {
+            if (!first) gen.Write(" .. ");
+            first = false;
+
+            switch (part)
+            {
+                case InterpTextPart text:
+                    gen.Write("\"");
+                    gen.Write(EscapeLuaString(text.Text));
+                    gen.Write("\"");
+                    break;
+                case InterpExprPart exprPart:
+                    if (exprPart.Expression is StringLiteralExpr)
+                    {
+                        EmitExpr(ctx, pkg, gen, exprPart.Expression);
+                    }
+                    else
+                    {
+                        gen.Write("tostring(");
+                        EmitExpr(ctx, pkg, gen, exprPart.Expression);
+                        gen.Write(")");
+                    }
+                    break;
+            }
         }
     }
 

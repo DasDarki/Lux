@@ -1,4 +1,4 @@
-function add(a: number, b: number): number
+export function add(a: number, b: number): number
     return a + b
 end
 
@@ -21,3 +21,6 @@ print(msg)
 
 local len = #arr
 print(len)
+
+local strInterp = "The sum of 1 and 2 is ${result}"
+print(strInterp)

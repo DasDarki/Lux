@@ -2003,6 +2003,20 @@ public partial class LuxBaseListener : ILuxListener {
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	public virtual void ExitLongStr([NotNull] LuxParser.LongStrContext context) { }
+	/// <summary>
+	/// Enter a parse tree produced by the <c>InterpolatedStr</c>
+	/// labeled alternative in <see cref="LuxParser.str"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void EnterInterpolatedStr([NotNull] LuxParser.InterpolatedStrContext context) { }
+	/// <summary>
+	/// Exit a parse tree produced by the <c>InterpolatedStr</c>
+	/// labeled alternative in <see cref="LuxParser.str"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void ExitInterpolatedStr([NotNull] LuxParser.InterpolatedStrContext context) { }
 
 	/// <inheritdoc/>
 	/// <remarks>The default implementation does nothing.</remarks>

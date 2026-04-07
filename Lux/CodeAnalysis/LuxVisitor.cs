@@ -1015,4 +1015,11 @@ public interface ILuxVisitor<Result> : IParseTreeVisitor<Result> {
 	/// <param name="context">The parse tree.</param>
 	/// <return>The visitor result.</return>
 	Result VisitLongStr([NotNull] LuxParser.LongStrContext context);
+	/// <summary>
+	/// Visit a parse tree produced by the <c>InterpolatedStr</c>
+	/// labeled alternative in <see cref="LuxParser.str"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitInterpolatedStr([NotNull] LuxParser.InterpolatedStrContext context);
 }

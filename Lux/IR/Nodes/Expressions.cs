@@ -20,6 +20,26 @@ public sealed class StringLiteralExpr(NodeID id, TextSpan span, string value) : 
     public string Value { get; } = value;
 }
 
+public sealed class InterpolatedStringExpr(NodeID id, TextSpan span, List<InterpStringPart> parts) : Expr(id, span)
+{
+    public List<InterpStringPart> Parts { get; } = parts;
+}
+
+public abstract class InterpStringPart(TextSpan span)
+{
+    public TextSpan Span { get; } = span;
+}
+
+public sealed class InterpTextPart(TextSpan span, string text) : InterpStringPart(span)
+{
+    public string Text { get; } = text;
+}
+
+public sealed class InterpExprPart(TextSpan span, Expr expression) : InterpStringPart(span)
+{
+    public Expr Expression { get; } = expression;
+}
+
 public sealed class VarargExpr(NodeID id, TextSpan span) : Expr(id, span);
 
 public sealed class FunctionDefExpr(

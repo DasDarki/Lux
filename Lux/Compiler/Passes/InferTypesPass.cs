@@ -357,6 +357,18 @@ public sealed class InferTypesPass() : Pass(PassName, PassScope.PerFile, depende
             case StringLiteralExpr:
                 result = tt.PrimString.ID;
                 break;
+            case InterpolatedStringExpr interp:
+                foreach (var part in interp.Parts)
+                {
+                    if (part is InterpExprPart ep)
+                        SynthesizeExpr(pc, ep.Expression);
+                }
+                if (!pc.Config.Code.StringInterpolation)
+                {
+                    pc.Diag.Report(interp.Span, Diagnostics.DiagnosticCode.ErrStringInterpolationDisabled);
+                }
+                result = tt.PrimString.ID;
+                break;
             case VarargExpr:
                 result = tt.PrimAny.ID;
                 break;

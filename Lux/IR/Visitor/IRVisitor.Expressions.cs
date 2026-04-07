@@ -45,11 +45,7 @@ internal partial class IRVisitor
     #region String Literals
 
     public override Node VisitDoubleQuotedStr(LuxParser.DoubleQuotedStrContext context)
-    {
-        var raw = StripQuotes(context.GetText());
-        var span = SpanFromCtx(context);
-        return TryBuildInterpolated(raw, span) ?? new StringLiteralExpr(NewNodeID, span, raw);
-    }
+        => new StringLiteralExpr(NewNodeID, SpanFromCtx(context), StripQuotes(context.GetText()));
 
     public override Node VisitSingleQuotedStr(LuxParser.SingleQuotedStrContext context)
         => new StringLiteralExpr(NewNodeID, SpanFromCtx(context), StripQuotes(context.GetText()));
@@ -57,9 +53,14 @@ internal partial class IRVisitor
     public override Node VisitLongStr(LuxParser.LongStrContext context)
         => new StringLiteralExpr(NewNodeID, SpanFromCtx(context), StripLongBrackets(context.GetText()));
 
-    private Expr? TryBuildInterpolated(string raw, TextSpan span)
+    public override Node VisitInterpolatedStr(LuxParser.InterpolatedStrContext context)
     {
-        var segments = new List<Expr>();
+        var span = SpanFromCtx(context);
+        var raw = context.GetText();
+        if (raw.Length >= 2 && raw[0] == '`' && raw[^1] == '`')
+            raw = raw[1..^1];
+
+        var parts = new List<InterpStringPart>();
         var textBuf = new System.Text.StringBuilder();
         var i = 0;
 
@@ -67,14 +68,20 @@ internal partial class IRVisitor
         {
             if (raw[i] == '\\' && i + 1 < raw.Length)
             {
-                if (raw[i + 1] == '{')
+                var esc = raw[i + 1];
+                textBuf.Append(esc switch
                 {
-                    textBuf.Append('{');
-                    i += 2;
-                    continue;
-                }
-                textBuf.Append(raw[i]);
-                textBuf.Append(raw[i + 1]);
+                    '`' => '`',
+                    '{' => '{',
+                    '}' => '}',
+                    'n' => '\n',
+                    't' => '\t',
+                    'r' => '\r',
+                    '\\' => '\\',
+                    '"' => '"',
+                    '\'' => '\'',
+                    _ => esc
+                });
                 i += 2;
                 continue;
             }
@@ -91,18 +98,23 @@ internal partial class IRVisitor
                     if (depth > 0) j++;
                 }
 
-                if (depth != 0) return null;
+                if (depth != 0)
+                {
+                    textBuf.Append(raw[i]);
+                    i++;
+                    continue;
+                }
 
                 if (textBuf.Length > 0)
                 {
-                    segments.Add(new StringLiteralExpr(NewNodeID, span, textBuf.ToString()));
+                    parts.Add(new InterpTextPart(span, textBuf.ToString()));
                     textBuf.Clear();
                 }
 
                 var exprSource = raw[start..j];
                 var parsed = ParseInterpolationExpr(exprSource, span);
-                if (parsed == null) return null;
-                segments.Add(parsed);
+                if (parsed != null)
+                    parts.Add(new InterpExprPart(span, parsed));
 
                 i = j + 1;
                 continue;
@@ -112,24 +124,10 @@ internal partial class IRVisitor
             i++;
         }
 
-        if (segments.Count == 0) return null;
-
         if (textBuf.Length > 0)
-            segments.Add(new StringLiteralExpr(NewNodeID, span, textBuf.ToString()));
+            parts.Add(new InterpTextPart(span, textBuf.ToString()));
 
-        var result = WrapToString(segments[0], span);
-        for (var k = 1; k < segments.Count; k++)
-        {
-            result = new BinaryExpr(NewNodeID, span, BinaryOp.Concat, result, WrapToString(segments[k], span));
-        }
-        return result;
-    }
-
-    private Expr WrapToString(Expr expr, TextSpan span)
-    {
-        if (expr is StringLiteralExpr) return expr;
-        var tostring = new NameExpr(NewNodeID, span, NameRefFromText("tostring", span));
-        return new FunctionCallExpr(NewNodeID, span, tostring, [expr]);
+        return new InterpolatedStringExpr(NewNodeID, span, parts);
     }
 
     private Expr? ParseInterpolationExpr(string exprSource, TextSpan span)

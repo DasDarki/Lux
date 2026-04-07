@@ -460,6 +460,19 @@ public sealed class BindDeclarePass() : Pass(PassName, PassScope.PerFile, depend
                 }
 
                 return true;
+            case InterpolatedStringExpr interpolatedString:
+                foreach (var part in interpolatedString.Parts)
+                {
+                    if (part is InterpExprPart exprPart)
+                    {
+                        if (!BindExprScopes(ctx, exprPart.Expression, scope))
+                        {
+                            return false;
+                        }
+                    }
+                }
+
+                return true;
             case TableConstructorExpr tableConstructor:
                 foreach (var field in tableConstructor.Fields)
                 {

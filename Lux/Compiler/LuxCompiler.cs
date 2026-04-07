@@ -111,7 +111,7 @@ public class LuxCompiler
         var pm = new PassManager();
         pm.BuildOrder(PassManager.CompilerPipeline);
 
-        return pm.Run(Diagnostics, Packages.Values.ToList(), TypeUniverse, SymAlloc, ScopeAlloc, Names,
+        return pm.Run(Diagnostics, Packages.Values.ToList(), TypeUniverse, SymAlloc, ScopeAlloc, NodeAlloc, Names,
             Cache, Config);
     }
 

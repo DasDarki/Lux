@@ -182,6 +182,12 @@ public static class NodeFinder
                     SearchExpr(f.Value, line, col, ref best);
                 }
                 break;
+            case InterpolatedStringExpr interp:
+                foreach (var p in interp.Parts)
+                {
+                    if (p is InterpExprPart ep) SearchExpr(ep.Expression, line, col, ref best);
+                }
+                break;
         }
     }
 
@@ -344,6 +350,12 @@ public static class NodeFinder
                     SearchExprForNameRef(f.Value, line, col, ref best);
                 }
                 break;
+            case InterpolatedStringExpr interp:
+                foreach (var p in interp.Parts)
+                {
+                    if (p is InterpExprPart ep) SearchExprForNameRef(ep.Expression, line, col, ref best);
+                }
+                break;
         }
     }
 
@@ -489,6 +501,12 @@ public static class NodeFinder
                     CollectFromExpr(f.Value, refs);
                 }
                 break;
+            case InterpolatedStringExpr interp:
+                foreach (var p in interp.Parts)
+                {
+                    if (p is InterpExprPart ep) CollectFromExpr(ep.Expression, refs);
+                }
+                break;
         }
     }
 
@@ -590,6 +608,12 @@ public static class NodeFinder
                 {
                     if (f.Key != null) RegisterExpr(f.Key, reg);
                     RegisterExpr(f.Value, reg);
+                }
+                break;
+            case InterpolatedStringExpr interp:
+                foreach (var p in interp.Parts)
+                {
+                    if (p is InterpExprPart ep) RegisterExpr(ep.Expression, reg);
                 }
                 break;
         }
