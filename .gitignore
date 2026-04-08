@@ -8,3 +8,4 @@ riderModule.iml
 *.DotSettings
 .claude/
 CLAUDE.md
+out/
