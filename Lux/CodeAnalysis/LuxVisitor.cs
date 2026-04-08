@@ -591,20 +591,6 @@ public interface ILuxVisitor<Result> : IParseTreeVisitor<Result> {
 	/// <return>The visitor result.</return>
 	Result VisitStructField([NotNull] LuxParser.StructFieldContext context);
 	/// <summary>
-	/// Visit a parse tree produced by the <c>BitwiseAndExpr</c>
-	/// labeled alternative in <see cref="LuxParser.expr"/>.
-	/// </summary>
-	/// <param name="context">The parse tree.</param>
-	/// <return>The visitor result.</return>
-	Result VisitBitwiseAndExpr([NotNull] LuxParser.BitwiseAndExprContext context);
-	/// <summary>
-	/// Visit a parse tree produced by the <c>BitShiftExpr</c>
-	/// labeled alternative in <see cref="LuxParser.expr"/>.
-	/// </summary>
-	/// <param name="context">The parse tree.</param>
-	/// <return>The visitor result.</return>
-	Result VisitBitShiftExpr([NotNull] LuxParser.BitShiftExprContext context);
-	/// <summary>
 	/// Visit a parse tree produced by the <c>BitwiseOrExpr</c>
 	/// labeled alternative in <see cref="LuxParser.expr"/>.
 	/// </summary>
@@ -619,19 +605,19 @@ public interface ILuxVisitor<Result> : IParseTreeVisitor<Result> {
 	/// <return>The visitor result.</return>
 	Result VisitComparisonExpr([NotNull] LuxParser.ComparisonExprContext context);
 	/// <summary>
+	/// Visit a parse tree produced by the <c>TypeCheckExpr</c>
+	/// labeled alternative in <see cref="LuxParser.expr"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitTypeCheckExpr([NotNull] LuxParser.TypeCheckExprContext context);
+	/// <summary>
 	/// Visit a parse tree produced by the <c>FunctionDefExpr</c>
 	/// labeled alternative in <see cref="LuxParser.expr"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	/// <return>The visitor result.</return>
 	Result VisitFunctionDefExpr([NotNull] LuxParser.FunctionDefExprContext context);
-	/// <summary>
-	/// Visit a parse tree produced by the <c>UnaryExpr</c>
-	/// labeled alternative in <see cref="LuxParser.expr"/>.
-	/// </summary>
-	/// <param name="context">The parse tree.</param>
-	/// <return>The visitor result.</return>
-	Result VisitUnaryExpr([NotNull] LuxParser.UnaryExprContext context);
 	/// <summary>
 	/// Visit a parse tree produced by the <c>LogicalAndExpr</c>
 	/// labeled alternative in <see cref="LuxParser.expr"/>.
@@ -654,6 +640,48 @@ public interface ILuxVisitor<Result> : IParseTreeVisitor<Result> {
 	/// <return>The visitor result.</return>
 	Result VisitFalseLiteral([NotNull] LuxParser.FalseLiteralContext context);
 	/// <summary>
+	/// Visit a parse tree produced by the <c>MultiplicativeExpr</c>
+	/// labeled alternative in <see cref="LuxParser.expr"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitMultiplicativeExpr([NotNull] LuxParser.MultiplicativeExprContext context);
+	/// <summary>
+	/// Visit a parse tree produced by the <c>TrueLiteral</c>
+	/// labeled alternative in <see cref="LuxParser.expr"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitTrueLiteral([NotNull] LuxParser.TrueLiteralContext context);
+	/// <summary>
+	/// Visit a parse tree produced by the <c>NilCoalesceExpr</c>
+	/// labeled alternative in <see cref="LuxParser.expr"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitNilCoalesceExpr([NotNull] LuxParser.NilCoalesceExprContext context);
+	/// <summary>
+	/// Visit a parse tree produced by the <c>BitwiseAndExpr</c>
+	/// labeled alternative in <see cref="LuxParser.expr"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitBitwiseAndExpr([NotNull] LuxParser.BitwiseAndExprContext context);
+	/// <summary>
+	/// Visit a parse tree produced by the <c>BitShiftExpr</c>
+	/// labeled alternative in <see cref="LuxParser.expr"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitBitShiftExpr([NotNull] LuxParser.BitShiftExprContext context);
+	/// <summary>
+	/// Visit a parse tree produced by the <c>UnaryExpr</c>
+	/// labeled alternative in <see cref="LuxParser.expr"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitUnaryExpr([NotNull] LuxParser.UnaryExprContext context);
+	/// <summary>
 	/// Visit a parse tree produced by the <c>PrefixExpr</c>
 	/// labeled alternative in <see cref="LuxParser.expr"/>.
 	/// </summary>
@@ -675,26 +703,12 @@ public interface ILuxVisitor<Result> : IParseTreeVisitor<Result> {
 	/// <return>The visitor result.</return>
 	Result VisitConcatExpr([NotNull] LuxParser.ConcatExprContext context);
 	/// <summary>
-	/// Visit a parse tree produced by the <c>MultiplicativeExpr</c>
-	/// labeled alternative in <see cref="LuxParser.expr"/>.
-	/// </summary>
-	/// <param name="context">The parse tree.</param>
-	/// <return>The visitor result.</return>
-	Result VisitMultiplicativeExpr([NotNull] LuxParser.MultiplicativeExprContext context);
-	/// <summary>
 	/// Visit a parse tree produced by the <c>PowerExpr</c>
 	/// labeled alternative in <see cref="LuxParser.expr"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	/// <return>The visitor result.</return>
 	Result VisitPowerExpr([NotNull] LuxParser.PowerExprContext context);
-	/// <summary>
-	/// Visit a parse tree produced by the <c>TrueLiteral</c>
-	/// labeled alternative in <see cref="LuxParser.expr"/>.
-	/// </summary>
-	/// <param name="context">The parse tree.</param>
-	/// <return>The visitor result.</return>
-	Result VisitTrueLiteral([NotNull] LuxParser.TrueLiteralContext context);
 	/// <summary>
 	/// Visit a parse tree produced by the <c>StringLiteral</c>
 	/// labeled alternative in <see cref="LuxParser.expr"/>.
@@ -724,13 +738,6 @@ public interface ILuxVisitor<Result> : IParseTreeVisitor<Result> {
 	/// <return>The visitor result.</return>
 	Result VisitNilLiteral([NotNull] LuxParser.NilLiteralContext context);
 	/// <summary>
-	/// Visit a parse tree produced by the <c>NilCoalesceExpr</c>
-	/// labeled alternative in <see cref="LuxParser.expr"/>.
-	/// </summary>
-	/// <param name="context">The parse tree.</param>
-	/// <return>The visitor result.</return>
-	Result VisitNilCoalesceExpr([NotNull] LuxParser.NilCoalesceExprContext context);
-	/// <summary>
 	/// Visit a parse tree produced by the <c>BitwiseXorExpr</c>
 	/// labeled alternative in <see cref="LuxParser.expr"/>.
 	/// </summary>
@@ -744,6 +751,13 @@ public interface ILuxVisitor<Result> : IParseTreeVisitor<Result> {
 	/// <param name="context">The parse tree.</param>
 	/// <return>The visitor result.</return>
 	Result VisitNumberLiteral([NotNull] LuxParser.NumberLiteralContext context);
+	/// <summary>
+	/// Visit a parse tree produced by the <c>TypeCastExpr</c>
+	/// labeled alternative in <see cref="LuxParser.expr"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitTypeCastExpr([NotNull] LuxParser.TypeCastExprContext context);
 	/// <summary>
 	/// Visit a parse tree produced by the <c>TableConstructorExpr</c>
 	/// labeled alternative in <see cref="LuxParser.expr"/>.

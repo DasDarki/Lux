@@ -109,6 +109,18 @@ public sealed class NonNilAssertExpr(NodeID id, TextSpan span, Expr inner) : Exp
     public Expr Inner { get; } = inner;
 }
 
+public sealed class TypeCheckExpr(NodeID id, TextSpan span, Expr inner, TypeRef targetType) : Expr(id, span)
+{
+    public Expr Inner { get; } = inner;
+    public TypeRef TargetType { get; } = targetType;
+}
+
+public sealed class TypeCastExpr(NodeID id, TextSpan span, Expr inner, TypeRef targetType) : Expr(id, span)
+{
+    public Expr Inner { get; } = inner;
+    public TypeRef TargetType { get; } = targetType;
+}
+
 public sealed class TableConstructorExpr(NodeID id, TextSpan span, List<TableField> fields) : Expr(id, span)
 {
     public List<TableField> Fields { get; } = fields;

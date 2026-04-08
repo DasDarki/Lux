@@ -207,7 +207,7 @@ public sealed class CodegenPass() : Pass(PassName, PassScope.PerBuild, true, Man
 
     private void EmitEnumDecl(PassContext ctx, PackageContext pkg, LuaGenerator gen, EnumDecl ed)
     {
-        var hasNumberValues = ed.Members.Any(m => m.Value is NumberLiteralExpr);
+        var hasStringValues = ed.Members.Any(m => m.Value is StringLiteralExpr);
         gen.Write("local ");
         gen.Write(ResolveName(ctx, pkg, ed.Name));
         gen.Write(" = { ");
@@ -232,16 +232,16 @@ public sealed class CodegenPass() : Pass(PassName, PassScope.PerBuild, true, Man
                     autoIndex++;
                     break;
                 default:
-                    if (hasNumberValues)
-                    {
-                        gen.Write(autoIndex.ToString());
-                        autoIndex++;
-                    }
-                    else
+                    if (hasStringValues)
                     {
                         gen.Write("\"");
                         gen.Write(m.Name.Name);
                         gen.Write("\"");
+                    }
+                    else
+                    {
+                        gen.Write(autoIndex.ToString());
+                        autoIndex++;
                     }
                     break;
             }
@@ -589,7 +589,76 @@ public sealed class CodegenPass() : Pass(PassName, PassScope.PerBuild, true, Man
             case NonNilAssertExpr nna:
                 EmitExpr(ctx, pkg, gen, nna.Inner);
                 break;
+            case TypeCastExpr tcast:
+                EmitExpr(ctx, pkg, gen, tcast.Inner);
+                break;
+            case TypeCheckExpr tchk:
+                EmitTypeCheck(ctx, pkg, gen, tchk);
+                break;
         }
+    }
+
+    private void EmitTypeCheck(PassContext ctx, PackageContext pkg, LuaGenerator gen, TypeCheckExpr tchk)
+    {
+        var targetID = tchk.TargetType.ResolvedType;
+        if (!pkg.Types.GetByID(targetID, out var targetType))
+        {
+            gen.Write("false");
+            return;
+        }
+
+        switch (targetType)
+        {
+            case { Kind: TypeKind.PrimitiveNil }:
+                gen.Write("(");
+                EmitExpr(ctx, pkg, gen, tchk.Inner);
+                gen.Write(" == nil)");
+                break;
+            case { Kind: TypeKind.PrimitiveString }:
+                EmitTypeOfCheck(ctx, pkg, gen, tchk.Inner, "string");
+                break;
+            case { Kind: TypeKind.PrimitiveNumber }:
+                EmitTypeOfCheck(ctx, pkg, gen, tchk.Inner, "number");
+                break;
+            case { Kind: TypeKind.PrimitiveBool }:
+                EmitTypeOfCheck(ctx, pkg, gen, tchk.Inner, "boolean");
+                break;
+            case { Kind: TypeKind.PrimitiveAny }:
+                gen.Write("(");
+                EmitExpr(ctx, pkg, gen, tchk.Inner);
+                gen.Write(" ~= nil)");
+                break;
+            case TableArrayType:
+            case TableMapType:
+            case StructType:
+                EmitTypeOfCheck(ctx, pkg, gen, tchk.Inner, "table");
+                break;
+            case FunctionType:
+                EmitTypeOfCheck(ctx, pkg, gen, tchk.Inner, "function");
+                break;
+            case EnumType:
+            {
+                var enumName = tchk.TargetType is NamedTypeRef nrt ? nrt.Name.Name : ((EnumType)targetType).Name;
+                gen.Write("(function() local __v = (");
+                EmitExpr(ctx, pkg, gen, tchk.Inner);
+                gen.Write("); for _, __m in pairs(");
+                gen.Write(enumName);
+                gen.Write(") do if __m == __v then return true end end return false end)()");
+                break;
+            }
+            default:
+                gen.Write("false");
+                break;
+        }
+    }
+
+    private void EmitTypeOfCheck(PassContext ctx, PackageContext pkg, LuaGenerator gen, Expr inner, string typeName)
+    {
+        gen.Write("(type(");
+        EmitExpr(ctx, pkg, gen, inner);
+        gen.Write(") == \"");
+        gen.Write(typeName);
+        gen.Write("\")");
     }
 
     private void EmitInterpolatedString(PassContext ctx, PackageContext pkg, LuaGenerator gen, InterpolatedStringExpr interp)

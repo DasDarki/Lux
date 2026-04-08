@@ -60,8 +60,8 @@ public class ResolveTypeRefsPass() : Pass(PassName, PassScope.PerBuild, dependen
         if (!pkg.Syms.GetByID(decl.Name.Sym, out var sym)) return;
         if (sym.Type != TypID.Invalid) return;
 
-        var hasNumberValues = decl.Members.Any(m => m.Value is NumberLiteralExpr);
-        var baseType = hasNumberValues ? pkg.Types.PrimNumber : pkg.Types.PrimString;
+        var hasStringValues = decl.Members.Any(m => m.Value is StringLiteralExpr);
+        var baseType = hasStringValues ? pkg.Types.PrimString : pkg.Types.PrimNumber;
         var members = new List<EnumType.Member>();
         long autoIndex = 0;
         foreach (var m in decl.Members)
@@ -72,7 +72,7 @@ public class ResolveTypeRefsPass() : Pass(PassName, PassScope.PerBuild, dependen
                 StringLiteralExpr sl => sl.Value,
                 _ => null
             };
-            if (value == null && hasNumberValues)
+            if (value == null && !hasStringValues)
             {
                 value = autoIndex.ToString();
             }
@@ -362,6 +362,14 @@ public class ResolveTypeRefsPass() : Pass(PassName, PassScope.PerBuild, dependen
                 break;
             case NonNilAssertExpr nonNilAssert:
                 ResolveExprTypes(tt, nonNilAssert.Inner);
+                break;
+            case TypeCheckExpr typeCheck:
+                ResolveExprTypes(tt, typeCheck.Inner);
+                ResolveTypeRef(tt, typeCheck.TargetType);
+                break;
+            case TypeCastExpr typeCast:
+                ResolveExprTypes(tt, typeCast.Inner);
+                ResolveTypeRef(tt, typeCast.TargetType);
                 break;
             case TableConstructorExpr tableConstructorExpr:
                 foreach (var field in tableConstructorExpr.Fields)

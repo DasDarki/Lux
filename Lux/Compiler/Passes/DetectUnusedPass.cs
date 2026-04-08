@@ -406,6 +406,12 @@ public sealed class DetectUnusedPass() : Pass(PassName, PassScope.PerBuild, depe
             case NonNilAssertExpr nonNilAssert:
                 TrackExprUsage(pc, pkg, nonNilAssert.Inner);
                 break;
+            case TypeCheckExpr typeCheck:
+                TrackExprUsage(pc, pkg, typeCheck.Inner);
+                break;
+            case TypeCastExpr typeCast:
+                TrackExprUsage(pc, pkg, typeCast.Inner);
+                break;
             case TableConstructorExpr tableConstructorExpr:
                 foreach (var field in tableConstructorExpr.Fields)
                 {

@@ -488,6 +488,12 @@ public sealed class BindDeclarePass() : Pass(PassName, PassScope.PerFile, depend
                 return true;
             case NonNilAssertExpr nonNilAssert:
                 return BindExprScopes(ctx, nonNilAssert.Inner, scope);
+            case TypeCheckExpr typeCheck:
+                pkg.Scopes.BindNode(typeCheck.TargetType.ID, scope);
+                return BindExprScopes(ctx, typeCheck.Inner, scope);
+            case TypeCastExpr typeCast:
+                pkg.Scopes.BindNode(typeCast.TargetType.ID, scope);
+                return BindExprScopes(ctx, typeCast.Inner, scope);
             case TableConstructorExpr tableConstructor:
                 foreach (var field in tableConstructor.Fields)
                 {

@@ -488,6 +488,8 @@ expr
     // ─── Postfix ───
 
     | expr BANG                                                  # NonNilAssertExpr
+    | expr IS typeExpr                                           # TypeCheckExpr
+    | expr AS typeExpr                                           # TypeCastExpr
 
     // ─── Power (highest binary, right-associative) ───
 
@@ -663,6 +665,7 @@ ENUM     : 'enum';
 EXPORT   : 'export';
 FROM     : 'from';
 IMPORT   : 'import';
+IS       : 'is';
 MODULE   : 'module';
 
 // ─────────────────────────────────────────────────────────────────────────────

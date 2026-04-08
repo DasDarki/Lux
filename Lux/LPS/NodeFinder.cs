@@ -195,6 +195,12 @@ public static class NodeFinder
             case NonNilAssertExpr nna:
                 SearchExpr(nna.Inner, line, col, ref best);
                 break;
+            case TypeCheckExpr tchk:
+                SearchExpr(tchk.Inner, line, col, ref best);
+                break;
+            case TypeCastExpr tcast:
+                SearchExpr(tcast.Inner, line, col, ref best);
+                break;
         }
     }
 
@@ -374,6 +380,12 @@ public static class NodeFinder
             case NonNilAssertExpr nna:
                 SearchExprForNameRef(nna.Inner, line, col, ref best);
                 break;
+            case TypeCheckExpr tchk:
+                SearchExprForNameRef(tchk.Inner, line, col, ref best);
+                break;
+            case TypeCastExpr tcast:
+                SearchExprForNameRef(tcast.Inner, line, col, ref best);
+                break;
         }
     }
 
@@ -536,6 +548,12 @@ public static class NodeFinder
             case NonNilAssertExpr nna:
                 CollectFromExpr(nna.Inner, refs);
                 break;
+            case TypeCheckExpr tchk:
+                CollectFromExpr(tchk.Inner, refs);
+                break;
+            case TypeCastExpr tcast:
+                CollectFromExpr(tcast.Inner, refs);
+                break;
         }
     }
 
@@ -651,6 +669,12 @@ public static class NodeFinder
                 break;
             case NonNilAssertExpr nna:
                 RegisterExpr(nna.Inner, reg);
+                break;
+            case TypeCheckExpr tchk:
+                RegisterExpr(tchk.Inner, reg);
+                break;
+            case TypeCastExpr tcast:
+                RegisterExpr(tcast.Inner, reg);
                 break;
         }
     }

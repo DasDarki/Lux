@@ -94,26 +94,26 @@ public sealed class InferTypesPass() : Pass(PassName, PassScope.PerFile,
                 var tCond = SynthesizeExpr(pc, ifStmt.Condition);
                 EnsureBoolLike(pc, ifStmt.Condition.Span, tCond);
 
-                var (thenPath, elsePath) = AnalyzeNilCheck(ifStmt.Condition);
-                var thenSaved = PushNonNilNarrow(pc, thenPath);
+                var (thenNarrows, elseNarrows) = AnalyzeCondition(pc, ifStmt.Condition);
+                var thenSaved = PushAllNarrows(thenNarrows);
                 ResolveStmts(pc, ifStmt.Body);
-                PopNarrow(thenSaved);
+                PopAllNarrows(thenSaved);
 
                 foreach (var elseIf in ifStmt.ElseIfs)
                 {
                     var tEC = SynthesizeExpr(pc, elseIf.Condition);
                     EnsureBoolLike(pc, elseIf.Condition.Span, tEC);
-                    var (eiThen, _) = AnalyzeNilCheck(elseIf.Condition);
-                    var eiSaved = PushNonNilNarrow(pc, eiThen);
+                    var (eiThen, _) = AnalyzeCondition(pc, elseIf.Condition);
+                    var eiSaved = PushAllNarrows(eiThen);
                     ResolveStmts(pc, elseIf.Body);
-                    PopNarrow(eiSaved);
+                    PopAllNarrows(eiSaved);
                 }
 
                 if (ifStmt.ElseBody != null)
                 {
-                    var elseSaved = PushNonNilNarrow(pc, elsePath);
+                    var elseSaved = PushAllNarrows(elseNarrows);
                     ResolveStmts(pc, ifStmt.ElseBody);
-                    PopNarrow(elseSaved);
+                    PopAllNarrows(elseSaved);
                 }
 
                 break;
@@ -430,6 +430,16 @@ public sealed class InferTypesPass() : Pass(PassName, PassScope.PerFile,
                 break;
             case NonNilAssertExpr nna:
                 result = StripNil(pc, SynthesizeExpr(pc, nna.Inner));
+                break;
+            case TypeCheckExpr tchk:
+                SynthesizeExpr(pc, tchk.Inner);
+                result = tt.PrimBool.ID;
+                break;
+            case TypeCastExpr tcast:
+                SynthesizeExpr(pc, tcast.Inner);
+                result = tcast.TargetType.ResolvedType != TypID.Invalid
+                    ? tcast.TargetType.ResolvedType
+                    : tt.PrimAny.ID;
                 break;
             case FunctionDefExpr fde:
                 result = InferFunctionDef(pc, fde);
@@ -1236,25 +1246,102 @@ public sealed class InferTypesPass() : Pass(PassName, PassScope.PerFile,
     }
 
     /// <summary>
-    /// Detects nil-checks of the form `x ~= nil` / `nil ~= x` / `x == nil` / `nil == x` where x is
-    /// a narrowable AccessPath (NameExpr or non-optional dot chain).
-    /// Returns the path to narrow in the then-branch and the path to narrow in the else-branch.
+    /// Analyzes a condition expression and returns the set of access-path narrowings that apply
+    /// in the then-branch and the else-branch respectively. Handles nil checks, `is` checks,
+    /// boolean negation (`not`), and conjunctions/disjunctions of those forms.
     /// </summary>
-    private (AccessPath? thenPath, AccessPath? elsePath) AnalyzeNilCheck(Expr cond)
+    private (List<(AccessPath path, TypID typ)> thenNarrows, List<(AccessPath path, TypID typ)> elseNarrows)
+        AnalyzeCondition(PassContext pc, Expr cond)
     {
         var c = cond is ParenExpr p ? p.Inner : cond;
-        if (c is not BinaryExpr bin) return (null, null);
-        if (bin.Op != BinaryOp.Eq && bin.Op != BinaryOp.Neq) return (null, null);
+        var thenN = new List<(AccessPath, TypID)>();
+        var elseN = new List<(AccessPath, TypID)>();
 
-        AccessPath? path = null;
-        if (bin.Right is NilLiteralExpr) path = GetAccessPath(bin.Left);
-        else if (bin.Left is NilLiteralExpr) path = GetAccessPath(bin.Right);
+        if (c is UnaryExpr un && un.Op == UnaryOp.LogicalNot)
+        {
+            var (it, ie) = AnalyzeCondition(pc, un.Operand);
+            return (ie, it);
+        }
 
-        if (path == null) return (null, null);
+        if (c is BinaryExpr binAnd && binAnd.Op == BinaryOp.And)
+        {
+            var (lt, _) = AnalyzeCondition(pc, binAnd.Left);
+            var (rt, _) = AnalyzeCondition(pc, binAnd.Right);
+            thenN.AddRange(lt);
+            thenN.AddRange(rt);
+            return (thenN, elseN);
+        }
 
-        return bin.Op == BinaryOp.Neq
-            ? (path, (AccessPath?)null)
-            : ((AccessPath?)null, path);
+        if (c is BinaryExpr binOr && binOr.Op == BinaryOp.Or)
+        {
+            var (_, le) = AnalyzeCondition(pc, binOr.Left);
+            var (_, re) = AnalyzeCondition(pc, binOr.Right);
+            elseN.AddRange(le);
+            elseN.AddRange(re);
+            return (thenN, elseN);
+        }
+
+        if (c is TypeCheckExpr tchk)
+        {
+            var path = GetAccessPath(tchk.Inner);
+            if (path != null && tchk.TargetType.ResolvedType != TypID.Invalid)
+            {
+                var current = ResolveAccessPathType(pc, path);
+                thenN.Add((path, tchk.TargetType.ResolvedType));
+                var subtracted = SubtractType(pc, current, tchk.TargetType.ResolvedType);
+                if (subtracted != TypID.Invalid)
+                    elseN.Add((path, subtracted));
+            }
+            return (thenN, elseN);
+        }
+
+        if (c is BinaryExpr binEq && (binEq.Op == BinaryOp.Eq || binEq.Op == BinaryOp.Neq))
+        {
+            AccessPath? path = null;
+            if (binEq.Right is NilLiteralExpr) path = GetAccessPath(binEq.Left);
+            else if (binEq.Left is NilLiteralExpr) path = GetAccessPath(binEq.Right);
+
+            if (path != null)
+            {
+                var current = ResolveAccessPathType(pc, path);
+                if (IsNullable(pc, current))
+                {
+                    var stripped = StripNil(pc, current);
+                    var nilTyp = pc.Types.PrimNil.ID;
+                    if (binEq.Op == BinaryOp.Neq)
+                    {
+                        thenN.Add((path, stripped));
+                        elseN.Add((path, nilTyp));
+                    }
+                    else
+                    {
+                        thenN.Add((path, nilTyp));
+                        elseN.Add((path, stripped));
+                    }
+                }
+            }
+            return (thenN, elseN);
+        }
+
+        return (thenN, elseN);
+    }
+
+    /// <summary>
+    /// Returns the type that remains after removing <paramref name="toRemove"/> from <paramref name="src"/>.
+    /// Currently supports subtraction from union types only; returns TypID.Invalid when no meaningful
+    /// subtraction is possible.
+    /// </summary>
+    private TypID SubtractType(PassContext pc, TypID src, TypID toRemove)
+    {
+        if (src == toRemove) return TypID.Invalid;
+        if (!pc.Pkg!.Types.GetByID(src, out var srcType)) return TypID.Invalid;
+        if (srcType is not UnionType union) return TypID.Invalid;
+
+        var remaining = union.Types.Where(t => t.ID != toRemove).ToList();
+        if (remaining.Count == 0) return TypID.Invalid;
+        if (remaining.Count == union.Types.Count) return TypID.Invalid;
+        if (remaining.Count == 1) return remaining[0].ID;
+        return pc.Types.UnionOf(remaining);
     }
 
     /// <summary>
@@ -1287,24 +1374,31 @@ public sealed class InferTypesPass() : Pass(PassName, PassScope.PerFile,
     }
 
     /// <summary>
-    /// Pushes a nil-narrowing for the given AccessPath, returning a snapshot for restoration via PopNarrow.
+    /// Applies a batch of access-path narrowings, returning a snapshot for restoration via PopAllNarrows.
     /// </summary>
-    private (AccessPath? path, TypID prev, bool hadPrev) PushNonNilNarrow(PassContext pc, AccessPath? path)
+    private List<(AccessPath path, TypID prev, bool hadPrev)> PushAllNarrows(List<(AccessPath path, TypID typ)> narrows)
     {
-        if (path == null) return (null, TypID.Invalid, false);
-        var current = ResolveAccessPathType(pc, path);
-        if (!IsNullable(pc, current)) return (null, TypID.Invalid, false);
-        var stripped = StripNil(pc, current);
-        var hadPrev = _narrowed.TryGetValue(path, out var prev);
-        _narrowed[path] = stripped;
-        return (path, hadPrev ? prev : TypID.Invalid, hadPrev)!;
+        var saved = new List<(AccessPath, TypID, bool)>();
+        foreach (var (path, typ) in narrows)
+        {
+            var hadPrev = _narrowed.TryGetValue(path, out var prev);
+            _narrowed[path] = typ;
+            saved.Add((path, hadPrev ? prev : TypID.Invalid, hadPrev));
+        }
+        return saved!;
     }
 
-    private void PopNarrow((AccessPath? path, TypID prev, bool hadPrev) saved)
+    /// <summary>
+    /// Restores narrowings captured by PushAllNarrows, in reverse order.
+    /// </summary>
+    private void PopAllNarrows(List<(AccessPath path, TypID prev, bool hadPrev)> saved)
     {
-        if (saved.path == null) return;
-        if (saved.hadPrev) _narrowed[saved.path] = saved.prev;
-        else _narrowed.Remove(saved.path);
+        for (var i = saved.Count - 1; i >= 0; i--)
+        {
+            var (path, prev, hadPrev) = saved[i];
+            if (hadPrev) _narrowed[path] = prev;
+            else _narrowed.Remove(path);
+        }
     }
 
     private Type GetType(PassContext pc, TypID id)

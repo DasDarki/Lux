@@ -60,3 +60,40 @@ testEnum2(Direction.South)
 for key, value in pairs(Color) do
     print(key, value)
 end
+
+local something: any = 42
+if something is number then
+    print("It's a number: " .. (something + 1))
+end
+
+if something is string then
+    print("It's a string")
+end
+
+local n = something as number
+print(n + 1)
+
+local maybeColor: any = Color.Red
+if maybeColor is Color then
+    print("Got a color")
+end
+
+local u: number | string = 42
+if u is number then
+    print("then-num: " .. (u + 1))
+else
+    print("else-str: " .. u)
+end
+
+local v: number | string = "hi"
+if not (v is number) then
+    print("not-num-str: " .. v)
+else
+    print("not-num-num: " .. (v + 1))
+end
+
+local a: any = 1
+local b: any = "x"
+if (a is number) and (b is string) then
+    print("compound: " .. (a + 1) .. b)
+end

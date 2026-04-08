@@ -358,6 +358,12 @@ public sealed class ResolveNamesPass() : Pass(PassName, PassScope.PerFile, depen
             case NonNilAssertExpr nonNilAssert:
                 ResolveExprNames(pc, nonNilAssert.Inner, pkg);
                 break;
+            case TypeCheckExpr typeCheck:
+                ResolveExprNames(pc, typeCheck.Inner, pkg);
+                break;
+            case TypeCastExpr typeCast:
+                ResolveExprNames(pc, typeCast.Inner, pkg);
+                break;
             case TableConstructorExpr tableConstructorExpr:
             {
                 foreach (var field in tableConstructorExpr.Fields)

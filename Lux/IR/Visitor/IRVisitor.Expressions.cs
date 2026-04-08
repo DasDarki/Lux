@@ -158,6 +158,14 @@ internal partial class IRVisitor
     public override Node VisitNonNilAssertExpr(LuxParser.NonNilAssertExprContext context)
         => new NonNilAssertExpr(NewNodeID, SpanFromCtx(context), (Expr)Visit(context.expr()));
 
+    public override Node VisitTypeCheckExpr(LuxParser.TypeCheckExprContext context)
+        => new TypeCheckExpr(NewNodeID, SpanFromCtx(context),
+            (Expr)Visit(context.expr()), (TypeRef)Visit(context.typeExpr()));
+
+    public override Node VisitTypeCastExpr(LuxParser.TypeCastExprContext context)
+        => new TypeCastExpr(NewNodeID, SpanFromCtx(context),
+            (Expr)Visit(context.expr()), (TypeRef)Visit(context.typeExpr()));
+
     #endregion
 
     #region Binary Expressions
