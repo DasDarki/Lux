@@ -4,7 +4,7 @@ public enum BinaryOp
 {
     Add, Sub, Mul, Div, FloorDiv, Mod, Pow, Concat,
     Eq, Neq, Lt, Gt, Lte, Gte,
-    And, Or,
+    And, Or, NilCoalesce,
     BitwiseAnd, BitwiseOr, BitwiseXor, LShift, RShift
 }
 

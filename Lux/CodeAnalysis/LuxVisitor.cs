@@ -594,6 +594,13 @@ public interface ILuxVisitor<Result> : IParseTreeVisitor<Result> {
 	/// <return>The visitor result.</return>
 	Result VisitLogicalAndExpr([NotNull] LuxParser.LogicalAndExprContext context);
 	/// <summary>
+	/// Visit a parse tree produced by the <c>NonNilAssertExpr</c>
+	/// labeled alternative in <see cref="LuxParser.expr"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitNonNilAssertExpr([NotNull] LuxParser.NonNilAssertExprContext context);
+	/// <summary>
 	/// Visit a parse tree produced by the <c>FalseLiteral</c>
 	/// labeled alternative in <see cref="LuxParser.expr"/>.
 	/// </summary>
@@ -670,6 +677,13 @@ public interface ILuxVisitor<Result> : IParseTreeVisitor<Result> {
 	/// <param name="context">The parse tree.</param>
 	/// <return>The visitor result.</return>
 	Result VisitNilLiteral([NotNull] LuxParser.NilLiteralContext context);
+	/// <summary>
+	/// Visit a parse tree produced by the <c>NilCoalesceExpr</c>
+	/// labeled alternative in <see cref="LuxParser.expr"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitNilCoalesceExpr([NotNull] LuxParser.NilCoalesceExprContext context);
 	/// <summary>
 	/// Visit a parse tree produced by the <c>BitwiseXorExpr</c>
 	/// labeled alternative in <see cref="LuxParser.expr"/>.
@@ -845,6 +859,13 @@ public interface ILuxVisitor<Result> : IParseTreeVisitor<Result> {
 	/// <return>The visitor result.</return>
 	Result VisitDotSuffix([NotNull] LuxParser.DotSuffixContext context);
 	/// <summary>
+	/// Visit a parse tree produced by the <c>OptDotSuffix</c>
+	/// labeled alternative in <see cref="LuxParser.suffix"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitOptDotSuffix([NotNull] LuxParser.OptDotSuffixContext context);
+	/// <summary>
 	/// Visit a parse tree produced by the <c>IndexSuffix</c>
 	/// labeled alternative in <see cref="LuxParser.suffix"/>.
 	/// </summary>
@@ -865,6 +886,13 @@ public interface ILuxVisitor<Result> : IParseTreeVisitor<Result> {
 	/// <param name="context">The parse tree.</param>
 	/// <return>The visitor result.</return>
 	Result VisitCallSuffix([NotNull] LuxParser.CallSuffixContext context);
+	/// <summary>
+	/// Visit a parse tree produced by the <c>OptCallSuffix</c>
+	/// labeled alternative in <see cref="LuxParser.suffix"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitOptCallSuffix([NotNull] LuxParser.OptCallSuffixContext context);
 	/// <summary>
 	/// Visit a parse tree produced by the <c>NameVar</c>
 	/// labeled alternative in <see cref="LuxParser.var"/>.

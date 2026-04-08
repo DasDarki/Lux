@@ -1160,6 +1160,20 @@ public partial class LuxBaseListener : ILuxListener {
 	/// <param name="context">The parse tree.</param>
 	public virtual void ExitLogicalAndExpr([NotNull] LuxParser.LogicalAndExprContext context) { }
 	/// <summary>
+	/// Enter a parse tree produced by the <c>NonNilAssertExpr</c>
+	/// labeled alternative in <see cref="LuxParser.expr"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void EnterNonNilAssertExpr([NotNull] LuxParser.NonNilAssertExprContext context) { }
+	/// <summary>
+	/// Exit a parse tree produced by the <c>NonNilAssertExpr</c>
+	/// labeled alternative in <see cref="LuxParser.expr"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void ExitNonNilAssertExpr([NotNull] LuxParser.NonNilAssertExprContext context) { }
+	/// <summary>
 	/// Enter a parse tree produced by the <c>FalseLiteral</c>
 	/// labeled alternative in <see cref="LuxParser.expr"/>.
 	/// <para>The default implementation does nothing.</para>
@@ -1313,6 +1327,20 @@ public partial class LuxBaseListener : ILuxListener {
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	public virtual void ExitNilLiteral([NotNull] LuxParser.NilLiteralContext context) { }
+	/// <summary>
+	/// Enter a parse tree produced by the <c>NilCoalesceExpr</c>
+	/// labeled alternative in <see cref="LuxParser.expr"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void EnterNilCoalesceExpr([NotNull] LuxParser.NilCoalesceExprContext context) { }
+	/// <summary>
+	/// Exit a parse tree produced by the <c>NilCoalesceExpr</c>
+	/// labeled alternative in <see cref="LuxParser.expr"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void ExitNilCoalesceExpr([NotNull] LuxParser.NilCoalesceExprContext context) { }
 	/// <summary>
 	/// Enter a parse tree produced by the <c>BitwiseXorExpr</c>
 	/// labeled alternative in <see cref="LuxParser.expr"/>.
@@ -1662,6 +1690,20 @@ public partial class LuxBaseListener : ILuxListener {
 	/// <param name="context">The parse tree.</param>
 	public virtual void ExitDotSuffix([NotNull] LuxParser.DotSuffixContext context) { }
 	/// <summary>
+	/// Enter a parse tree produced by the <c>OptDotSuffix</c>
+	/// labeled alternative in <see cref="LuxParser.suffix"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void EnterOptDotSuffix([NotNull] LuxParser.OptDotSuffixContext context) { }
+	/// <summary>
+	/// Exit a parse tree produced by the <c>OptDotSuffix</c>
+	/// labeled alternative in <see cref="LuxParser.suffix"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void ExitOptDotSuffix([NotNull] LuxParser.OptDotSuffixContext context) { }
+	/// <summary>
 	/// Enter a parse tree produced by the <c>IndexSuffix</c>
 	/// labeled alternative in <see cref="LuxParser.suffix"/>.
 	/// <para>The default implementation does nothing.</para>
@@ -1703,6 +1745,20 @@ public partial class LuxBaseListener : ILuxListener {
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	public virtual void ExitCallSuffix([NotNull] LuxParser.CallSuffixContext context) { }
+	/// <summary>
+	/// Enter a parse tree produced by the <c>OptCallSuffix</c>
+	/// labeled alternative in <see cref="LuxParser.suffix"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void EnterOptCallSuffix([NotNull] LuxParser.OptCallSuffixContext context) { }
+	/// <summary>
+	/// Exit a parse tree produced by the <c>OptCallSuffix</c>
+	/// labeled alternative in <see cref="LuxParser.suffix"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void ExitOptCallSuffix([NotNull] LuxParser.OptCallSuffixContext context) { }
 	/// <summary>
 	/// Enter a parse tree produced by the <c>NameVar</c>
 	/// labeled alternative in <see cref="LuxParser.var"/>.

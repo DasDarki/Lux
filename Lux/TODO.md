@@ -1,0 +1,21 @@
+﻿- [x] Nilability with infering of nil checks and nil coalescing
+  - [x] Add supression for nilability checks (e.g. `!` operator to assert non-nil value)
+  - [x] Add function invocation check via `?` operator (e.g. `myFunction?()` to safely call a function that may be nil)
+  - [x] Make strict nilabilty configurable via the config (currently always enforced - but in the config there is already a flag)
+- [ ] Named varargs
+- [ ] Exhaustive Matching checking
+- [ ] Immutability with deep freeze and const
+- [ ] Operator overloading
+- [ ] Type check expression and type casting
+- [ ] Function overloading and default parameters
+- [ ] Enums
+- [ ] Generics
+- [ ] Classes with inheritance and interfaces
+- [ ] Annotations
+- [ ] Pattern matching
+- [ ] Async/await and Promises
+- [ ] Add setup scripts allowing to create templates (setup.lux/.lua -> with prompting and then generating the project structure and files): lux create user/repo (auto detect git url - or manually add it, auto detect setup script)
+- [ ] Add a REPL for interactive coding and testing
+- [ ] Add a runtime to execute Lux/Lua Code
+- [ ] Add a compiler to compile Lux/Lua into binary executables
+- [ ] Add a package manager for managing dependencies and libraries (git based)

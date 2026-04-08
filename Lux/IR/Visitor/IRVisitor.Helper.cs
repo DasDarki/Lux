@@ -182,12 +182,16 @@ internal partial class IRVisitor
         {
             LuxParser.DotSuffixContext dot =>
                 new DotAccessExpr(NewNodeID, SpanFromCtx(dot), obj, NameRefFromTerm(dot.NAME())),
+            LuxParser.OptDotSuffixContext odot =>
+                new DotAccessExpr(NewNodeID, SpanFromCtx(odot), obj, NameRefFromTerm(odot.NAME()), isOptional: true),
             LuxParser.IndexSuffixContext idx =>
                 new IndexAccessExpr(NewNodeID, SpanFromCtx(idx), obj, (Expr)Visit(idx.expr())),
             LuxParser.MethodCallSuffixContext mc =>
                 new MethodCallExpr(NewNodeID, SpanFromCtx(mc), obj, NameRefFromTerm(mc.NAME()), VisitArgsContent(mc.args())),
             LuxParser.CallSuffixContext call =>
                 new FunctionCallExpr(NewNodeID, SpanFromCtx(call), obj, VisitArgsContent(call.args())),
+            LuxParser.OptCallSuffixContext optCall =>
+                new FunctionCallExpr(NewNodeID, SpanFromCtx(optCall), obj, VisitArgsContent(optCall.args()), isOptional: true),
             _ => throw new InvalidOperationException($"Unknown suffix type: {suffix.GetType().Name}")
         };
     }

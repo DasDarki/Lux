@@ -473,6 +473,8 @@ public sealed class BindDeclarePass() : Pass(PassName, PassScope.PerFile, depend
                 }
 
                 return true;
+            case NonNilAssertExpr nonNilAssert:
+                return BindExprScopes(ctx, nonNilAssert.Inner, scope);
             case TableConstructorExpr tableConstructor:
                 foreach (var field in tableConstructor.Fields)
                 {

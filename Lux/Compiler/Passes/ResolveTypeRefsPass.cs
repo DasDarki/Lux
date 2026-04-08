@@ -285,6 +285,9 @@ public class ResolveTypeRefsPass() : Pass(PassName, PassScope.PerBuild, dependen
                     }
                 }
                 break;
+            case NonNilAssertExpr nonNilAssert:
+                ResolveExprTypes(tt, nonNilAssert.Inner);
+                break;
             case TableConstructorExpr tableConstructorExpr:
                 foreach (var field in tableConstructorExpr.Fields)
                 {

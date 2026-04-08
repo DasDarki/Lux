@@ -117,6 +117,7 @@ internal class Program
         }
 
         config ??= new Config();
+        config.Rules.StrictNil = true;
 
         if (luxFiles.Count == 0)
         {

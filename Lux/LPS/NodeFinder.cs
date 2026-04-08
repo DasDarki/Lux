@@ -188,6 +188,9 @@ public static class NodeFinder
                     if (p is InterpExprPart ep) SearchExpr(ep.Expression, line, col, ref best);
                 }
                 break;
+            case NonNilAssertExpr nna:
+                SearchExpr(nna.Inner, line, col, ref best);
+                break;
         }
     }
 
@@ -356,6 +359,9 @@ public static class NodeFinder
                     if (p is InterpExprPart ep) SearchExprForNameRef(ep.Expression, line, col, ref best);
                 }
                 break;
+            case NonNilAssertExpr nna:
+                SearchExprForNameRef(nna.Inner, line, col, ref best);
+                break;
         }
     }
 
@@ -507,6 +513,9 @@ public static class NodeFinder
                     if (p is InterpExprPart ep) CollectFromExpr(ep.Expression, refs);
                 }
                 break;
+            case NonNilAssertExpr nna:
+                CollectFromExpr(nna.Inner, refs);
+                break;
         }
     }
 
@@ -615,6 +624,9 @@ public static class NodeFinder
                 {
                     if (p is InterpExprPart ep) RegisterExpr(ep.Expression, reg);
                 }
+                break;
+            case NonNilAssertExpr nna:
+                RegisterExpr(nna.Inner, reg);
                 break;
         }
     }

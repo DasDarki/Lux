@@ -8,9 +8,22 @@ namespace Lux.Compiler.Passes;
 /// The infer types pass is responsible for inferring the types of expressions in the source code. It takes care of
 /// inferring the types of variables, function return types, and other expressions based on their usage and context.
 /// </summary>
-public sealed class InferTypesPass() : Pass(PassName, PassScope.PerFile, dependencies: [ResolveNamesPass.PassName, ResolveTypeRefsPass.PassName])
+public sealed class InferTypesPass() : Pass(PassName, PassScope.PerFile,
+    dependencies: [ResolveNamesPass.PassName, ResolveTypeRefsPass.PassName])
 {
     public const string PassName = "InferTypes";
+
+    /// <summary>
+    /// Identifies a value location for flow-narrowing. Either a plain symbol (NameExpr) or a chain of
+    /// non-optional dot accesses rooted at a symbol.
+    /// </summary>
+    private abstract record AccessPath;
+
+    private sealed record SymPath(SymID Sym) : AccessPath;
+
+    private sealed record FieldPath(AccessPath Base, string Field) : AccessPath;
+
+    private readonly Dictionary<AccessPath, TypID> _narrowed = new();
 
     public override bool Run(PassContext context)
     {
@@ -18,6 +31,8 @@ public sealed class InferTypesPass() : Pass(PassName, PassScope.PerFile, depende
         {
             return false;
         }
+
+        _narrowed.Clear();
 
         ResolveStmts(context, context.File.Hir.Body);
 
@@ -78,17 +93,29 @@ public sealed class InferTypesPass() : Pass(PassName, PassScope.PerFile, depende
             {
                 var tCond = SynthesizeExpr(pc, ifStmt.Condition);
                 EnsureBoolLike(pc, ifStmt.Condition.Span, tCond);
+
+                var (thenPath, elsePath) = AnalyzeNilCheck(ifStmt.Condition);
+                var thenSaved = PushNonNilNarrow(pc, thenPath);
                 ResolveStmts(pc, ifStmt.Body);
+                PopNarrow(thenSaved);
+
                 foreach (var elseIf in ifStmt.ElseIfs)
                 {
                     var tEC = SynthesizeExpr(pc, elseIf.Condition);
                     EnsureBoolLike(pc, elseIf.Condition.Span, tEC);
+                    var (eiThen, _) = AnalyzeNilCheck(elseIf.Condition);
+                    var eiSaved = PushNonNilNarrow(pc, eiThen);
                     ResolveStmts(pc, elseIf.Body);
+                    PopNarrow(eiSaved);
                 }
+
                 if (ifStmt.ElseBody != null)
                 {
+                    var elseSaved = PushNonNilNarrow(pc, elsePath);
                     ResolveStmts(pc, ifStmt.ElseBody);
+                    PopNarrow(elseSaved);
                 }
+
                 break;
             }
             case NumericForStmt nf:
@@ -102,6 +129,7 @@ public sealed class InferTypesPass() : Pass(PassName, PassScope.PerFile, depende
                     var tStep = SynthesizeExpr(pc, nf.Step);
                     EnsureAssignable(pc, nf.Step.Span, pc.Types.PrimNumber.ID, tStep);
                 }
+
                 pc.Pkg!.Syms.SetType(nf.VarName.Sym, pc.Types.PrimNumber.ID);
                 ResolveStmts(pc, nf.Body);
                 break;
@@ -112,10 +140,12 @@ public sealed class InferTypesPass() : Pass(PassName, PassScope.PerFile, depende
                 {
                     SynthesizeExpr(pc, iter);
                 }
+
                 foreach (var vn in gf.VarNames)
                 {
                     pc.Pkg!.Syms.SetType(vn.Sym, pc.Types.PrimAny.ID);
                 }
+
                 ResolveStmts(pc, gf.Body);
                 break;
             }
@@ -124,6 +154,7 @@ public sealed class InferTypesPass() : Pass(PassName, PassScope.PerFile, depende
                 {
                     SynthesizeExpr(pc, value);
                 }
+
                 break;
             case ImportStmt:
                 break;
@@ -161,6 +192,7 @@ public sealed class InferTypesPass() : Pass(PassName, PassScope.PerFile, depende
                         pc.Pkg!.Syms.SetType(param.Name.Sym, t.ID);
                     }
                 }
+
                 var ret = dfd.ReturnType != null && dfd.ReturnType.ResolvedType != TypID.Invalid
                     ? GetType(pc, dfd.ReturnType.ResolvedType)
                     : pc.Types.PrimNil;
@@ -169,6 +201,7 @@ public sealed class InferTypesPass() : Pass(PassName, PassScope.PerFile, depende
                 {
                     pc.Pkg!.Syms.SetType(dfd.NamePath[0].Sym, funcTyp);
                 }
+
                 break;
             }
             case DeclareVariableDecl dvd:
@@ -178,6 +211,7 @@ public sealed class InferTypesPass() : Pass(PassName, PassScope.PerFile, depende
                 {
                     pc.Pkg!.Syms.SetType(dvd.Name.Sym, t);
                 }
+
                 break;
             }
             case DeclareModuleDecl dmd:
@@ -185,6 +219,7 @@ public sealed class InferTypesPass() : Pass(PassName, PassScope.PerFile, depende
                 {
                     ResolveDecl(pc, member);
                 }
+
                 break;
             default:
                 throw new InvalidOperationException($"Unknown declaration kind: {decl.GetType().Name}");
@@ -220,6 +255,7 @@ public sealed class InferTypesPass() : Pass(PassName, PassScope.PerFile, depende
             {
                 collected.Add((ComputeReturnType(pc, returnStmt.Values), returnStmt.Span));
             }
+
             foreach (var (typ, span) in collected)
             {
                 EnsureAssignable(pc, span, returnType.ID, typ);
@@ -255,6 +291,7 @@ public sealed class InferTypesPass() : Pass(PassName, PassScope.PerFile, depende
                         break;
                     }
                 }
+
                 returnType = GetType(pc, baseType);
             }
         }
@@ -288,6 +325,7 @@ public sealed class InferTypesPass() : Pass(PassName, PassScope.PerFile, depende
                     pc.Diag.Report(variable.Span, DiagnosticCode.ErrTypeMismatch,
                         TypeName(pc, annotated), TypeName(pc, inferred));
                 }
+
                 finalType = annotated;
             }
             else
@@ -331,10 +369,12 @@ public sealed class InferTypesPass() : Pass(PassName, PassScope.PerFile, depende
         {
             return pc.Types.PrimAny;
         }
+
         if (param.TypeAnnotation != null && param.TypeAnnotation.ResolvedType != TypID.Invalid)
         {
             return GetType(pc, param.TypeAnnotation.ResolvedType);
         }
+
         return pc.Types.PrimAny;
     }
 
@@ -363,10 +403,12 @@ public sealed class InferTypesPass() : Pass(PassName, PassScope.PerFile, depende
                     if (part is InterpExprPart ep)
                         SynthesizeExpr(pc, ep.Expression);
                 }
+
                 if (!pc.Config.Code.StringInterpolation)
                 {
-                    pc.Diag.Report(interp.Span, Diagnostics.DiagnosticCode.ErrStringInterpolationDisabled);
+                    pc.Diag.Report(interp.Span, DiagnosticCode.ErrStringInterpolationDisabled);
                 }
+
                 result = tt.PrimString.ID;
                 break;
             case VarargExpr:
@@ -383,6 +425,9 @@ public sealed class InferTypesPass() : Pass(PassName, PassScope.PerFile, depende
                 break;
             case UnaryExpr un:
                 result = InferUnary(pc, un);
+                break;
+            case NonNilAssertExpr nna:
+                result = StripNil(pc, SynthesizeExpr(pc, nna.Inner));
                 break;
             case FunctionDefExpr fde:
                 result = InferFunctionDef(pc, fde);
@@ -460,16 +505,26 @@ public sealed class InferTypesPass() : Pass(PassName, PassScope.PerFile, depende
                 {
                     pc.Diag.Report(bin.Left.Span, DiagnosticCode.ErrTypeMismatch, "number or string", TypeName(pc, l));
                 }
+
                 if (!IsNumberLike(pc, r) && !IsStringLike(pc, r))
                 {
                     pc.Diag.Report(bin.Right.Span, DiagnosticCode.ErrTypeMismatch, "number or string", TypeName(pc, r));
                 }
+
                 return tt.PrimBool.ID;
             case BinaryOp.And:
             case BinaryOp.Or:
                 if (l == r) return l;
                 if (l == tt.PrimAny.ID || r == tt.PrimAny.ID) return tt.PrimAny.ID;
                 return pc.Types.UnionOf([GetType(pc, l), GetType(pc, r)]);
+            case BinaryOp.NilCoalesce:
+            {
+                var stripped = StripNil(pc, l);
+                if (stripped == r) return stripped;
+                if (l == tt.PrimAny.ID || r == tt.PrimAny.ID) return tt.PrimAny.ID;
+                if (IsTypeAssignable(pc, stripped, r)) return stripped;
+                return pc.Types.UnionOf([GetType(pc, stripped), GetType(pc, r)]);
+            }
             default:
                 pc.Diag.Report(bin.Span, DiagnosticCode.ErrInvalidOperator, bin.Op.ToString());
                 return tt.PrimAny.ID;
@@ -492,6 +547,7 @@ public sealed class InferTypesPass() : Pass(PassName, PassScope.PerFile, depende
                 {
                     pc.Diag.Report(un.Operand.Span, DiagnosticCode.ErrTypeMismatch, "string or table", TypeName(pc, t));
                 }
+
                 return tt.PrimNumber.ID;
             case UnaryOp.BitwiseNot:
                 EnsureAssignable(pc, un.Operand.Span, tt.PrimNumber.ID, t);
@@ -555,6 +611,7 @@ public sealed class InferTypesPass() : Pass(PassName, PassScope.PerFile, depende
                         break;
                     }
                 }
+
                 returnType = GetType(pc, baseType);
             }
         }
@@ -565,11 +622,35 @@ public sealed class InferTypesPass() : Pass(PassName, PassScope.PerFile, depende
     private TypID InferDotAccess(PassContext pc, DotAccessExpr dot)
     {
         var baseTyp = SynthesizeExpr(pc, dot.Object);
-        if (!pc.Pkg!.Types.GetByID(baseTyp, out var baseType))
+
+        if (!dot.IsOptional)
         {
-            return pc.Types.PrimAny.ID;
+            var path = GetAccessPath(dot);
+            if (path != null && _narrowed.TryGetValue(path, out var narrowed))
+            {
+                return narrowed;
+            }
         }
 
+        if (dot.IsOptional)
+        {
+            baseTyp = StripNil(pc, baseTyp);
+        }
+        else
+        {
+            EnsureNotNil(pc, dot.Object.Span, baseTyp);
+            if (IsNullable(pc, baseTyp))
+            {
+                baseTyp = StripNil(pc, baseTyp);
+            }
+        }
+
+        if (!pc.Pkg!.Types.GetByID(baseTyp, out var baseType))
+        {
+            return dot.IsOptional ? MakeNullable(pc, pc.Types.PrimAny.ID) : pc.Types.PrimAny.ID;
+        }
+
+        TypID resultType;
         switch (baseType)
         {
             case StructType st:
@@ -581,21 +662,34 @@ public sealed class InferTypesPass() : Pass(PassName, PassScope.PerFile, depende
                         $"{baseType.Key} has no field '{dot.FieldName.Name}'");
                     return pc.Types.PrimAny.ID;
                 }
-                return field.Type.ID;
+
+                resultType = field.Type.ID;
+                break;
             }
             case TableMapType mt:
-                return mt.ValueType.ID;
+                resultType = mt.ValueType.ID;
+                break;
             case { Kind: TypeKind.PrimitiveAny }:
-                return pc.Types.PrimAny.ID;
+                resultType = pc.Types.PrimAny.ID;
+                break;
             default:
-                return pc.Types.PrimAny.ID;
+                resultType = pc.Types.PrimAny.ID;
+                break;
         }
+
+        return dot.IsOptional ? MakeNullable(pc, resultType) : resultType;
     }
 
     private TypID InferIndexAccess(PassContext pc, IndexAccessExpr idx)
     {
         var baseTyp = SynthesizeExpr(pc, idx.Object);
         var indexTyp = SynthesizeExpr(pc, idx.Index);
+        EnsureNotNil(pc, idx.Object.Span, baseTyp);
+        if (IsNullable(pc, baseTyp))
+        {
+            baseTyp = StripNil(pc, baseTyp);
+        }
+
         if (!pc.Pkg!.Types.GetByID(baseTyp, out var baseType))
         {
             return pc.Types.PrimAny.ID;
@@ -608,6 +702,7 @@ public sealed class InferTypesPass() : Pass(PassName, PassScope.PerFile, depende
                 {
                     pc.Diag.Report(idx.Index.Span, DiagnosticCode.ErrTypeMismatch, "number", TypeName(pc, indexTyp));
                 }
+
                 return at.ElementType.ID;
             case TableMapType mt:
                 if (!IsTypeAssignable(pc, mt.KeyType.ID, indexTyp) && indexTyp != pc.Types.PrimAny.ID)
@@ -615,6 +710,7 @@ public sealed class InferTypesPass() : Pass(PassName, PassScope.PerFile, depende
                     pc.Diag.Report(idx.Index.Span, DiagnosticCode.ErrTypeMismatch,
                         TypeName(pc, mt.KeyType.ID), TypeName(pc, indexTyp));
                 }
+
                 return mt.ValueType.ID;
             case not null when baseType.Kind == TypeKind.PrimitiveAny:
                 return pc.Types.PrimAny.ID;
@@ -635,32 +731,53 @@ public sealed class InferTypesPass() : Pass(PassName, PassScope.PerFile, depende
         }
 
         var calleeTyp = SynthesizeExpr(pc, call.Callee);
+
+        if (call.IsOptional)
+        {
+            calleeTyp = StripNil(pc, calleeTyp);
+        }
+        else
+        {
+            EnsureNotNil(pc, call.Callee.Span, calleeTyp);
+            if (IsNullable(pc, calleeTyp))
+            {
+                calleeTyp = StripNil(pc, calleeTyp);
+            }
+        }
+
         if (!pc.Pkg!.Types.GetByID(calleeTyp, out var calleeType))
         {
-            return pc.Types.PrimAny.ID;
+            return call.IsOptional ? MakeNullable(pc, pc.Types.PrimAny.ID) : pc.Types.PrimAny.ID;
         }
 
         if (calleeType is not FunctionType fnType)
         {
             if (calleeType.Kind == TypeKind.PrimitiveAny)
             {
-                return pc.Types.PrimAny.ID;
+                return call.IsOptional ? MakeNullable(pc, pc.Types.PrimAny.ID) : pc.Types.PrimAny.ID;
             }
+
             pc.Diag.Report(call.Callee.Span, DiagnosticCode.ErrTypeMismatch, "function", TypeName(pc, calleeTyp));
             return pc.Types.PrimAny.ID;
         }
 
         CheckCallArguments(pc, call.Span, fnType, argTypes);
-        return fnType.ReturnType.ID;
+        var resultType = fnType.ReturnType.ID;
+        return call.IsOptional ? MakeNullable(pc, resultType) : resultType;
     }
 
     private TypID InferMethodCall(PassContext pc, MethodCallExpr mc)
     {
         var objTyp = SynthesizeExpr(pc, mc.Object);
-        var argTypes = new List<TypID>();
+        EnsureNotNil(pc, mc.Object.Span, objTyp);
+        if (IsNullable(pc, objTyp))
+        {
+            objTyp = StripNil(pc, objTyp);
+        }
+
         foreach (var arg in mc.Arguments)
         {
-            argTypes.Add(SynthesizeExpr(pc, arg));
+            SynthesizeExpr(pc, arg);
         }
 
         if (!pc.Pkg!.Types.GetByID(objTyp, out var objType))
@@ -703,6 +820,7 @@ public sealed class InferTypesPass() : Pass(PassName, PassScope.PerFile, depende
                     elemType = tt.PrimAny.ID;
                 }
             }
+
             return tt.ArrayOf(GetType(pc, elemType));
         }
 
@@ -714,6 +832,7 @@ public sealed class InferTypesPass() : Pass(PassName, PassScope.PerFile, depende
                 var fValType = SynthesizeExpr(pc, field.Value);
                 fields.Add(new StructType.Field(field.Name!, GetType(pc, fValType)));
             }
+
             return tt.StructOf(fields);
         }
 
@@ -747,6 +866,7 @@ public sealed class InferTypesPass() : Pass(PassName, PassScope.PerFile, depende
                 {
                     keyType = tt.PrimAny.ID;
                 }
+
                 if (!IsTypeAssignable(pc, valueType, vt) && !IsTypeAssignable(pc, vt, valueType))
                 {
                     valueType = tt.PrimAny.ID;
@@ -779,8 +899,15 @@ public sealed class InferTypesPass() : Pass(PassName, PassScope.PerFile, depende
             var argType = argTypes[i];
             if (!IsTypeAssignable(pc, paramType, argType))
             {
-                pc.Diag.Report(span, DiagnosticCode.ErrTypeMismatch,
-                    TypeName(pc, paramType), TypeName(pc, argType));
+                if (IsNullable(pc, argType) && IsTypeAssignable(pc, paramType, StripNil(pc, argType)))
+                {
+                    EnsureNotNil(pc, span, argType);
+                }
+                else
+                {
+                    pc.Diag.Report(span, DiagnosticCode.ErrTypeMismatch,
+                        TypeName(pc, paramType), TypeName(pc, argType));
+                }
             }
         }
     }
@@ -792,6 +919,7 @@ public sealed class InferTypesPass() : Pass(PassName, PassScope.PerFile, depende
         {
             CollectReturnTypesStmt(pc, stmt, result);
         }
+
         return result;
     }
 
@@ -811,10 +939,12 @@ public sealed class InferTypesPass() : Pass(PassName, PassScope.PerFile, depende
                 {
                     foreach (var s in e.Body) CollectReturnTypesStmt(pc, s, result);
                 }
+
                 if (ifs.ElseBody != null)
                 {
                     foreach (var s in ifs.ElseBody) CollectReturnTypesStmt(pc, s, result);
                 }
+
                 break;
             case WhileStmt ws:
                 foreach (var s in ws.Body) CollectReturnTypesStmt(pc, s, result);
@@ -837,16 +967,19 @@ public sealed class InferTypesPass() : Pass(PassName, PassScope.PerFile, depende
         {
             return pc.Types.PrimNil.ID;
         }
+
         if (values.Count == 1)
         {
             return values[0].Type != TypID.Invalid ? values[0].Type : SynthesizeExpr(pc, values[0]);
         }
+
         var fields = new List<TupleType.Field>();
         foreach (var v in values)
         {
             var t = v.Type != TypID.Invalid ? v.Type : SynthesizeExpr(pc, v);
             fields.Add(new TupleType.Field(GetType(pc, t)));
         }
+
         return pc.Types.TupleOf(fields);
     }
 
@@ -862,21 +995,38 @@ public sealed class InferTypesPass() : Pass(PassName, PassScope.PerFile, depende
         var tt = pc.Types;
         if (dst == tt.PrimAny.ID || src == tt.PrimAny.ID) return true;
 
+        if (!pc.Config.Rules.StrictNil)
+        {
+            if (src == tt.PrimNil.ID) return true;
+        }
+
         if (pc.Pkg!.Types.GetByID(dst, out var dstType) && dstType is UnionType unionDst)
         {
             foreach (var member in unionDst.Types)
             {
                 if (IsTypeAssignable(pc, member.ID, src)) return true;
             }
+
             return false;
         }
 
         if (pc.Pkg.Types.GetByID(src, out var srcType) && srcType is UnionType unionSrc)
         {
+            if (!pc.Config.Rules.StrictNil)
+            {
+                var nonNil = unionSrc.Types.Where(m => m.Kind != TypeKind.PrimitiveNil).ToList();
+                if (nonNil.Count < unionSrc.Types.Count)
+                {
+                    var stripped = nonNil.Count == 1 ? nonNil[0].ID : pc.Types.UnionOf(nonNil);
+                    return IsTypeAssignable(pc, dst, stripped);
+                }
+            }
+
             foreach (var member in unionSrc.Types)
             {
                 if (!IsTypeAssignable(pc, dst, member.ID)) return false;
             }
+
             return true;
         }
 
@@ -902,6 +1052,7 @@ public sealed class InferTypesPass() : Pass(PassName, PassScope.PerFile, depende
                 {
                     if (at.Fields[i].Type.ID != bt.Fields[i].Type.ID) return false;
                 }
+
                 return true;
             case FunctionType af when tb is FunctionType bf:
                 if (af.ParamTypes.Count != bf.ParamTypes.Count) return false;
@@ -909,6 +1060,7 @@ public sealed class InferTypesPass() : Pass(PassName, PassScope.PerFile, depende
                 {
                     if (af.ParamTypes[i].ID != bf.ParamTypes[i].ID) return false;
                 }
+
                 return af.ReturnType.ID == bf.ReturnType.ID;
             case StructType sa when tb is StructType sb:
                 if (sa.Fields.Count != sb.Fields.Count) return false;
@@ -917,6 +1069,7 @@ public sealed class InferTypesPass() : Pass(PassName, PassScope.PerFile, depende
                     var fb = sb.Fields.FirstOrDefault(f => f.Name.Name == fa.Name.Name);
                     if (fb == null || fb.Type.ID != fa.Type.ID) return false;
                 }
+
                 return true;
             default:
                 return false;
@@ -925,10 +1078,15 @@ public sealed class InferTypesPass() : Pass(PassName, PassScope.PerFile, depende
 
     private void EnsureAssignable(PassContext pc, TextSpan span, TypID expected, TypID actual)
     {
-        if (!IsTypeAssignable(pc, expected, actual))
+        if (IsTypeAssignable(pc, expected, actual)) return;
+
+        if (IsNullable(pc, actual) && IsTypeAssignable(pc, expected, StripNil(pc, actual)))
         {
-            pc.Diag.Report(span, DiagnosticCode.ErrTypeMismatch, TypeName(pc, expected), TypeName(pc, actual));
+            EnsureNotNil(pc, span, actual);
+            return;
         }
+
+        pc.Diag.Report(span, DiagnosticCode.ErrTypeMismatch, TypeName(pc, expected), TypeName(pc, actual));
     }
 
     private void EnsureBoolLike(PassContext pc, TextSpan span, TypID t)
@@ -978,8 +1136,154 @@ public sealed class InferTypesPass() : Pass(PassName, PassScope.PerFile, depende
     private TypID LookupSymbolType(PassContext pc, SymID sym)
     {
         if (sym == SymID.Invalid) return pc.Types.PrimAny.ID;
+        if (_narrowed.TryGetValue(new SymPath(sym), out var narrowedType)) return narrowedType;
         if (!pc.Pkg!.Syms.GetByID(sym, out var symbol)) return pc.Types.PrimAny.ID;
         return symbol.Type != TypID.Invalid ? symbol.Type : pc.Types.PrimAny.ID;
+    }
+
+    /// <summary>
+    /// Builds an AccessPath for an expression if it represents a stable, narrowable location:
+    /// a NameExpr (SymPath) or a chain of non-optional dot accesses rooted in a NameExpr (FieldPath).
+    /// Returns null for any other shape (calls, indices, optional chains, etc.).
+    /// </summary>
+    private AccessPath? GetAccessPath(Expr e)
+    {
+        var cur = e is ParenExpr p ? p.Inner : e;
+        switch (cur)
+        {
+            case NameExpr ne:
+                if (ne.Name.Sym == SymID.Invalid) return null;
+                return new SymPath(ne.Name.Sym);
+            case DotAccessExpr { IsOptional: false } d:
+                var baseP = GetAccessPath(d.Object);
+                return baseP == null ? null : new FieldPath(baseP, d.FieldName.Name);
+            default:
+                return null;
+        }
+    }
+
+    private bool IsNullable(PassContext pc, TypID id)
+    {
+        if (id == pc.Types.PrimNil.ID) return true;
+        if (!pc.Pkg!.Types.GetByID(id, out var t)) return false;
+        if (t is UnionType u)
+        {
+            foreach (var member in u.Types)
+            {
+                if (member.Kind == TypeKind.PrimitiveNil) return true;
+            }
+        }
+
+        return false;
+    }
+
+    private TypID StripNil(PassContext pc, TypID id)
+    {
+        if (id == pc.Types.PrimNil.ID) return pc.Types.PrimAny.ID;
+        if (!pc.Pkg!.Types.GetByID(id, out var t)) return id;
+        if (t is UnionType u)
+        {
+            var nonNil = u.Types.Where(m => m.Kind != TypeKind.PrimitiveNil).ToList();
+            if (nonNil.Count == 0) return pc.Types.PrimAny.ID;
+            if (nonNil.Count == 1) return nonNil[0].ID;
+            return pc.Types.UnionOf(nonNil);
+        }
+
+        return id;
+    }
+
+    private TypID MakeNullable(PassContext pc, TypID id)
+    {
+        if (IsNullable(pc, id)) return id;
+        return pc.Types.UnionOf([GetType(pc, id), pc.Types.PrimNil]);
+    }
+
+    private bool IsAlwaysNonNil(PassContext pc, TypID id)
+    {
+        if (id == pc.Types.PrimAny.ID) return true;
+        if (id == pc.Types.PrimNil.ID) return false;
+        return !IsNullable(pc, id);
+    }
+
+    private void EnsureNotNil(PassContext pc, TextSpan span, TypID t)
+    {
+        if (!pc.Config.Rules.StrictNil) return;
+        if (!IsAlwaysNonNil(pc, t))
+        {
+            pc.Diag.Report(span, DiagnosticCode.ErrPossiblyNil, TypeName(pc, t));
+        }
+    }
+
+    /// <summary>
+    /// Detects nil-checks of the form `x ~= nil` / `nil ~= x` / `x == nil` / `nil == x` where x is
+    /// a narrowable AccessPath (NameExpr or non-optional dot chain).
+    /// Returns the path to narrow in the then-branch and the path to narrow in the else-branch.
+    /// </summary>
+    private (AccessPath? thenPath, AccessPath? elsePath) AnalyzeNilCheck(Expr cond)
+    {
+        var c = cond is ParenExpr p ? p.Inner : cond;
+        if (c is not BinaryExpr bin) return (null, null);
+        if (bin.Op != BinaryOp.Eq && bin.Op != BinaryOp.Neq) return (null, null);
+
+        AccessPath? path = null;
+        if (bin.Right is NilLiteralExpr) path = GetAccessPath(bin.Left);
+        else if (bin.Left is NilLiteralExpr) path = GetAccessPath(bin.Right);
+
+        if (path == null) return (null, null);
+
+        return bin.Op == BinaryOp.Neq
+            ? (path, (AccessPath?)null)
+            : ((AccessPath?)null, path);
+    }
+
+    /// <summary>
+    /// Resolves the current (possibly narrowed) type for an AccessPath. Walks the field chain
+    /// against the underlying StructType if no narrow is registered for the exact path.
+    /// </summary>
+    private TypID ResolveAccessPathType(PassContext pc, AccessPath path)
+    {
+        if (_narrowed.TryGetValue(path, out var narrowed)) return narrowed;
+        switch (path)
+        {
+            case SymPath sp:
+                if (!pc.Pkg!.Syms.GetByID(sp.Sym, out var sym)) return pc.Types.PrimAny.ID;
+                return sym.Type != TypID.Invalid ? sym.Type : pc.Types.PrimAny.ID;
+            case FieldPath fp:
+            {
+                var baseType = ResolveAccessPathType(pc, fp.Base);
+                if (!pc.Pkg!.Types.GetByID(baseType, out var t)) return pc.Types.PrimAny.ID;
+                if (t is StructType st)
+                {
+                    var f = st.Fields.FirstOrDefault(x => x.Name.Name == fp.Field);
+                    return f?.Type.ID ?? pc.Types.PrimAny.ID;
+                }
+
+                return pc.Types.PrimAny.ID;
+            }
+            default:
+                return pc.Types.PrimAny.ID;
+        }
+    }
+
+    /// <summary>
+    /// Pushes a nil-narrowing for the given AccessPath, returning a snapshot for restoration via PopNarrow.
+    /// </summary>
+    private (AccessPath? path, TypID prev, bool hadPrev) PushNonNilNarrow(PassContext pc, AccessPath? path)
+    {
+        if (path == null) return (null, TypID.Invalid, false);
+        var current = ResolveAccessPathType(pc, path);
+        if (!IsNullable(pc, current)) return (null, TypID.Invalid, false);
+        var stripped = StripNil(pc, current);
+        var hadPrev = _narrowed.TryGetValue(path, out var prev);
+        _narrowed[path] = stripped;
+        return (path, hadPrev ? prev : TypID.Invalid, hadPrev)!;
+    }
+
+    private void PopNarrow((AccessPath? path, TypID prev, bool hadPrev) saved)
+    {
+        if (saved.path == null) return;
+        if (saved.hadPrev) _narrowed[saved.path] = saved.prev;
+        else _narrowed.Remove(saved.path);
     }
 
     private Type GetType(PassContext pc, TypID id)

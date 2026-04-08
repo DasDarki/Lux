@@ -985,6 +985,18 @@ public interface ILuxListener : IParseTreeListener {
 	/// <param name="context">The parse tree.</param>
 	void ExitLogicalAndExpr([NotNull] LuxParser.LogicalAndExprContext context);
 	/// <summary>
+	/// Enter a parse tree produced by the <c>NonNilAssertExpr</c>
+	/// labeled alternative in <see cref="LuxParser.expr"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void EnterNonNilAssertExpr([NotNull] LuxParser.NonNilAssertExprContext context);
+	/// <summary>
+	/// Exit a parse tree produced by the <c>NonNilAssertExpr</c>
+	/// labeled alternative in <see cref="LuxParser.expr"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void ExitNonNilAssertExpr([NotNull] LuxParser.NonNilAssertExprContext context);
+	/// <summary>
 	/// Enter a parse tree produced by the <c>FalseLiteral</c>
 	/// labeled alternative in <see cref="LuxParser.expr"/>.
 	/// </summary>
@@ -1116,6 +1128,18 @@ public interface ILuxListener : IParseTreeListener {
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	void ExitNilLiteral([NotNull] LuxParser.NilLiteralContext context);
+	/// <summary>
+	/// Enter a parse tree produced by the <c>NilCoalesceExpr</c>
+	/// labeled alternative in <see cref="LuxParser.expr"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void EnterNilCoalesceExpr([NotNull] LuxParser.NilCoalesceExprContext context);
+	/// <summary>
+	/// Exit a parse tree produced by the <c>NilCoalesceExpr</c>
+	/// labeled alternative in <see cref="LuxParser.expr"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void ExitNilCoalesceExpr([NotNull] LuxParser.NilCoalesceExprContext context);
 	/// <summary>
 	/// Enter a parse tree produced by the <c>BitwiseXorExpr</c>
 	/// labeled alternative in <see cref="LuxParser.expr"/>.
@@ -1415,6 +1439,18 @@ public interface ILuxListener : IParseTreeListener {
 	/// <param name="context">The parse tree.</param>
 	void ExitDotSuffix([NotNull] LuxParser.DotSuffixContext context);
 	/// <summary>
+	/// Enter a parse tree produced by the <c>OptDotSuffix</c>
+	/// labeled alternative in <see cref="LuxParser.suffix"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void EnterOptDotSuffix([NotNull] LuxParser.OptDotSuffixContext context);
+	/// <summary>
+	/// Exit a parse tree produced by the <c>OptDotSuffix</c>
+	/// labeled alternative in <see cref="LuxParser.suffix"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void ExitOptDotSuffix([NotNull] LuxParser.OptDotSuffixContext context);
+	/// <summary>
 	/// Enter a parse tree produced by the <c>IndexSuffix</c>
 	/// labeled alternative in <see cref="LuxParser.suffix"/>.
 	/// </summary>
@@ -1450,6 +1486,18 @@ public interface ILuxListener : IParseTreeListener {
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	void ExitCallSuffix([NotNull] LuxParser.CallSuffixContext context);
+	/// <summary>
+	/// Enter a parse tree produced by the <c>OptCallSuffix</c>
+	/// labeled alternative in <see cref="LuxParser.suffix"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void EnterOptCallSuffix([NotNull] LuxParser.OptCallSuffixContext context);
+	/// <summary>
+	/// Exit a parse tree produced by the <c>OptCallSuffix</c>
+	/// labeled alternative in <see cref="LuxParser.suffix"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void ExitOptCallSuffix([NotNull] LuxParser.OptCallSuffixContext context);
 	/// <summary>
 	/// Enter a parse tree produced by the <c>NameVar</c>
 	/// labeled alternative in <see cref="LuxParser.var"/>.

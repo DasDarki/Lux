@@ -121,5 +121,10 @@ public enum DiagnosticCode
     [Format("Type inference failed for expression of type '{0}'")]
     ErrTypeInferenceFailed = 0x2005,
 
+    [Level(DiagnosticLevel.Error)]
+    [Category(DiagnosticCategory.Type)]
+    [Format("Expression of type '{0}' is possibly nil. Use '?.' to access fields safely or check for nil first.")]
+    ErrPossiblyNil = 0x2006,
+
     #endregion
 }

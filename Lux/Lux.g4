@@ -452,6 +452,7 @@ expr
     // ─── Binary Operators (low → high precedence) ───
 
     | expr OR expr                                              # LogicalOrExpr
+    | <assoc=right> expr QQ expr                                # NilCoalesceExpr
     | expr AND expr                                             # LogicalAndExpr
     | expr compareOp expr                                       # ComparisonExpr
     | expr PIPE expr                                            # BitwiseOrExpr
@@ -465,6 +466,10 @@ expr
     // ─── Unary ───
 
     | unaryOp expr                                              # UnaryExpr
+
+    // ─── Postfix ───
+
+    | expr BANG                                                  # NonNilAssertExpr
 
     // ─── Power (highest binary, right-associative) ───
 
@@ -521,9 +526,11 @@ varOrExp
 
 suffix
     : DOT NAME                                                  # DotSuffix
+    | QDOT NAME                                                 # OptDotSuffix
     | LBRACK expr RBRACK                                        # IndexSuffix
     | COLON NAME args                                           # MethodCallSuffix
     | args                                                      # CallSuffix
+    | QMARK args                                                # OptCallSuffix
     ;
 
 // ─── Variables (assignment targets) ───
@@ -656,6 +663,8 @@ EQ       : '==';
 NEQ      : '~=';
 LTE      : '<=';
 GTE      : '>=';
+QQ       : '??';
+QDOT     : '?.';
 
 // Single-character
 
@@ -673,6 +682,7 @@ LT       : '<';
 GT       : '>';
 ASSIGN   : '=';
 QMARK    : '?';
+BANG     : '!';
 
 // Delimiters
 

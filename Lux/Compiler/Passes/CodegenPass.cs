@@ -504,15 +504,25 @@ public sealed class CodegenPass() : Pass(PassName, PassScope.PerBuild, true, Man
                 EmitFunctionDef(ctx, pkg, gen, fd);
                 break;
             case DotAccessExpr dot:
-                EmitExpr(ctx, pkg, gen, dot.Object);
-                gen.Write(".");
-                gen.Write(dot.FieldName.Name);
+                if (dot.IsOptional)
+                {
+                    EmitOptionalDotAccess(ctx, pkg, gen, dot);
+                }
+                else
+                {
+                    EmitExpr(ctx, pkg, gen, dot.Object);
+                    gen.Write(".");
+                    gen.Write(dot.FieldName.Name);
+                }
                 break;
             case IndexAccessExpr idx:
                 EmitIndexAccess(ctx, pkg, gen, idx);
                 break;
             case FunctionCallExpr call:
-                EmitFunctionCall(ctx, pkg, gen, call);
+                if (call.IsOptional)
+                    EmitOptionalFunctionCall(ctx, pkg, gen, call);
+                else
+                    EmitFunctionCall(ctx, pkg, gen, call);
                 break;
             case MethodCallExpr mc:
                 EmitMethodCall(ctx, pkg, gen, mc);
@@ -522,6 +532,9 @@ public sealed class CodegenPass() : Pass(PassName, PassScope.PerBuild, true, Man
                 break;
             case InterpolatedStringExpr interp:
                 EmitInterpolatedString(ctx, pkg, gen, interp);
+                break;
+            case NonNilAssertExpr nna:
+                EmitExpr(ctx, pkg, gen, nna.Inner);
                 break;
         }
     }
@@ -572,6 +585,12 @@ public sealed class CodegenPass() : Pass(PassName, PassScope.PerBuild, true, Man
 
     private void EmitBinary(PassContext ctx, PackageContext pkg, LuaGenerator gen, BinaryExpr bin)
     {
+        if (bin.Op == BinaryOp.NilCoalesce)
+        {
+            EmitNilCoalesce(ctx, pkg, gen, bin);
+            return;
+        }
+
         var isConcatOp = gen.IsConfiguredConcatOp(bin.Op) && bin.Op != BinaryOp.Concat;
         var isStringContext = isConcatOp && IsStringTyped(ctx, pkg, bin);
 
@@ -618,6 +637,37 @@ public sealed class CodegenPass() : Pass(PassName, PassScope.PerBuild, true, Man
         gen.Write(gen.BinaryOpToLua(bin.Op));
         gen.Write(" ");
         EmitExpr(ctx, pkg, gen, bin.Right);
+    }
+
+    private void EmitOptionalDotAccess(PassContext ctx, PackageContext pkg, LuaGenerator gen, DotAccessExpr dot)
+    {
+        gen.Write("(function() local __v = (");
+        EmitExpr(ctx, pkg, gen, dot.Object);
+        gen.Write("); if __v == nil then return nil else return __v.");
+        gen.Write(dot.FieldName.Name);
+        gen.Write(" end end)()");
+    }
+
+    private void EmitOptionalFunctionCall(PassContext ctx, PackageContext pkg, LuaGenerator gen, FunctionCallExpr call)
+    {
+        gen.Write("(function() local __f = (");
+        EmitExpr(ctx, pkg, gen, call.Callee);
+        gen.Write("); if __f == nil then return nil else return __f(");
+        for (var i = 0; i < call.Arguments.Count; i++)
+        {
+            if (i > 0) gen.Write(", ");
+            EmitExpr(ctx, pkg, gen, call.Arguments[i]);
+        }
+        gen.Write(") end end)()");
+    }
+
+    private void EmitNilCoalesce(PassContext ctx, PackageContext pkg, LuaGenerator gen, BinaryExpr bin)
+    {
+        gen.Write("(function() local __v = (");
+        EmitExpr(ctx, pkg, gen, bin.Left);
+        gen.Write("); if __v ~= nil then return __v else return (");
+        EmitExpr(ctx, pkg, gen, bin.Right);
+        gen.Write(") end end)()");
     }
 
     private void EmitUnary(PassContext ctx, PackageContext pkg, LuaGenerator gen, UnaryExpr un)
