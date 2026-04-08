@@ -81,6 +81,9 @@ public sealed class DeclGenPass() : Pass(PassName, PassScope.PerBuild, true, Inf
                     foreach (var v in ld.Variables)
                         exports.Add(new ExportedSymbol(v.Name.Name, v.Name, ld));
                     break;
+                case EnumDecl ed:
+                    exports.Add(new ExportedSymbol(ed.Name.Name, ed.Name, ed));
+                    break;
             }
         }
 
@@ -105,10 +108,26 @@ public sealed class DeclGenPass() : Pass(PassName, PassScope.PerBuild, true, Inf
                 case LocalDecl:
                     EmitVarDeclaration(sb, ctx, pkg, export.NameRef);
                     break;
+                case EnumDecl ed:
+                    EmitEnumDeclaration(sb, ctx, pkg, ed);
+                    break;
             }
         }
 
         sb.AppendLine("end");
+    }
+
+    private void EmitEnumDeclaration(StringBuilder sb, PassContext ctx, PackageContext pkg, EnumDecl ed)
+    {
+        sb.Append("    enum ");
+        sb.Append(ed.Name.Name);
+        sb.AppendLine();
+        foreach (var member in ed.Members)
+        {
+            sb.Append("        ");
+            sb.AppendLine(member.Name.Name);
+        }
+        sb.AppendLine("    end");
     }
 
     private void EmitFunctionDeclaration(StringBuilder sb, PassContext ctx, PackageContext pkg,

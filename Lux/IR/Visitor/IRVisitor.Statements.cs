@@ -28,6 +28,8 @@ internal partial class IRVisitor
     public override Node VisitFunctionDeclStat(LuxParser.FunctionDeclStatContext context) => Visit(context.functionDecl());
     public override Node VisitLocalFunctionDeclStat(LuxParser.LocalFunctionDeclStatContext context) => Visit(context.localFunctionDecl());
     public override Node VisitLocalDeclStat(LuxParser.LocalDeclStatContext context) => Visit(context.localDecl());
+
+    public override Node VisitEnumDeclStat(LuxParser.EnumDeclStatContext context) => Visit(context.enumDecl());
     public override Node VisitImportStat_(LuxParser.ImportStat_Context context) => Visit(context.importStat());
     public override Node VisitExportStat_(LuxParser.ExportStat_Context context) => Visit(context.exportStat());
     public override Node VisitDeclareStat_(LuxParser.DeclareStat_Context context) => Visit(context.declareStat());
@@ -160,6 +162,12 @@ internal partial class IRVisitor
     public override Node VisitExportLocal(LuxParser.ExportLocalContext context)
     {
         var decl = (Decl)Visit(context.localDecl());
+        return new ExportStmt(NewNodeID, SpanFromCtx(context), decl);
+    }
+
+    public override Node VisitExportEnum(LuxParser.ExportEnumContext context)
+    {
+        var decl = (Decl)Visit(context.enumDecl());
         return new ExportStmt(NewNodeID, SpanFromCtx(context), decl);
     }
 }

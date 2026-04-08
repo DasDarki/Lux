@@ -23,7 +23,8 @@ public enum TypeKind
     Tuple,
     Union,
     Struct,
-    Function
+    Function,
+    Enum
 }
 
 /// <summary>
@@ -219,6 +220,24 @@ public sealed class FunctionType(IEnumerable<Type> paramTypes, Type returnType) 
     {
         var paramKeys = ParamTypes.Select(t => t.Key);
         return $"func<{string.Join(",", paramKeys)}->{ReturnType.Key}>";
+    }
+}
+
+public sealed class EnumType(string name, IEnumerable<EnumType.Member> members, Type baseType) : Type(TypeKind.Enum)
+{
+    public string Name { get; } = name;
+    public List<Member> Members { get; } = members.ToList();
+    public Type BaseType { get; } = baseType;
+
+    protected override TypeKey GenerateNewKey()
+    {
+        return $"enum<{Name}>";
+    }
+
+    public sealed class Member(string name, object? value)
+    {
+        public string Name { get; } = name;
+        public object? Value { get; } = value;
     }
 }
 
@@ -423,6 +442,16 @@ public sealed class TypeTable
     {
         var structType = new StructType(fields);
         return DeclareType(structType);
+    }
+
+    /// <summary>
+    /// Creates a new enum type with the specified name, members and base type, declares it in the type table,
+    /// and returns the registered type instance.
+    /// </summary>
+    public EnumType EnumOf(string name, IEnumerable<EnumType.Member> members, Type baseType)
+    {
+        var enumType = new EnumType(name, members, baseType);
+        return (EnumType)DeclareType(enumType);
     }
 }
 

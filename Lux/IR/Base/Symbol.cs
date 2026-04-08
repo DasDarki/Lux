@@ -8,6 +8,7 @@ public enum SymbolKind
 {
     Variable,
     Function,
+    Enum,
 }
 
 /// <summary>

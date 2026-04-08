@@ -91,6 +91,10 @@ public static class NodeFinder
             case LocalDecl ld:
                 foreach (var v in ld.Values) SearchExpr(v, line, col, ref best);
                 break;
+            case EnumDecl ed:
+                foreach (var m in ed.Members)
+                    if (m.Value != null) SearchExpr(m.Value, line, col, ref best);
+                break;
             case AssignStmt a:
                 foreach (var t in a.Targets) SearchExpr(t, line, col, ref best);
                 foreach (var v in a.Values) SearchExpr(v, line, col, ref best);
@@ -239,6 +243,14 @@ public static class NodeFinder
             case LocalDecl ld:
                 foreach (var v in ld.Variables) CheckNameRef(v.Name, line, col, ref best);
                 foreach (var v in ld.Values) SearchExprForNameRef(v, line, col, ref best);
+                break;
+            case EnumDecl ed:
+                CheckNameRef(ed.Name, line, col, ref best);
+                foreach (var m in ed.Members)
+                {
+                    CheckNameRef(m.Name, line, col, ref best);
+                    if (m.Value != null) SearchExprForNameRef(m.Value, line, col, ref best);
+                }
                 break;
             case AssignStmt a:
                 foreach (var t in a.Targets) SearchExprForNameRef(t, line, col, ref best);
@@ -400,6 +412,14 @@ public static class NodeFinder
                 foreach (var v in ld.Variables) AddRef(v.Name, refs);
                 foreach (var v in ld.Values) CollectFromExpr(v, refs);
                 break;
+            case EnumDecl ed:
+                AddRef(ed.Name, refs);
+                foreach (var m in ed.Members)
+                {
+                    AddRef(m.Name, refs);
+                    if (m.Value != null) CollectFromExpr(m.Value, refs);
+                }
+                break;
             case AssignStmt a:
                 foreach (var t in a.Targets) CollectFromExpr(t, refs);
                 foreach (var v in a.Values) CollectFromExpr(v, refs);
@@ -545,6 +565,10 @@ public static class NodeFinder
                 break;
             case LocalDecl ld:
                 foreach (var v in ld.Values) RegisterExpr(v, reg);
+                break;
+            case EnumDecl ed:
+                foreach (var m in ed.Members)
+                    if (m.Value != null) RegisterExpr(m.Value, reg);
                 break;
             case AssignStmt a:
                 foreach (var t in a.Targets) RegisterExpr(t, reg);

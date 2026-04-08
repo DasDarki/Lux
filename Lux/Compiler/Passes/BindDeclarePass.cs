@@ -365,6 +365,19 @@ public sealed class BindDeclarePass() : Pass(PassName, PassScope.PerFile, depend
 
                 return true;
             }
+            case EnumDecl enumDecl:
+            {
+                DeclareSymbol(ctx, scope, enumDecl.Name.Name, SymbolKind.Enum, enumDecl.ID);
+                pkg.Scopes.BindNode(enumDecl.ID, scope);
+                foreach (var member in enumDecl.Members)
+                {
+                    if (member.Value != null && !BindExprScopes(ctx, member.Value, scope))
+                    {
+                        return false;
+                    }
+                }
+                return true;
+            }
 
             default:
                 throw new InvalidOperationException($"Unsupported declaration type: {decl.GetType().Name}");

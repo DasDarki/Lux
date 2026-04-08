@@ -61,4 +61,47 @@ internal partial class IRVisitor
         var typeRef = (TypeRef)Visit(context.typeAnnotation().typeExpr());
         return new DeclareVariableDecl(NewNodeID, SpanFromCtx(context), NameRefFromTerm(context.NAME()), typeRef);
     }
+
+    public override Node VisitEnumDecl(LuxParser.EnumDeclContext context)
+    {
+        var name = NameRefFromTerm(context.NAME());
+        var members = new List<EnumMember>();
+        foreach (var memberCtx in context.enumMember())
+        {
+            var memberName = NameRefFromTerm(memberCtx.NAME());
+            Expr? value = memberCtx.expr() != null ? (Expr)Visit(memberCtx.expr()) : null;
+            members.Add(new EnumMember(memberName, value, null, SpanFromCtx(memberCtx)));
+        }
+        return new EnumDecl(NewNodeID, SpanFromCtx(context), name, members, isDeclare: false);
+    }
+
+    public override Node VisitDeclareEnum(LuxParser.DeclareEnumContext context)
+    {
+        var name = NameRefFromTerm(context.NAME());
+        var members = new List<EnumMember>();
+        foreach (var memberCtx in context.declareEnumMember())
+        {
+            var memberName = NameRefFromTerm(memberCtx.NAME());
+            TypeRef? typeAnn = memberCtx.typeAnnotation() != null
+                ? (TypeRef)Visit(memberCtx.typeAnnotation().typeExpr())
+                : null;
+            members.Add(new EnumMember(memberName, null, typeAnn, SpanFromCtx(memberCtx)));
+        }
+        return new EnumDecl(NewNodeID, SpanFromCtx(context), name, members, isDeclare: true);
+    }
+
+    public override Node VisitModuleDeclareEnum(LuxParser.ModuleDeclareEnumContext context)
+    {
+        var name = NameRefFromTerm(context.NAME());
+        var members = new List<EnumMember>();
+        foreach (var memberCtx in context.declareEnumMember())
+        {
+            var memberName = NameRefFromTerm(memberCtx.NAME());
+            TypeRef? typeAnn = memberCtx.typeAnnotation() != null
+                ? (TypeRef)Visit(memberCtx.typeAnnotation().typeExpr())
+                : null;
+            members.Add(new EnumMember(memberName, null, typeAnn, SpanFromCtx(memberCtx)));
+        }
+        return new EnumDecl(NewNodeID, SpanFromCtx(context), name, members, isDeclare: true);
+    }
 }

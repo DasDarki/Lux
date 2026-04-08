@@ -10,15 +10,21 @@ namespace Lux.Compiler.Passes;
 public class ResolveTypeRefsPass() : Pass(PassName, PassScope.PerBuild, dependencies: BindDeclarePass.PassName)
 {
     public const string PassName = "ResolveTypeRefs";
-    
+
+    private PassContext _ctx = null!;
+    private PackageContext _pkg = null!;
+
     public override bool Run(PassContext context)
     {
+        _ctx = context;
         foreach (var pkg in context.Pkgs)
         {
+            _pkg = pkg;
             foreach (var f in pkg.Files)
             {
+                DeclareEnumTypes(pkg, f.Hir.Body);
                 ResolveStmtListTypes(pkg.Types, f.Hir.Body);
-                
+
                 if (f.Hir.Return != null)
                 {
                     ResolveStmtTypes(pkg.Types, f.Hir.Return);
@@ -27,6 +33,62 @@ public class ResolveTypeRefsPass() : Pass(PassName, PassScope.PerBuild, dependen
         }
 
         return true;
+    }
+
+    /// <summary>
+    /// Pre-pass: walk top-level statements and create the EnumType for every EnumDecl so that NamedTypeRefs
+    /// referring to enums can be resolved later regardless of declaration order.
+    /// </summary>
+    private void DeclareEnumTypes(PackageContext pkg, List<Stmt> stmts)
+    {
+        foreach (var stmt in stmts)
+        {
+            EnumDecl? enumDecl = stmt switch
+            {
+                EnumDecl ed => ed,
+                ExportStmt es when es.Declaration is EnumDecl ed2 => ed2,
+                _ => null
+            };
+            if (enumDecl == null) continue;
+            DeclareEnumType(pkg, enumDecl);
+        }
+    }
+
+    private void DeclareEnumType(PackageContext pkg, EnumDecl decl)
+    {
+        if (decl.Name.Sym == SymID.Invalid) return;
+        if (!pkg.Syms.GetByID(decl.Name.Sym, out var sym)) return;
+        if (sym.Type != TypID.Invalid) return;
+
+        var hasNumberValues = decl.Members.Any(m => m.Value is NumberLiteralExpr);
+        var baseType = hasNumberValues ? pkg.Types.PrimNumber : pkg.Types.PrimString;
+        var members = new List<EnumType.Member>();
+        long autoIndex = 0;
+        foreach (var m in decl.Members)
+        {
+            object? value = m.Value switch
+            {
+                NumberLiteralExpr nl => nl.Raw,
+                StringLiteralExpr sl => sl.Value,
+                _ => null
+            };
+            if (value == null && hasNumberValues)
+            {
+                value = autoIndex.ToString();
+            }
+            if (value is string s && long.TryParse(s, out var parsed))
+            {
+                autoIndex = parsed + 1;
+            }
+            else
+            {
+                autoIndex++;
+            }
+            members.Add(new EnumType.Member(m.Name.Name, value));
+        }
+
+        var enumType = pkg.Types.EnumOf(decl.Name.Name, members, baseType);
+        pkg.Syms.SetType(decl.Name.Sym, enumType.ID);
     }
     
     private void ResolveStmtListTypes(TypeTable tt, List<Stmt> stmts)
@@ -206,7 +268,20 @@ public class ResolveTypeRefsPass() : Pass(PassName, PassScope.PerBuild, dependen
                 {
                     ResolveDeclTypes(tt, member);
                 }
-                
+
+                break;
+            case EnumDecl enumDecl:
+                if (enumDecl.IsDeclare)
+                {
+                    DeclareEnumType(_pkg, enumDecl);
+                }
+                foreach (var member in enumDecl.Members)
+                {
+                    if (member.TypeAnnotation != null)
+                    {
+                        ResolveTypeRef(tt, member.TypeAnnotation);
+                    }
+                }
                 break;
             default:
                 throw new InvalidOperationException($"Unknown declaration kind: {decl.GetType().Name}");
@@ -311,6 +386,23 @@ public class ResolveTypeRefsPass() : Pass(PassName, PassScope.PerBuild, dependen
         {
             tt.GetByID(tr.ResolvedType, out var resolvedType);
             return resolvedType;
+        }
+
+        if (tr is NamedTypeRef nrt)
+        {
+            if (_pkg.Scopes.Lookup(_pkg.Root, nrt.Name.Name, out var symId)
+                && _pkg.Syms.GetByID(symId, out var sym)
+                && sym.Type != TypID.Invalid)
+            {
+                tt.GetByID(sym.Type, out var resolved);
+                nrt.Name.Sym = symId;
+                tr.ResolvedType = sym.Type;
+                return resolved;
+            }
+
+            _ctx.Diag.Report(tr.Span, Lux.Diagnostics.DiagnosticCode.ErrUndeclaredSymbol, nrt.Name.Name);
+            tr.ResolvedType = tt.PrimAny.ID;
+            return tt.PrimAny;
         }
 
         if (tr is NullableTypeRef nt)

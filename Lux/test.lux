@@ -27,3 +27,36 @@ print(strInterp)
 
 local nilTest: string? = nil
 greet(nilTest ?? "test", "Hi")
+
+export enum Color
+    Red
+    Green
+    Blue
+end
+
+enum Direction
+    North = 0
+    South = 1
+    East = 2
+    West = 3
+end
+
+local c: Color = Color.Red
+local d: Direction = Direction.North
+print(c)
+print(d)
+
+function testEnum1(t: Color)
+    print("Color: " .. t)
+end
+
+function testEnum2(t: number)
+    print("Test 2: " .. t)
+end
+
+testEnum1(Color.Green)
+testEnum2(Direction.South)
+
+for key, value in pairs(Color) do
+    print(key, value)
+end

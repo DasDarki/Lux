@@ -270,6 +270,20 @@ public partial class LuxBaseListener : ILuxListener {
 	/// <param name="context">The parse tree.</param>
 	public virtual void ExitLocalDeclStat([NotNull] LuxParser.LocalDeclStatContext context) { }
 	/// <summary>
+	/// Enter a parse tree produced by the <c>EnumDeclStat</c>
+	/// labeled alternative in <see cref="LuxParser.stmt"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void EnterEnumDeclStat([NotNull] LuxParser.EnumDeclStatContext context) { }
+	/// <summary>
+	/// Exit a parse tree produced by the <c>EnumDeclStat</c>
+	/// labeled alternative in <see cref="LuxParser.stmt"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void ExitEnumDeclStat([NotNull] LuxParser.EnumDeclStatContext context) { }
+	/// <summary>
 	/// Enter a parse tree produced by the <c>ImportStat_</c>
 	/// labeled alternative in <see cref="LuxParser.stmt"/>.
 	/// <para>The default implementation does nothing.</para>
@@ -550,6 +564,30 @@ public partial class LuxBaseListener : ILuxListener {
 	/// <param name="context">The parse tree.</param>
 	public virtual void ExitImportName([NotNull] LuxParser.ImportNameContext context) { }
 	/// <summary>
+	/// Enter a parse tree produced by <see cref="LuxParser.enumDecl"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void EnterEnumDecl([NotNull] LuxParser.EnumDeclContext context) { }
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="LuxParser.enumDecl"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void ExitEnumDecl([NotNull] LuxParser.EnumDeclContext context) { }
+	/// <summary>
+	/// Enter a parse tree produced by <see cref="LuxParser.enumMember"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void EnterEnumMember([NotNull] LuxParser.EnumMemberContext context) { }
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="LuxParser.enumMember"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void ExitEnumMember([NotNull] LuxParser.EnumMemberContext context) { }
+	/// <summary>
 	/// Enter a parse tree produced by the <c>ExportFunction</c>
 	/// labeled alternative in <see cref="LuxParser.exportStat"/>.
 	/// <para>The default implementation does nothing.</para>
@@ -591,6 +629,20 @@ public partial class LuxBaseListener : ILuxListener {
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	public virtual void ExitExportLocal([NotNull] LuxParser.ExportLocalContext context) { }
+	/// <summary>
+	/// Enter a parse tree produced by the <c>ExportEnum</c>
+	/// labeled alternative in <see cref="LuxParser.exportStat"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void EnterExportEnum([NotNull] LuxParser.ExportEnumContext context) { }
+	/// <summary>
+	/// Exit a parse tree produced by the <c>ExportEnum</c>
+	/// labeled alternative in <see cref="LuxParser.exportStat"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void ExitExportEnum([NotNull] LuxParser.ExportEnumContext context) { }
 	/// <summary>
 	/// Enter a parse tree produced by <see cref="LuxParser.declareStat"/>.
 	/// <para>The default implementation does nothing.</para>
@@ -646,6 +698,20 @@ public partial class LuxBaseListener : ILuxListener {
 	/// <param name="context">The parse tree.</param>
 	public virtual void ExitDeclareModule([NotNull] LuxParser.DeclareModuleContext context) { }
 	/// <summary>
+	/// Enter a parse tree produced by the <c>DeclareEnum</c>
+	/// labeled alternative in <see cref="LuxParser.declareBody"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void EnterDeclareEnum([NotNull] LuxParser.DeclareEnumContext context) { }
+	/// <summary>
+	/// Exit a parse tree produced by the <c>DeclareEnum</c>
+	/// labeled alternative in <see cref="LuxParser.declareBody"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void ExitDeclareEnum([NotNull] LuxParser.DeclareEnumContext context) { }
+	/// <summary>
 	/// Enter a parse tree produced by <see cref="LuxParser.funcSignature"/>.
 	/// <para>The default implementation does nothing.</para>
 	/// </summary>
@@ -669,6 +735,18 @@ public partial class LuxBaseListener : ILuxListener {
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	public virtual void ExitDeclareModuleBlock([NotNull] LuxParser.DeclareModuleBlockContext context) { }
+	/// <summary>
+	/// Enter a parse tree produced by <see cref="LuxParser.declareEnumMember"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void EnterDeclareEnumMember([NotNull] LuxParser.DeclareEnumMemberContext context) { }
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="LuxParser.declareEnumMember"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void ExitDeclareEnumMember([NotNull] LuxParser.DeclareEnumMemberContext context) { }
 	/// <summary>
 	/// Enter a parse tree produced by the <c>ModuleDeclareFunction</c>
 	/// labeled alternative in <see cref="LuxParser.declareModuleMember"/>.
@@ -697,6 +775,20 @@ public partial class LuxBaseListener : ILuxListener {
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	public virtual void ExitModuleDeclareVariable([NotNull] LuxParser.ModuleDeclareVariableContext context) { }
+	/// <summary>
+	/// Enter a parse tree produced by the <c>ModuleDeclareEnum</c>
+	/// labeled alternative in <see cref="LuxParser.declareModuleMember"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void EnterModuleDeclareEnum([NotNull] LuxParser.ModuleDeclareEnumContext context) { }
+	/// <summary>
+	/// Exit a parse tree produced by the <c>ModuleDeclareEnum</c>
+	/// labeled alternative in <see cref="LuxParser.declareModuleMember"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void ExitModuleDeclareEnum([NotNull] LuxParser.ModuleDeclareEnumContext context) { }
 	/// <summary>
 	/// Enter a parse tree produced by <see cref="LuxParser.funcName"/>.
 	/// <para>The default implementation does nothing.</para>

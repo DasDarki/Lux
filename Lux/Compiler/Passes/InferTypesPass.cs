@@ -221,6 +221,8 @@ public sealed class InferTypesPass() : Pass(PassName, PassScope.PerFile,
                 }
 
                 break;
+            case EnumDecl ed:
+                break;
             default:
                 throw new InvalidOperationException($"Unknown declaration kind: {decl.GetType().Name}");
         }
@@ -669,6 +671,19 @@ public sealed class InferTypesPass() : Pass(PassName, PassScope.PerFile,
             case TableMapType mt:
                 resultType = mt.ValueType.ID;
                 break;
+            case EnumType et:
+            {
+                var member = et.Members.FirstOrDefault(m => m.Name == dot.FieldName.Name);
+                if (member == null)
+                {
+                    pc.Diag.Report(dot.FieldName.Span, DiagnosticCode.ErrTypeNotIndexable,
+                        $"enum '{et.Name}' has no member '{dot.FieldName.Name}'");
+                    return pc.Types.PrimAny.ID;
+                }
+
+                resultType = baseTyp;
+                break;
+            }
             case { Kind: TypeKind.PrimitiveAny }:
                 resultType = pc.Types.PrimAny.ID;
                 break;
@@ -1000,6 +1015,11 @@ public sealed class InferTypesPass() : Pass(PassName, PassScope.PerFile,
             if (src == tt.PrimNil.ID) return true;
         }
 
+        if (pc.Pkg!.Types.GetByID(src, out var srcEnumType) && srcEnumType is EnumType srcEnum)
+        {
+            if (dst == srcEnum.BaseType.ID) return true;
+        }
+
         if (pc.Pkg!.Types.GetByID(dst, out var dstType) && dstType is UnionType unionDst)
         {
             foreach (var member in unionDst.Types)
@@ -1099,6 +1119,7 @@ public sealed class InferTypesPass() : Pass(PassName, PassScope.PerFile,
     {
         var tt = pc.Types;
         if (t == tt.PrimAny.ID || t == tt.PrimString.ID || t == tt.PrimNumber.ID) return;
+        if (pc.Pkg!.Types.GetByID(t, out var typ) && typ is EnumType) return;
         pc.Diag.Report(span, DiagnosticCode.ErrTypeMismatch, "string or number", TypeName(pc, t));
     }
 

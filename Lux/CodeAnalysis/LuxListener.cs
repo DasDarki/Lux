@@ -231,6 +231,18 @@ public interface ILuxListener : IParseTreeListener {
 	/// <param name="context">The parse tree.</param>
 	void ExitLocalDeclStat([NotNull] LuxParser.LocalDeclStatContext context);
 	/// <summary>
+	/// Enter a parse tree produced by the <c>EnumDeclStat</c>
+	/// labeled alternative in <see cref="LuxParser.stmt"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void EnterEnumDeclStat([NotNull] LuxParser.EnumDeclStatContext context);
+	/// <summary>
+	/// Exit a parse tree produced by the <c>EnumDeclStat</c>
+	/// labeled alternative in <see cref="LuxParser.stmt"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void ExitEnumDeclStat([NotNull] LuxParser.EnumDeclStatContext context);
+	/// <summary>
 	/// Enter a parse tree produced by the <c>ImportStat_</c>
 	/// labeled alternative in <see cref="LuxParser.stmt"/>.
 	/// </summary>
@@ -467,6 +479,26 @@ public interface ILuxListener : IParseTreeListener {
 	/// <param name="context">The parse tree.</param>
 	void ExitImportName([NotNull] LuxParser.ImportNameContext context);
 	/// <summary>
+	/// Enter a parse tree produced by <see cref="LuxParser.enumDecl"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void EnterEnumDecl([NotNull] LuxParser.EnumDeclContext context);
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="LuxParser.enumDecl"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void ExitEnumDecl([NotNull] LuxParser.EnumDeclContext context);
+	/// <summary>
+	/// Enter a parse tree produced by <see cref="LuxParser.enumMember"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void EnterEnumMember([NotNull] LuxParser.EnumMemberContext context);
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="LuxParser.enumMember"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void ExitEnumMember([NotNull] LuxParser.EnumMemberContext context);
+	/// <summary>
 	/// Enter a parse tree produced by the <c>ExportFunction</c>
 	/// labeled alternative in <see cref="LuxParser.exportStat"/>.
 	/// </summary>
@@ -502,6 +534,18 @@ public interface ILuxListener : IParseTreeListener {
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	void ExitExportLocal([NotNull] LuxParser.ExportLocalContext context);
+	/// <summary>
+	/// Enter a parse tree produced by the <c>ExportEnum</c>
+	/// labeled alternative in <see cref="LuxParser.exportStat"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void EnterExportEnum([NotNull] LuxParser.ExportEnumContext context);
+	/// <summary>
+	/// Exit a parse tree produced by the <c>ExportEnum</c>
+	/// labeled alternative in <see cref="LuxParser.exportStat"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void ExitExportEnum([NotNull] LuxParser.ExportEnumContext context);
 	/// <summary>
 	/// Enter a parse tree produced by <see cref="LuxParser.declareStat"/>.
 	/// </summary>
@@ -549,6 +593,18 @@ public interface ILuxListener : IParseTreeListener {
 	/// <param name="context">The parse tree.</param>
 	void ExitDeclareModule([NotNull] LuxParser.DeclareModuleContext context);
 	/// <summary>
+	/// Enter a parse tree produced by the <c>DeclareEnum</c>
+	/// labeled alternative in <see cref="LuxParser.declareBody"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void EnterDeclareEnum([NotNull] LuxParser.DeclareEnumContext context);
+	/// <summary>
+	/// Exit a parse tree produced by the <c>DeclareEnum</c>
+	/// labeled alternative in <see cref="LuxParser.declareBody"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void ExitDeclareEnum([NotNull] LuxParser.DeclareEnumContext context);
+	/// <summary>
 	/// Enter a parse tree produced by <see cref="LuxParser.funcSignature"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
@@ -568,6 +624,16 @@ public interface ILuxListener : IParseTreeListener {
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	void ExitDeclareModuleBlock([NotNull] LuxParser.DeclareModuleBlockContext context);
+	/// <summary>
+	/// Enter a parse tree produced by <see cref="LuxParser.declareEnumMember"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void EnterDeclareEnumMember([NotNull] LuxParser.DeclareEnumMemberContext context);
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="LuxParser.declareEnumMember"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void ExitDeclareEnumMember([NotNull] LuxParser.DeclareEnumMemberContext context);
 	/// <summary>
 	/// Enter a parse tree produced by the <c>ModuleDeclareFunction</c>
 	/// labeled alternative in <see cref="LuxParser.declareModuleMember"/>.
@@ -592,6 +658,18 @@ public interface ILuxListener : IParseTreeListener {
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	void ExitModuleDeclareVariable([NotNull] LuxParser.ModuleDeclareVariableContext context);
+	/// <summary>
+	/// Enter a parse tree produced by the <c>ModuleDeclareEnum</c>
+	/// labeled alternative in <see cref="LuxParser.declareModuleMember"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void EnterModuleDeclareEnum([NotNull] LuxParser.ModuleDeclareEnumContext context);
+	/// <summary>
+	/// Exit a parse tree produced by the <c>ModuleDeclareEnum</c>
+	/// labeled alternative in <see cref="LuxParser.declareModuleMember"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void ExitModuleDeclareEnum([NotNull] LuxParser.ModuleDeclareEnumContext context);
 	/// <summary>
 	/// Enter a parse tree produced by <see cref="LuxParser.funcName"/>.
 	/// </summary>

@@ -74,6 +74,7 @@ stmt
     | functionDecl                                              # FunctionDeclStat
     | localFunctionDecl                                         # LocalFunctionDeclStat
     | localDecl                                                 # LocalDeclStat
+    | enumDecl                                                  # EnumDeclStat
     | importStat                                                # ImportStat_
     | exportStat                                                # ExportStat_
     | declareStat                                               # DeclareStat_
@@ -191,10 +192,21 @@ importName
 //   export local name: string = "hello"
 //   export local function bar() ... end
 
+// ─── Enum Declarations ───
+
+enumDecl
+    : ENUM NAME enumMember+ END
+    ;
+
+enumMember
+    : NAME (ASSIGN expr)?
+    ;
+
 exportStat
     : EXPORT functionDecl                                        # ExportFunction
     | EXPORT localFunctionDecl                                   # ExportLocalFunction
     | EXPORT localDecl                                           # ExportLocal
+    | EXPORT enumDecl                                            # ExportEnum
     ;
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -224,6 +236,7 @@ declareBody
     : FUNCTION funcName funcSignature                            # DeclareFunction
     | NAME typeAnnotation                                        # DeclareVariable
     | MODULE str declareModuleBlock END                           # DeclareModule
+    | ENUM NAME declareEnumMember+ END                           # DeclareEnum
     ;
 
 // Function signature: params + optional return type. No body.
@@ -254,9 +267,14 @@ declareModuleBlock
     : declareModuleMember*
     ;
 
+declareEnumMember
+    : NAME typeAnnotation?
+    ;
+
 declareModuleMember
     : FUNCTION funcName funcSignature                            # ModuleDeclareFunction
     | NAME typeAnnotation                                        # ModuleDeclareVariable
+    | ENUM NAME declareEnumMember+ END                           # ModuleDeclareEnum
     ;
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -641,6 +659,7 @@ WHILE    : 'while';
 
 AS       : 'as';
 DECLARE  : 'declare';
+ENUM     : 'enum';
 EXPORT   : 'export';
 FROM     : 'from';
 IMPORT   : 'import';

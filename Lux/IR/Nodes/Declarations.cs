@@ -69,3 +69,21 @@ public sealed class DeclareModuleDecl(
     public NameRef ModuleName { get; } = moduleName;
     public List<Decl> Members { get; } = members;
 }
+
+public sealed class EnumDecl(
+    NodeID id, TextSpan span,
+    NameRef name, List<EnumMember> members, bool isDeclare
+) : Decl(id, span)
+{
+    public NameRef Name { get; } = name;
+    public List<EnumMember> Members { get; } = members;
+    public bool IsDeclare { get; } = isDeclare;
+}
+
+public sealed class EnumMember(NameRef name, Expr? value, TypeRef? typeAnnotation, TextSpan span)
+{
+    public NameRef Name { get; } = name;
+    public Expr? Value { get; set; } = value;
+    public TypeRef? TypeAnnotation { get; } = typeAnnotation;
+    public TextSpan Span { get; } = span;
+}

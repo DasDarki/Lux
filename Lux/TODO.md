@@ -8,7 +8,7 @@
 - [ ] Operator overloading
 - [ ] Type check expression and type casting
 - [ ] Function overloading and default parameters
-- [ ] Enums
+- [x] Enums
 - [ ] Generics
 - [ ] Classes with inheritance and interfaces
 - [ ] Annotations
@@ -19,3 +19,4 @@
 - [ ] Add a runtime to execute Lux/Lua Code
 - [ ] Add a compiler to compile Lux/Lua into binary executables
 - [ ] Add a package manager for managing dependencies and libraries (git based)
+- [ ] Iteration type checking and type inference for loops (enums are also iterable)

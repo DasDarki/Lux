@@ -11,6 +11,11 @@ public abstract class TypeRef(NodeID id, TextSpan span, TypeKind kind) : Node(id
 
 public sealed class PrimitiveTypeRef(NodeID id, TextSpan span, TypeKind kind) : TypeRef(id, span, kind);
 
+public sealed class NamedTypeRef(NodeID id, TextSpan span, NameRef name) : TypeRef(id, span, TypeKind.Enum)
+{
+    public NameRef Name { get; } = name;
+}
+
 public sealed class ArrayTypeRef(NodeID id, TextSpan span, TypeRef elementType) : TypeRef(id, span, TypeKind.TableArray)
 {
     public TypeRef ElementType { get; } = elementType;

@@ -44,9 +44,8 @@ internal partial class IRVisitor
         {
             return new PrimitiveTypeRef(NewNodeID, SpanFromCtx(context), kind);
         }
-        
-        diag.Report(SpanFromTerm(context.NAME()), DiagnosticCode.ErrUnknownType, context.NAME().GetText());
-        return new PrimitiveTypeRef(NewNodeID, SpanFromCtx(context), TypeKind.PrimitiveAny);
+
+        return new NamedTypeRef(NewNodeID, SpanFromCtx(context), NameRefFromTerm(context.NAME()));
     }
 
     public override Node VisitFuncType(LuxParser.FuncTypeContext context)

@@ -79,6 +79,9 @@ public sealed class CodegenPass() : Pass(PassName, PassScope.PerBuild, true, Man
                     foreach (var v in ld.Variables)
                         names.Add(ResolveName(ctx, pkg, v.Name));
                     break;
+                case EnumDecl ed:
+                    names.Add(ResolveName(ctx, pkg, ed.Name));
+                    break;
             }
         }
     }
@@ -195,7 +198,57 @@ public sealed class CodegenPass() : Pass(PassName, PassScope.PerBuild, true, Man
             case DeclareVariableDecl:
             case DeclareModuleDecl:
                 break;
+            case EnumDecl ed:
+                if (!ed.IsDeclare)
+                    EmitEnumDecl(ctx, pkg, gen, ed);
+                break;
         }
+    }
+
+    private void EmitEnumDecl(PassContext ctx, PackageContext pkg, LuaGenerator gen, EnumDecl ed)
+    {
+        var hasNumberValues = ed.Members.Any(m => m.Value is NumberLiteralExpr);
+        gen.Write("local ");
+        gen.Write(ResolveName(ctx, pkg, ed.Name));
+        gen.Write(" = { ");
+        long autoIndex = 0;
+        for (var i = 0; i < ed.Members.Count; i++)
+        {
+            if (i > 0) gen.Write(", ");
+            var m = ed.Members[i];
+            gen.Write(m.Name.Name);
+            gen.Write(" = ");
+            switch (m.Value)
+            {
+                case NumberLiteralExpr nl:
+                    gen.Write(nl.Raw);
+                    if (long.TryParse(nl.Raw, out var parsed)) autoIndex = parsed + 1;
+                    else autoIndex++;
+                    break;
+                case StringLiteralExpr sl:
+                    gen.Write("\"");
+                    gen.Write(sl.Value);
+                    gen.Write("\"");
+                    autoIndex++;
+                    break;
+                default:
+                    if (hasNumberValues)
+                    {
+                        gen.Write(autoIndex.ToString());
+                        autoIndex++;
+                    }
+                    else
+                    {
+                        gen.Write("\"");
+                        gen.Write(m.Name.Name);
+                        gen.Write("\"");
+                    }
+                    break;
+            }
+        }
+        gen.Write(" }");
+        gen.NewLine();
+        gen.WriteSemicolon();
     }
 
     #endregion

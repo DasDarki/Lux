@@ -257,10 +257,21 @@ public sealed class ResolveNamesPass() : Pass(PassName, PassScope.PerFile, depen
                 ResolveNameRef(pc, declareModuleDecl.ModuleName, scope, pkg);
 
                 foreach (var member in declareModuleDecl.Members)
-                {                    
+                {
                     ResolveDeclNames(pc, member, pkg);
                 }
-                
+
+                break;
+            }
+            case EnumDecl enumDecl:
+            {
+                pkg.Scopes.EnclosingScope(enumDecl.ID, out var scope);
+                ResolveNameRef(pc, enumDecl.Name, scope, pkg);
+                foreach (var member in enumDecl.Members)
+                {
+                    if (member.Value != null)
+                        ResolveExprNames(pc, member.Value, pkg);
+                }
                 break;
             }
         }

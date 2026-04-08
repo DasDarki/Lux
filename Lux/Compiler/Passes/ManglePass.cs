@@ -135,6 +135,8 @@ public sealed class ManglePase() : Pass(PassName, PassScope.PerFile, true, Detec
                 return "tup";
             case TypeKind.Struct:
                 return "st";
+            case TypeKind.Enum:
+                return "en";
             case TypeKind.Union:
                 if (typ is not UnionType unionType)
                 {
