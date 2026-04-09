@@ -181,6 +181,11 @@ public sealed class LuxWorkspace
         return ((string)typ.Key).Replace("<invalid>", "any");
     }
 
+    public string FormatType(TypeTable types, IR.Type typ)
+    {
+        return ((string)typ.Key).Replace("<invalid>", "any");
+    }
+
     public List<Symbol> CollectVisibleSymbols(AnalysisResult result, ScopeID scopeId)
     {
         var symbols = new List<Symbol>();

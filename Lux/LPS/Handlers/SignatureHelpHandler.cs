@@ -75,14 +75,59 @@ public sealed class SignatureHelpHandler(LuxWorkspace workspace) : SignatureHelp
             };
         }
 
-        for (var i = 0; i < ft.ParamTypes.Count; i++)
+        var regularIdx = 0;
+        if (declParams != null)
         {
-            var pName = declParams != null && i < declParams.Count ? declParams[i].Name.Name : $"arg{i}";
-            var pType = workspace.FormatType(result.Types, ft.ParamTypes[i]);
-            paramInfos.Add(new ParameterInformation
+            foreach (var dp in declParams)
             {
-                Label = new ParameterInformationLabel($"{pName}: {pType}")
-            });
+                if (dp.IsVararg)
+                {
+                    var vaType = ft.VarargType != null
+                        ? workspace.FormatType(result.Types, ft.VarargType)
+                        : "any";
+                    var vaName = dp.Name.Name != "..." ? dp.Name.Name : "...";
+                    paramInfos.Add(new ParameterInformation
+                    {
+                        Label = new ParameterInformationLabel($"...{vaName}: {vaType}")
+                    });
+                }
+                else
+                {
+                    var pType = regularIdx < ft.ParamTypes.Count
+                        ? workspace.FormatType(result.Types, ft.ParamTypes[regularIdx])
+                        : "any";
+                    var label2 = $"{dp.Name.Name}: {pType}";
+                    if (dp.DefaultValue != null)
+                        label2 += " = ...";
+                    paramInfos.Add(new ParameterInformation
+                    {
+                        Label = new ParameterInformationLabel(label2)
+                    });
+                    regularIdx++;
+                }
+            }
+        }
+        else
+        {
+            for (var i = 0; i < ft.ParamTypes.Count; i++)
+            {
+                var pType = workspace.FormatType(result.Types, ft.ParamTypes[i]);
+                var defaultHint = ft.DefaultParams.Contains(i) ? " = ..." : "";
+                paramInfos.Add(new ParameterInformation
+                {
+                    Label = new ParameterInformationLabel($"arg{i}: {pType}{defaultHint}")
+                });
+            }
+            if (ft.IsVararg)
+            {
+                var vaType = ft.VarargType != null
+                    ? workspace.FormatType(result.Types, ft.VarargType)
+                    : "any";
+                paramInfos.Add(new ParameterInformation
+                {
+                    Label = new ParameterInformationLabel($"...: {vaType}")
+                });
+            }
         }
 
         var retType = workspace.FormatType(result.Types, ft.ReturnType);

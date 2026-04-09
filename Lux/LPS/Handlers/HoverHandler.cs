@@ -34,9 +34,61 @@ public sealed class HoverHandler(LuxWorkspace workspace) : HoverHandlerBase
 
             if (sym.Kind == LuxSymbolKind.Function && result.Types.GetByID(sym.Type, out var typ) && typ is FunctionType ft)
             {
-                var parms = string.Join(", ", ft.ParamTypes.Select(p => workspace.FormatType(result.Types, p)));
+                List<Parameter>? declParams = null;
+                if (sym.DeclaringNode != NodeID.Invalid && result.NodeRegistry.TryGetValue(sym.DeclaringNode, out var dn))
+                {
+                    declParams = dn switch
+                    {
+                        FunctionDecl fd => fd.Parameters,
+                        LocalFunctionDecl lfd => lfd.Parameters,
+                        _ => null
+                    };
+                }
+
+                var paramParts = new List<string>();
+                if (declParams != null)
+                {
+                    var ri = 0;
+                    foreach (var dp in declParams)
+                    {
+                        if (dp.IsVararg)
+                        {
+                            var vaType = ft.VarargType != null
+                                ? workspace.FormatType(result.Types, ft.VarargType)
+                                : "any";
+                            var vaName = dp.Name.Name != "..." ? dp.Name.Name : "";
+                            paramParts.Add($"...{vaName}: {vaType}");
+                        }
+                        else
+                        {
+                            var pType = ri < ft.ParamTypes.Count
+                                ? workspace.FormatType(result.Types, ft.ParamTypes[ri])
+                                : "any";
+                            var part = $"{dp.Name.Name}: {pType}";
+                            if (dp.DefaultValue != null) part += " = ...";
+                            paramParts.Add(part);
+                            ri++;
+                        }
+                    }
+                }
+                else
+                {
+                    paramParts.AddRange(ft.ParamTypes.Select((p, i) =>
+                    {
+                        var s = workspace.FormatType(result.Types, p);
+                        return ft.DefaultParams.Contains(i) ? $"{s} = ..." : s;
+                    }));
+                    if (ft.IsVararg)
+                    {
+                        var vaType = ft.VarargType != null
+                            ? workspace.FormatType(result.Types, ft.VarargType)
+                            : "any";
+                        paramParts.Add($"...: {vaType}");
+                    }
+                }
+
                 var ret = workspace.FormatType(result.Types, ft.ReturnType);
-                display = $"(function) {sym.Name}({parms}) -> {ret}";
+                display = $"(function) {sym.Name}({string.Join(", ", paramParts)}) -> {ret}";
             }
             else if (effectiveType != declaredType)
             {

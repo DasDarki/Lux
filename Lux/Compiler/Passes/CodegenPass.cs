@@ -90,12 +90,49 @@ public sealed class CodegenPass() : Pass(PassName, PassScope.PerBuild, true, Man
 
     private void EmitStmtList(PassContext ctx, PackageContext pkg, LuaGenerator gen, List<Stmt> stmts)
     {
-        foreach (var stmt in stmts)
+        var emitted = new HashSet<int>();
+        for (var i = 0; i < stmts.Count; i++)
         {
+            if (emitted.Contains(i)) continue;
             gen.FlushHoisted();
+
+            var stmt = stmts[i];
+            var funcName = GetFunctionDeclName(ctx, pkg, stmt);
+            if (funcName != null)
+            {
+                var group = new List<(Stmt stmt, int idx)> { (stmt, i) };
+                for (var j = i + 1; j < stmts.Count; j++)
+                {
+                    var otherName = GetFunctionDeclName(ctx, pkg, stmts[j]);
+                    if (otherName == funcName)
+                    {
+                        group.Add((stmts[j], j));
+                        emitted.Add(j);
+                    }
+                }
+
+                if (group.Count > 1)
+                {
+                    EmitOverloadedFunction(ctx, pkg, gen, funcName, group.Select(g => g.stmt).ToList());
+                    continue;
+                }
+            }
+
             EmitStmt(ctx, pkg, gen, stmt);
         }
         gen.FlushHoisted();
+    }
+
+    private string? GetFunctionDeclName(PassContext ctx, PackageContext pkg, Stmt stmt)
+    {
+        var actual = stmt is ExportStmt es ? es.Declaration : stmt;
+        return actual switch
+        {
+            FunctionDecl fd when fd.NamePath.Count == 1 && fd.MethodName == null
+                => ResolveName(ctx, pkg, fd.NamePath[0]),
+            LocalFunctionDecl lfd => ResolveName(ctx, pkg, lfd.Name),
+            _ => null
+        };
     }
 
     private bool ShouldStrip(PassContext ctx, PackageContext pkg, Stmt stmt)
@@ -255,6 +292,119 @@ public sealed class CodegenPass() : Pass(PassName, PassScope.PerBuild, true, Man
 
     #region Declarations
 
+    private void EmitOverloadedFunction(PassContext ctx, PackageContext pkg, LuaGenerator gen, string name, List<Stmt> overloads)
+    {
+        var isLocal = overloads.Any(s =>
+        {
+            var actual = s is ExportStmt es ? es.Declaration : s;
+            return actual is LocalFunctionDecl;
+        });
+
+        if (isLocal)
+            gen.Write("local function ");
+        else
+            gen.Write("function ");
+        gen.Write(name);
+        gen.Write("(...)");
+        gen.NewLine();
+        gen.Indent();
+        gen.WriteLine("local __n = select(\"#\", ...)");
+        gen.WriteSemicolon();
+        gen.WriteLine("local __args = {...}");
+        gen.WriteSemicolon();
+
+        var first = true;
+        foreach (var stmt in overloads)
+        {
+            var actual = stmt is ExportStmt es ? (Decl)es.Declaration : (Decl)stmt;
+            List<Parameter> parameters;
+            List<Stmt> body;
+            ReturnStmt? returnStmt;
+
+            switch (actual)
+            {
+                case FunctionDecl fd:
+                    parameters = fd.Parameters;
+                    body = fd.Body;
+                    returnStmt = fd.ReturnStmt;
+                    break;
+                case LocalFunctionDecl lfd:
+                    parameters = lfd.Parameters;
+                    body = lfd.Body;
+                    returnStmt = lfd.ReturnStmt;
+                    break;
+                default:
+                    continue;
+            }
+
+            var regularParams = parameters.Where(p => !p.IsVararg).ToList();
+
+            gen.Write(first ? "if " : "elseif ");
+            first = false;
+
+            var conditions = new List<string>();
+            conditions.Add($"__n == {regularParams.Count}");
+            foreach (var param in regularParams)
+            {
+                var luaType = GetLuaTypeCheck(ctx, pkg, param);
+                if (luaType != null)
+                {
+                    var idx = regularParams.IndexOf(param) + 1;
+                    conditions.Add($"type(__args[{idx}]) == \"{luaType}\"");
+                }
+            }
+
+            gen.Write(string.Join(" and ", conditions));
+            gen.Write(" then");
+            gen.NewLine();
+            gen.Indent();
+
+            for (var i = 0; i < regularParams.Count; i++)
+            {
+                gen.Write("local ");
+                gen.Write(ResolveName(ctx, pkg, regularParams[i].Name));
+                gen.Write(" = __args[");
+                gen.Write((i + 1).ToString());
+                gen.WriteLine("]");
+                gen.WriteSemicolon();
+            }
+
+            EmitStmtList(ctx, pkg, gen, body);
+            if (returnStmt != null)
+                EmitReturn(ctx, pkg, gen, returnStmt);
+
+            gen.Dedent();
+        }
+
+        gen.Write("else");
+        gen.NewLine();
+        gen.Indent();
+        gen.WriteLine("error(\"no matching overload for '\" .. \"" + name + "\" .. \"'\")");
+        gen.WriteSemicolon();
+        gen.Dedent();
+        gen.WriteLine("end");
+        gen.EndBlock();
+    }
+
+    private string? GetLuaTypeCheck(PassContext ctx, PackageContext pkg, Parameter param)
+    {
+        if (param.TypeAnnotation == null || param.TypeAnnotation.ResolvedType == TypID.Invalid)
+            return null;
+
+        if (!pkg.Types.GetByID(param.TypeAnnotation.ResolvedType, out var typ))
+            return null;
+
+        return typ.Kind switch
+        {
+            TypeKind.PrimitiveNumber => "number",
+            TypeKind.PrimitiveString => "string",
+            TypeKind.PrimitiveBool => "boolean",
+            TypeKind.Function => "function",
+            TypeKind.TableArray or TypeKind.TableMap or TypeKind.Struct => "table",
+            _ => null
+        };
+    }
+
     private void EmitFunctionDecl(PassContext ctx, PackageContext pkg, LuaGenerator gen, FunctionDecl fd)
     {
         gen.Write("function ");
@@ -269,6 +419,8 @@ public sealed class CodegenPass() : Pass(PassName, PassScope.PerBuild, true, Man
         gen.Write(")");
         gen.NewLine();
         gen.Indent();
+        EmitDefaultParamPreamble(ctx, pkg, gen, fd.Parameters);
+        EmitNamedVarargPreamble(ctx, pkg, gen, fd.Parameters);
         EmitStmtList(ctx, pkg, gen, fd.Body);
         if (fd.ReturnStmt != null)
             EmitReturn(ctx, pkg, gen, fd.ReturnStmt);
@@ -284,6 +436,8 @@ public sealed class CodegenPass() : Pass(PassName, PassScope.PerBuild, true, Man
         gen.Write(")");
         gen.NewLine();
         gen.Indent();
+        EmitDefaultParamPreamble(ctx, pkg, gen, lfd.Parameters);
+        EmitNamedVarargPreamble(ctx, pkg, gen, lfd.Parameters);
         EmitStmtList(ctx, pkg, gen, lfd.Body);
         if (lfd.ReturnStmt != null)
             EmitReturn(ctx, pkg, gen, lfd.ReturnStmt);
@@ -819,6 +973,8 @@ public sealed class CodegenPass() : Pass(PassName, PassScope.PerBuild, true, Man
         gen.Write(")");
         gen.NewLine();
         gen.Indent();
+        EmitDefaultParamPreamble(ctx, pkg, gen, fd.Parameters);
+        EmitNamedVarargPreamble(ctx, pkg, gen, fd.Parameters);
         EmitStmtList(ctx, pkg, gen, fd.Body);
         if (fd.ReturnStmt != null)
             EmitReturn(ctx, pkg, gen, fd.ReturnStmt);
@@ -922,6 +1078,33 @@ public sealed class CodegenPass() : Pass(PassName, PassScope.PerBuild, true, Man
             {
                 gen.Write(ResolveName(ctx, pkg, param.Name));
             }
+        }
+    }
+
+    private void EmitNamedVarargPreamble(PassContext ctx, PackageContext pkg, LuaGenerator gen, List<Parameter> parameters)
+    {
+        var vararg = parameters.FirstOrDefault(p => p.IsVararg);
+        if (vararg == null || vararg.Name.Name == "...") return;
+        gen.Write("local ");
+        gen.Write(ResolveName(ctx, pkg, vararg.Name));
+        gen.WriteLine(" = {...}");
+        gen.WriteSemicolon();
+    }
+
+    private void EmitDefaultParamPreamble(PassContext ctx, PackageContext pkg, LuaGenerator gen, List<Parameter> parameters)
+    {
+        foreach (var param in parameters)
+        {
+            if (param.IsVararg || param.DefaultValue == null) continue;
+            var name = ResolveName(ctx, pkg, param.Name);
+            gen.Write("if ");
+            gen.Write(name);
+            gen.Write(" == nil then ");
+            gen.Write(name);
+            gen.Write(" = ");
+            EmitExpr(ctx, pkg, gen, param.DefaultValue);
+            gen.WriteLine(" end");
+            gen.WriteSemicolon();
         }
     }
 

@@ -248,6 +248,8 @@ public sealed class BindDeclarePass() : Pass(PassName, PassScope.PerFile, depend
                 {
                     pkg.Scopes.BindNode(param.ID, funcScope);
                     DeclareSymbol(ctx, funcScope, param.Name.Name, SymbolKind.Variable, param.ID);
+                    if (param.DefaultValue != null && !BindExprScopes(ctx, param.DefaultValue, funcScope))
+                        return false;
                 }
 
                 if (funcDecl.ReturnType != null)
@@ -280,6 +282,8 @@ public sealed class BindDeclarePass() : Pass(PassName, PassScope.PerFile, depend
                 {
                     pkg.Scopes.BindNode(param.ID, localFuncScope);
                     DeclareSymbol(ctx, localFuncScope, param.Name.Name, SymbolKind.Variable, param.ID);
+                    if (param.DefaultValue != null && !BindExprScopes(ctx, param.DefaultValue, localFuncScope))
+                        return false;
                 }
 
                 if (localFuncDecl.ReturnType != null)
@@ -409,6 +413,8 @@ public sealed class BindDeclarePass() : Pass(PassName, PassScope.PerFile, depend
                 {
                     pkg.Scopes.BindNode(param.ID, funcScope);
                     DeclareSymbol(ctx, funcScope, param.Name.Name, SymbolKind.Variable, param.ID);
+                    if (param.DefaultValue != null && !BindExprScopes(ctx, param.DefaultValue, funcScope))
+                        return false;
                 }
 
                 if (funcDef.ReturnType != null)

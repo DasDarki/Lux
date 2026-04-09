@@ -148,15 +148,13 @@ public sealed class InferTypesPass() : Pass(PassName, PassScope.PerFile,
             }
             case GenericForStmt gf:
             {
+                var iterTypes = new List<TypID>();
                 foreach (var iter in gf.Iterators)
                 {
-                    SynthesizeExpr(pc, iter);
+                    iterTypes.Add(SynthesizeExpr(pc, iter));
                 }
 
-                foreach (var vn in gf.VarNames)
-                {
-                    pc.Pkg!.Syms.SetType(vn.Sym, pc.Types.PrimAny.ID);
-                }
+                InferGenericForVarTypes(pc, gf, iterTypes);
 
                 ResolveStmts(pc, gf.Body);
                 break;
@@ -195,10 +193,20 @@ public sealed class InferTypesPass() : Pass(PassName, PassScope.PerFile,
             case DeclareFunctionDecl dfd:
             {
                 var paramTypes = new List<Type>();
+                var dfdIsVararg = false;
+                Type? dfdVarargType = null;
                 foreach (var param in dfd.Parameters)
                 {
                     var t = ResolveParamType(pc, param);
-                    paramTypes.Add(t);
+                    if (param.IsVararg)
+                    {
+                        dfdIsVararg = true;
+                        dfdVarargType = t.Kind == TypeKind.PrimitiveAny ? null : t;
+                    }
+                    else
+                    {
+                        paramTypes.Add(t);
+                    }
                     if (param.Name.Sym != SymID.Invalid)
                     {
                         pc.Pkg!.Syms.SetType(param.Name.Sym, t.ID);
@@ -208,7 +216,7 @@ public sealed class InferTypesPass() : Pass(PassName, PassScope.PerFile,
                 var ret = dfd.ReturnType != null && dfd.ReturnType.ResolvedType != TypID.Invalid
                     ? GetType(pc, dfd.ReturnType.ResolvedType)
                     : pc.Types.PrimNil;
-                var funcTyp = pc.Types.FuncOf(paramTypes, ret);
+                var funcTyp = pc.Types.FuncOf(paramTypes, ret, dfdIsVararg, dfdVarargType);
                 if (dfd.NamePath.Count == 1 && dfd.MethodName == null)
                 {
                     pc.Pkg!.Syms.SetType(dfd.NamePath[0].Sym, funcTyp);
@@ -244,13 +252,40 @@ public sealed class InferTypesPass() : Pass(PassName, PassScope.PerFile,
         List<Stmt> body, ReturnStmt? returnStmt, NameRef? funcName)
     {
         var paramTypes = new List<Type>();
-        foreach (var param in parameters)
+        var isVararg = false;
+        Type? varargType = null;
+        var defaultIndices = new List<int>();
+
+        for (var i = 0; i < parameters.Count; i++)
         {
+            var param = parameters[i];
             var t = ResolveParamType(pc, param);
-            paramTypes.Add(t);
-            if (param.Name.Sym != SymID.Invalid)
+
+            if (param.IsVararg)
             {
-                pc.Pkg!.Syms.SetType(param.Name.Sym, t.ID);
+                isVararg = true;
+                varargType = t.Kind == TypeKind.PrimitiveAny ? null : t;
+                if (param.Name.Sym != SymID.Invalid)
+                {
+                    var arrTyp = varargType != null
+                        ? pc.Pkg!.Types.ArrayOf(varargType)
+                        : pc.Pkg!.Types.ArrayOf(pc.Types.PrimAny);
+                    pc.Pkg!.Syms.SetType(param.Name.Sym, arrTyp);
+                }
+            }
+            else
+            {
+                paramTypes.Add(t);
+                if (param.Name.Sym != SymID.Invalid)
+                {
+                    pc.Pkg!.Syms.SetType(param.Name.Sym, t.ID);
+                }
+                if (param.DefaultValue != null)
+                {
+                    var dvt = SynthesizeExpr(pc, param.DefaultValue);
+                    EnsureAssignable(pc, param.DefaultValue.Span, t.ID, dvt);
+                    defaultIndices.Add(i);
+                }
             }
         }
 
@@ -310,7 +345,8 @@ public sealed class InferTypesPass() : Pass(PassName, PassScope.PerFile,
             }
         }
 
-        var funcTyp = pc.Types.FuncOf(paramTypes, returnType);
+        var funcTyp = pc.Types.FuncOf(paramTypes, returnType, isVararg, varargType,
+            defaultIndices.Count > 0 ? defaultIndices : null);
         if (funcName != null && funcName.Sym != SymID.Invalid)
         {
             pc.Pkg!.Syms.SetType(funcName.Sym, funcTyp);
@@ -379,17 +415,52 @@ public sealed class InferTypesPass() : Pass(PassName, PassScope.PerFile,
 
     private Type ResolveParamType(PassContext pc, Parameter param)
     {
-        if (param.IsVararg)
-        {
-            return pc.Types.PrimAny;
-        }
-
         if (param.TypeAnnotation != null && param.TypeAnnotation.ResolvedType != TypID.Invalid)
         {
             return GetType(pc, param.TypeAnnotation.ResolvedType);
         }
 
         return pc.Types.PrimAny;
+    }
+
+    private void InferGenericForVarTypes(PassContext pc, GenericForStmt gf, List<TypID> iterTypes)
+    {
+        var tt = pc.Types;
+        var varCount = gf.VarNames.Count;
+        var inferred = new TypID[varCount];
+        for (var i = 0; i < varCount; i++) inferred[i] = tt.PrimAny.ID;
+
+        if (iterTypes.Count >= 1 && tt.GetByID(iterTypes[0], out var firstIterType))
+        {
+            switch (firstIterType)
+            {
+                case FunctionType ft:
+                    if (varCount >= 1 && ft.ParamTypes.Count >= 1)
+                        inferred[0] = ft.ParamTypes[0].ID;
+                    if (varCount >= 2 && ft.ParamTypes.Count >= 2)
+                        inferred[1] = ft.ParamTypes[1].ID;
+                    for (var i = 2; i < varCount && i < ft.ParamTypes.Count; i++)
+                        inferred[i] = ft.ParamTypes[i].ID;
+                    break;
+                case TableArrayType arr:
+                    if (varCount >= 1) inferred[0] = tt.PrimNumber.ID;
+                    if (varCount >= 2) inferred[1] = arr.ElementType.ID;
+                    break;
+                case TableMapType map:
+                    if (varCount >= 1) inferred[0] = map.KeyType.ID;
+                    if (varCount >= 2) inferred[1] = map.ValueType.ID;
+                    break;
+                case EnumType enumType:
+                    if (varCount >= 1) inferred[0] = tt.PrimString.ID;
+                    if (varCount >= 2) inferred[1] = enumType.BaseType.ID;
+                    break;
+            }
+        }
+
+        for (var i = 0; i < varCount; i++)
+        {
+            pc.Pkg!.Syms.SetType(gf.VarNames[i].Sym, inferred[i]);
+        }
     }
 
     private TypID SynthesizeExpr(PassContext pc, Expr expr)
@@ -584,13 +655,39 @@ public sealed class InferTypesPass() : Pass(PassName, PassScope.PerFile,
     private TypID InferFunctionDef(PassContext pc, FunctionDefExpr fde)
     {
         var paramTypes = new List<Type>();
-        foreach (var param in fde.Parameters)
+        var fdeIsVararg = false;
+        Type? fdeVarargType = null;
+        var fdeDefaults = new List<int>();
+
+        for (var i = 0; i < fde.Parameters.Count; i++)
         {
+            var param = fde.Parameters[i];
             var t = ResolveParamType(pc, param);
-            paramTypes.Add(t);
-            if (param.Name.Sym != SymID.Invalid)
+            if (param.IsVararg)
             {
-                pc.Pkg!.Syms.SetType(param.Name.Sym, t.ID);
+                fdeIsVararg = true;
+                fdeVarargType = t.Kind == TypeKind.PrimitiveAny ? null : t;
+                if (param.Name.Sym != SymID.Invalid)
+                {
+                    var arrTyp = fdeVarargType != null
+                        ? pc.Pkg!.Types.ArrayOf(fdeVarargType)
+                        : pc.Pkg!.Types.ArrayOf(pc.Types.PrimAny);
+                    pc.Pkg!.Syms.SetType(param.Name.Sym, arrTyp);
+                }
+            }
+            else
+            {
+                paramTypes.Add(t);
+                if (param.Name.Sym != SymID.Invalid)
+                {
+                    pc.Pkg!.Syms.SetType(param.Name.Sym, t.ID);
+                }
+                if (param.DefaultValue != null)
+                {
+                    var dvt = SynthesizeExpr(pc, param.DefaultValue);
+                    EnsureAssignable(pc, param.DefaultValue.Span, t.ID, dvt);
+                    fdeDefaults.Add(i);
+                }
             }
         }
 
@@ -640,7 +737,8 @@ public sealed class InferTypesPass() : Pass(PassName, PassScope.PerFile,
             }
         }
 
-        return pc.Types.FuncOf(paramTypes, returnType);
+        return pc.Types.FuncOf(paramTypes, returnType, fdeIsVararg, fdeVarargType,
+            fdeDefaults.Count > 0 ? fdeDefaults : null);
     }
 
     private TypID InferDotAccess(PassContext pc, DotAccessExpr dot)
@@ -767,6 +865,20 @@ public sealed class InferTypesPass() : Pass(PassName, PassScope.PerFile,
             argTypes.Add(SynthesizeExpr(pc, arg));
         }
 
+        if (call.Callee is NameExpr ne && ne.Name.Overloads is { Count: > 1 } overloads)
+        {
+            var resolved = ResolveOverload(pc, call.Span, overloads, argTypes);
+            if (resolved != null)
+            {
+                ne.Name.Sym = resolved.Value.sym;
+                CheckCallArguments(pc, call.Span, resolved.Value.ft, argTypes);
+                var ret = resolved.Value.ft.ReturnType.ID;
+                return call.IsOptional ? MakeNullable(pc, ret) : ret;
+            }
+
+            return call.IsOptional ? MakeNullable(pc, pc.Types.PrimAny.ID) : pc.Types.PrimAny.ID;
+        }
+
         var calleeTyp = SynthesizeExpr(pc, call.Callee);
 
         if (call.IsOptional)
@@ -801,6 +913,68 @@ public sealed class InferTypesPass() : Pass(PassName, PassScope.PerFile,
         CheckCallArguments(pc, call.Span, fnType, argTypes);
         var resultType = fnType.ReturnType.ID;
         return call.IsOptional ? MakeNullable(pc, resultType) : resultType;
+    }
+
+    private (SymID sym, FunctionType ft)? ResolveOverload(PassContext pc, TextSpan span, List<SymID> overloads, List<TypID> argTypes)
+    {
+        FunctionType? bestFn = null;
+        SymID bestSym = SymID.Invalid;
+        var bestScore = -1;
+
+        foreach (var symId in overloads)
+        {
+            if (!pc.Pkg!.Syms.GetByID(symId, out var sym)) continue;
+            if (!pc.Types.GetByID(sym.Type, out var typ) || typ is not FunctionType ft) continue;
+
+            var score = ScoreOverload(pc, ft, argTypes);
+            if (score > bestScore)
+            {
+                bestScore = score;
+                bestFn = ft;
+                bestSym = symId;
+            }
+        }
+
+        if (bestFn != null && bestScore >= 0)
+        {
+            return (bestSym, bestFn);
+        }
+
+        pc.Diag.Report(span, DiagnosticCode.ErrFuncParamMismatch, "overloaded", argTypes.Count);
+        return null;
+    }
+
+    private int ScoreOverload(PassContext pc, FunctionType ft, List<TypID> argTypes)
+    {
+        var paramCount = ft.ParamTypes.Count;
+        var argCount = argTypes.Count;
+        var minParams = ft.MinParamCount;
+
+        if (argCount < minParams) return -1;
+        if (argCount > paramCount && !ft.IsVararg)
+        {
+            var lastParam = paramCount > 0 ? ft.ParamTypes[paramCount - 1] : null;
+            if (lastParam is not { Kind: TypeKind.PrimitiveAny })
+                return -1;
+        }
+
+        var score = 0;
+        for (var i = 0; i < paramCount && i < argCount; i++)
+        {
+            var paramType = ft.ParamTypes[i].ID;
+            var argType = argTypes[i];
+            if (paramType == argType)
+                score += 3;
+            else if (IsTypeAssignable(pc, paramType, argType))
+                score += 1;
+            else
+                return -1;
+        }
+
+        if (argCount == paramCount)
+            score += 1;
+
+        return score;
     }
 
     private TypID InferMethodCall(PassContext pc, MethodCallExpr mc)
@@ -918,8 +1092,15 @@ public sealed class InferTypesPass() : Pass(PassName, PassScope.PerFile,
     {
         var paramCount = fnType.ParamTypes.Count;
         var argCount = argTypes.Count;
+        var minParams = fnType.MinParamCount;
 
-        if (argCount > paramCount)
+        if (argCount < minParams)
+        {
+            pc.Diag.Report(span, DiagnosticCode.ErrFuncParamMismatch, minParams, argCount);
+            return;
+        }
+
+        if (argCount > paramCount && !fnType.IsVararg)
         {
             var lastParam = paramCount > 0 ? fnType.ParamTypes[paramCount - 1] : null;
             if (lastParam is not { Kind: TypeKind.PrimitiveAny })
@@ -944,6 +1125,19 @@ public sealed class InferTypesPass() : Pass(PassName, PassScope.PerFile,
                 {
                     pc.Diag.Report(span, DiagnosticCode.ErrTypeMismatch,
                         TypeName(pc, paramType), TypeName(pc, argType));
+                }
+            }
+        }
+
+        if (fnType.IsVararg && fnType.VarargType != null)
+        {
+            for (var i = paramCount; i < argCount; i++)
+            {
+                var argType = argTypes[i];
+                if (!IsTypeAssignable(pc, fnType.VarargType.ID, argType))
+                {
+                    pc.Diag.Report(span, DiagnosticCode.ErrTypeMismatch,
+                        TypeName(pc, fnType.VarargType.ID), TypeName(pc, argType));
                 }
             }
         }

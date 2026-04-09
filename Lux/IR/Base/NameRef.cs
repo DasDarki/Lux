@@ -14,18 +14,24 @@ public sealed class NameRef(string name, TextSpan span, SymID? sym = null)
     /// The name of the name reference. This is the actual name that is being referred to, such as "x", "foo", "Bar", etc.
     /// </summary>
     public string Name { get; } = name;
-    
+
     /// <summary>
     /// The text span of the name reference. This indicates where in the source code the name reference corresponds to, and can be used for error reporting and other diagnostics.
     /// </summary>
     public TextSpan Span { get; } = span;
-    
+
     /// <summary>
     /// The symbol ID of the name reference. This is assigned during name resolution, and can be used to reference the actual name definition from other nodes or from external code.
     /// If the name reference cannot be resolved, this will be set to SymID.Invalid.
     /// </summary>
     public SymID Sym { get; set; } = sym ?? SymID.Invalid;
-    
+
+    /// <summary>
+    /// All overload candidates for this name reference. Populated when the name refers to
+    /// an overloaded function (multiple symbols with the same name in the same scope).
+    /// </summary>
+    public List<SymID>? Overloads { get; set; }
+
     /// <summary>
     /// An implicit conversion operator that allows a NameRef to be implicitly converted to its SymID.
     /// </summary>

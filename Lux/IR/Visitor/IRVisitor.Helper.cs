@@ -108,6 +108,7 @@ internal partial class IRVisitor
                     NameRefFromTerm(p.NAME()),
                     VisitTypeAnnotationOpt(p.typeAnnotation()),
                     false,
+                    p.expr() != null ? (Expr)Visit(p.expr()) : null,
                     SpanFromCtx(p)
                 )).ToList();
 
@@ -115,7 +116,8 @@ internal partial class IRVisitor
                 {
                     var vp = withNames.varargParam();
                     var span = SpanFromCtx(vp);
-                    result.Add(new Parameter(NewNodeID, NameRefFromText("...", span), VisitTypeAnnotationOpt(vp.typeAnnotation()), true, span));
+                    var varargName = vp.NAME() != null ? NameRefFromTerm(vp.NAME()) : NameRefFromText("...", span);
+                    result.Add(new Parameter(NewNodeID, varargName, VisitTypeAnnotationOpt(vp.typeAnnotation()), true, null, span));
                 }
 
                 return result;
@@ -124,7 +126,8 @@ internal partial class IRVisitor
             {
                 var vp = vararg.varargParam();
                 var span = SpanFromCtx(vp);
-                return [new Parameter(NewNodeID, NameRefFromText("...", span), VisitTypeAnnotationOpt(vp.typeAnnotation()), true, span)];
+                var varargName = vp.NAME() != null ? NameRefFromTerm(vp.NAME()) : NameRefFromText("...", span);
+                return [new Parameter(NewNodeID, varargName, VisitTypeAnnotationOpt(vp.typeAnnotation()), true, null, span)];
             }
             default:
                 return [];

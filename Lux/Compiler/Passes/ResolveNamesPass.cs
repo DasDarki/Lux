@@ -176,13 +176,15 @@ public sealed class ResolveNamesPass() : Pass(PassName, PassScope.PerFile, depen
                 pkg.Scopes.EnclosingScope(functionDecl.ID, out var scope);
                 if (functionDecl.NamePath.Count > 0)
                 {
-                    ResolveNameRef(pc, functionDecl.NamePath[0], scope, pkg);
+                    ResolveNameRefForDecl(pc, functionDecl.NamePath[0], scope, pkg, functionDecl.ID);
                 }
 
                 foreach (var p in functionDecl.Parameters)
                 {
                     pkg.Scopes.EnclosingScope(p.ID, out var paramScope);
                     ResolveNameRef(pc, p.Name, paramScope, pkg);
+                    if (p.DefaultValue != null)
+                        ResolveExprNames(pc, p.DefaultValue, pkg);
                 }
 
                 ResolveStmtListNames(pc, functionDecl.Body, pkg);
@@ -203,6 +205,8 @@ public sealed class ResolveNamesPass() : Pass(PassName, PassScope.PerFile, depen
                 {
                     pkg.Scopes.EnclosingScope(p.ID, out var paramScope);
                     ResolveNameRef(pc, p.Name, paramScope, pkg);
+                    if (p.DefaultValue != null)
+                        ResolveExprNames(pc, p.DefaultValue, pkg);
                 }
 
                 ResolveStmtListNames(pc, localFunctionDecl.Body, pkg);
@@ -292,6 +296,8 @@ public sealed class ResolveNamesPass() : Pass(PassName, PassScope.PerFile, depen
                 {
                     pkg.Scopes.EnclosingScope(p.ID, out var scope);
                     ResolveNameRef(pc, p.Name, scope, pkg);
+                    if (p.DefaultValue != null)
+                        ResolveExprNames(pc, p.DefaultValue, pkg);
                 }
 
                 ResolveStmtListNames(pc, functionDefExpr.Body, pkg);
@@ -385,9 +391,33 @@ public sealed class ResolveNamesPass() : Pass(PassName, PassScope.PerFile, depen
 
     private void ResolveNameRef(PassContext pc, NameRef nameRef, ScopeID start, PackageContext pkg)
     {
-        if (pkg.Scopes.Lookup(start, nameRef.Name, out var id))
+        var all = pkg.Scopes.LookupAll(start, nameRef.Name);
+        if (all.Count > 0)
         {
-            nameRef.Sym = id;
+            nameRef.Sym = all[0];
+            if (all.Count > 1)
+            {
+                nameRef.Overloads = all;
+            }
+        }
+        else
+        {
+            pc.Diag.Report(nameRef.Span, DiagnosticCode.ErrUndeclaredSymbol, nameRef.Name);
+        }
+    }
+
+    private void ResolveNameRefForDecl(PassContext pc, NameRef nameRef, ScopeID start, PackageContext pkg, NodeID declNode)
+    {
+        var all = pkg.Scopes.LookupAll(start, nameRef.Name);
+        if (all.Count > 0)
+        {
+            var matched = all.FirstOrDefault(id =>
+                pkg.Syms.GetByID(id, out var s) && s.DeclaringNode == declNode);
+            nameRef.Sym = matched != SymID.Invalid ? matched : all[0];
+            if (all.Count > 1)
+            {
+                nameRef.Overloads = all;
+            }
         }
         else
         {

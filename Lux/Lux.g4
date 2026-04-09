@@ -309,11 +309,11 @@ paramList
     ;
 
 param
-    : NAME typeAnnotation?
+    : NAME typeAnnotation? (ASSIGN expr)?
     ;
 
 varargParam
-    : ELLIPSIS typeAnnotation?
+    : ELLIPSIS NAME? typeAnnotation?
     ;
 
 // ─── Name / Variable Lists ───

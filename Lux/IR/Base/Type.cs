@@ -211,14 +211,21 @@ public sealed class StructType(IEnumerable<StructType.Field> fields) : Type(Type
     }
 }
 
-public sealed class FunctionType(IEnumerable<Type> paramTypes, Type returnType) : Type(TypeKind.Function)
+public sealed class FunctionType(IEnumerable<Type> paramTypes, Type returnType, bool isVararg = false, Type? varargType = null, List<int>? defaultParams = null) : Type(TypeKind.Function)
 {
     public List<Type> ParamTypes { get; } = paramTypes.ToList();
     public Type ReturnType { get; } = returnType;
+    public bool IsVararg { get; } = isVararg;
+    public Type? VarargType { get; } = varargType;
+    public List<int> DefaultParams { get; } = defaultParams ?? [];
+
+    public int MinParamCount => ParamTypes.Count - DefaultParams.Count;
 
     protected override TypeKey GenerateNewKey()
     {
-        var paramKeys = ParamTypes.Select(t => t.Key);
+        var paramKeys = ParamTypes.Select(t => t.Key).ToList();
+        if (IsVararg)
+            paramKeys.Add($"...{(VarargType != null ? VarargType.Key.Value : "any")}");
         return $"func<{string.Join(",", paramKeys)}->{ReturnType.Key}>";
     }
 }
@@ -418,9 +425,9 @@ public sealed class TypeTable
     /// Creates a new function type with the specified parameter types and return type, declares the new type in the
     /// type table, and returns the type ID of the new type.
     /// </summary>
-    public TypID FuncOf(IEnumerable<Type> paramTypes, Type returnType)
+    public TypID FuncOf(IEnumerable<Type> paramTypes, Type returnType, bool isVararg = false, Type? varargType = null, List<int>? defaultParams = null)
     {
-        var funcType = new FunctionType(paramTypes, returnType);
+        var funcType = new FunctionType(paramTypes, returnType, isVararg, varargType, defaultParams);
         return DeclareType(funcType);
     }
 

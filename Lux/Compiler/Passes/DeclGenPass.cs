@@ -178,6 +178,8 @@ public sealed class DeclGenPass() : Pass(PassName, PassScope.PerBuild, true, Inf
             if (p.IsVararg)
             {
                 sb.Append("...");
+                if (p.Name.Name != "...")
+                    sb.Append(p.Name.Name);
                 if (p.TypeAnnotation != null)
                 {
                     sb.Append(": ");
@@ -189,6 +191,8 @@ public sealed class DeclGenPass() : Pass(PassName, PassScope.PerBuild, true, Inf
                 sb.Append(p.Name.Name);
                 sb.Append(": ");
                 sb.Append(FormatSymType(ctx, pkg, p.Name));
+                if (p.DefaultValue != null)
+                    sb.Append(" = ...");
             }
         }
     }

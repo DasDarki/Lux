@@ -1,32 +1,13 @@
-export function add(a: number, b: number): number
-    return a + b
+-- Test: Iteration type checking
+local arr: number[] = {10, 20, 30}
+for i, v in ipairs(arr) do
+    print(i + 1, v * 2)
 end
 
-local result = add(1, 2)
-print("Result: " .. result)
-
-local arr = {10, 20, 30}
-local sum = 0
-for i = 0, 2 do
-    sum = sum + arr[i]
+local tbl = {a = 1, b = 2}
+for k, v in pairs(tbl) do
+    print(k, v)
 end
-print(sum)
-
-export function greet(name: string, greeting: string)
-    return greeting + ", " .. name + "!"
-end
-
-local msg = greet("World", "Hello")
-print(msg)
-
-local len = #arr
-print(len)
-
-local strInterp = `The sum of 1 and 2 is {result}`
-print(strInterp)
-
-local nilTest: string? = nil
-greet(nilTest ?? "test", "Hi")
 
 export enum Color
     Red
@@ -34,74 +15,54 @@ export enum Color
     Blue
 end
 
-enum Direction
-    North = 0
-    South = 1
-    East = 2
-    West = 3
+-- Test: Named varargs
+function sum(...nums: number): number
+    local total = 0
+    for i = 1, #nums do
+        total = total + nums[i]
+    end
+    return total
 end
 
-local c: Color = Color.Red
-local d: Direction = Direction.North
-print(c)
-print(d)
+local s = sum(1, 2, 3, 4, 5)
+print("Sum: " .. s)
 
-function testEnum1(t: Color)
-    print("Color: " .. t)
+-- Test: Default parameters
+function greet(name: string, greeting: string = "Hello"): string
+    return greeting .. ", " .. name .. "!"
 end
 
-function testEnum2(t: number)
-    print("Test 2: " .. t)
+local msg1 = greet("World")
+local msg2 = greet("World", "Hi")
+print(msg1)
+print(msg2)
+
+function createPoint(x: number = 0, y: number = 0): number
+    return x + y
 end
 
-testEnum1(Color.Green)
-testEnum2(Direction.South)
+local p1 = createPoint()
+local p2 = createPoint(5)
+local p3 = createPoint(5, 10)
+print(p1, p2, p3)
 
-for key, value in pairs(Color) do
-    print(key, value)
+-- Test: Varargs + type checking
+function logAll(...items: string)
+    for i = 1, #items do
+        print(items[i])
+    end
 end
 
-local something: any = 42
-if something is number then
-    print("It's a number: " .. (something + 1))
+logAll("a", "b", "c")
+
+-- Test: Function overloading
+export function overload(x: number): number
+    return x * 2
 end
 
-if something is string then
-    print("It's a string")
+function overload(x: string): string
+    return x .. x
 end
 
-local n = something as number
-print(n + 1)
-
-local maybeColor: any = Color.Red
-if maybeColor is Color then
-    print("Got a color")
-end
-
-local u: number | string = 42
-if u is number then
-    print("then-num: " .. (u + 1))
-else
-    print("else-str: " .. u)
-end
-
-local v: number | string = "hi"
-if not (v is number) then
-    print("not-num-str: " .. v)
-else
-    print("not-num-num: " .. (v + 1))
-end
-
-local a: any = 1
-local b: any = "x"
-if a is number and b is string then
-    print("compound: " .. (a + 1) .. b)
-end
-
-local w: number | string = "hello"
-
-if w is number then
-    print("w is a number: " .. (w + 1))
-else
-    print("w is something else")
-end
+print(overload(5))       -- Should print 10
+print(overload("Hi"))    -- Should print "HiHi"

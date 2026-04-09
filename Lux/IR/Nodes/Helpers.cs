@@ -2,11 +2,12 @@ using Lux.Diagnostics;
 
 namespace Lux.IR;
 
-public sealed class Parameter(NodeID id, NameRef name, TypeRef? typeAnnotation, bool isVararg, TextSpan span) : Node(id, span)
+public sealed class Parameter(NodeID id, NameRef name, TypeRef? typeAnnotation, bool isVararg, Expr? defaultValue, TextSpan span) : Node(id, span)
 {
     public NameRef Name { get; } = name;
     public TypeRef? TypeAnnotation { get; } = typeAnnotation;
     public bool IsVararg { get; } = isVararg;
+    public Expr? DefaultValue { get; } = defaultValue;
 }
 
 public sealed class AttribVar(NameRef name, string? attribute, TypeRef? typeAnnotation, TextSpan span)

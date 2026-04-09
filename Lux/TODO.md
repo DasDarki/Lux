@@ -2,12 +2,12 @@
   - [x] Add supression for nilability checks (e.g. `!` operator to assert non-nil value)
   - [x] Add function invocation check via `?` operator (e.g. `myFunction?()` to safely call a function that may be nil)
   - [x] Make strict nilabilty configurable via the config (currently always enforced - but in the config there is already a flag)
-- [ ] Named varargs
+- [x] Named varargs
 - [x] Exhaustive Matching checking
 - [ ] Immutability with deep freeze and const
-- [ ] Operator overloading
+- [ ] Expression Type checking and operator overloading (meta table functions; declarations in .d.lux files) to allow non string and non number types to be used with operators (e.g. `+` for string concatenation, `*` for array repetition, etc.)
 - [x] Type check expression and type casting
-- [ ] Function overloading and default parameters
+- [x] Function overloading and default parameters
 - [x] Enums
   - [x] Currently enums are auto filled with keys, but it would be nicer to auto increment the value using ordinal numbers (e.g. `enum Colors { Red, Green, Blue }` would automatically assign `Red = 0`, `Green = 1`, `Blue = 2`)
 - [ ] Generics
@@ -20,6 +20,6 @@
 - [ ] Add a runtime to execute Lux/Lua Code
 - [ ] Add a compiler to compile Lux/Lua into binary executables
 - [ ] Add a package manager for managing dependencies and libraries (git based)
-- [ ] Iteration type checking and type inference for loops (enums are also iterable)
+- [x] Iteration type checking and type inference for loops (enums are also iterable)
 - [x] BUG: Without explicit parens, a is number and b is string parses as ((a is number) and b) is string. The expr rule's operator alternatives are listed in inverted ANTLR4 precedence order (is/as end up looser than and/or, and similarly mul ends up looser
   than add). The narrowing logic itself handles compound conditions correctly once parens force the right parse — fixing the grammar would touch the entire arithmetic precedence chain and is out of scope here.
