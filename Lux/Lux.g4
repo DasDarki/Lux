@@ -454,7 +454,7 @@ structField
 //  Expressions
 // ─────────────────────────────────────────────────────────────────────────────
 //
-// Precedence by alternative order (ANTLR4: later = tighter binding).
+// Precedence by alternative order (ANTLR4: earlier alternative = higher precedence / tighter binding).
 
 expr
     : NIL                                                       # NilLiteral
@@ -467,33 +467,37 @@ expr
     | prefixExp                                                 # PrefixExpr
     | tableConstructor                                          # TableConstructorExpr
 
-    // ─── Binary Operators (low → high precedence) ───
+    // ─── Power (tightest, right-associative) ───
 
-    | expr OR expr                                              # LogicalOrExpr
-    | <assoc=right> expr QQ expr                                # NilCoalesceExpr
-    | expr AND expr                                             # LogicalAndExpr
-    | expr compareOp expr                                       # ComparisonExpr
-    | expr PIPE expr                                            # BitwiseOrExpr
-    | expr TILDE expr                                           # BitwiseXorExpr
-    | expr AMP expr                                             # BitwiseAndExpr
-    | expr shiftOp expr                                         # BitShiftExpr
-    | <assoc=right> expr CONCAT expr                            # ConcatExpr
-    | expr additiveOp expr                                      # AdditiveExpr
-    | expr multiplicativeOp expr                                # MultiplicativeExpr
+    | <assoc=right> expr CARET expr                             # PowerExpr
 
-    // ─── Unary ───
+    // ─── Unary prefix ───
 
     | unaryOp expr                                              # UnaryExpr
 
     // ─── Postfix ───
 
-    | expr BANG                                                  # NonNilAssertExpr
-    | expr IS typeExpr                                           # TypeCheckExpr
-    | expr AS typeExpr                                           # TypeCastExpr
+    | expr BANG                                                 # NonNilAssertExpr
 
-    // ─── Power (highest binary, right-associative) ───
+    // ─── Binary Operators (high → low precedence) ───
 
-    | <assoc=right> expr CARET expr                             # PowerExpr
+    | expr multiplicativeOp expr                                # MultiplicativeExpr
+    | expr additiveOp expr                                      # AdditiveExpr
+    | <assoc=right> expr CONCAT expr                            # ConcatExpr
+    | expr shiftOp expr                                         # BitShiftExpr
+    | expr AMP expr                                             # BitwiseAndExpr
+    | expr TILDE expr                                           # BitwiseXorExpr
+    | expr PIPE expr                                            # BitwiseOrExpr
+
+    // ─── Type check / cast (tighter than comparison, looser than bit ops) ───
+
+    | expr IS typeExpr                                          # TypeCheckExpr
+    | expr AS typeExpr                                          # TypeCastExpr
+
+    | expr compareOp expr                                       # ComparisonExpr
+    | expr AND expr                                             # LogicalAndExpr
+    | <assoc=right> expr QQ expr                                # NilCoalesceExpr
+    | expr OR expr                                              # LogicalOrExpr
     ;
 
 // ─── Operator Groups ───

@@ -661,19 +661,19 @@ public interface ILuxVisitor<Result> : IParseTreeVisitor<Result> {
 	/// <return>The visitor result.</return>
 	Result VisitNilCoalesceExpr([NotNull] LuxParser.NilCoalesceExprContext context);
 	/// <summary>
-	/// Visit a parse tree produced by the <c>BitwiseAndExpr</c>
-	/// labeled alternative in <see cref="LuxParser.expr"/>.
-	/// </summary>
-	/// <param name="context">The parse tree.</param>
-	/// <return>The visitor result.</return>
-	Result VisitBitwiseAndExpr([NotNull] LuxParser.BitwiseAndExprContext context);
-	/// <summary>
 	/// Visit a parse tree produced by the <c>BitShiftExpr</c>
 	/// labeled alternative in <see cref="LuxParser.expr"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	/// <return>The visitor result.</return>
 	Result VisitBitShiftExpr([NotNull] LuxParser.BitShiftExprContext context);
+	/// <summary>
+	/// Visit a parse tree produced by the <c>BitwiseAndExpr</c>
+	/// labeled alternative in <see cref="LuxParser.expr"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitBitwiseAndExpr([NotNull] LuxParser.BitwiseAndExprContext context);
 	/// <summary>
 	/// Visit a parse tree produced by the <c>UnaryExpr</c>
 	/// labeled alternative in <see cref="LuxParser.expr"/>.
@@ -689,12 +689,12 @@ public interface ILuxVisitor<Result> : IParseTreeVisitor<Result> {
 	/// <return>The visitor result.</return>
 	Result VisitPrefixExpr([NotNull] LuxParser.PrefixExprContext context);
 	/// <summary>
-	/// Visit a parse tree produced by the <c>LogicalOrExpr</c>
+	/// Visit a parse tree produced by the <c>PowerExpr</c>
 	/// labeled alternative in <see cref="LuxParser.expr"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	/// <return>The visitor result.</return>
-	Result VisitLogicalOrExpr([NotNull] LuxParser.LogicalOrExprContext context);
+	Result VisitPowerExpr([NotNull] LuxParser.PowerExprContext context);
 	/// <summary>
 	/// Visit a parse tree produced by the <c>ConcatExpr</c>
 	/// labeled alternative in <see cref="LuxParser.expr"/>.
@@ -703,12 +703,12 @@ public interface ILuxVisitor<Result> : IParseTreeVisitor<Result> {
 	/// <return>The visitor result.</return>
 	Result VisitConcatExpr([NotNull] LuxParser.ConcatExprContext context);
 	/// <summary>
-	/// Visit a parse tree produced by the <c>PowerExpr</c>
+	/// Visit a parse tree produced by the <c>LogicalOrExpr</c>
 	/// labeled alternative in <see cref="LuxParser.expr"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	/// <return>The visitor result.</return>
-	Result VisitPowerExpr([NotNull] LuxParser.PowerExprContext context);
+	Result VisitLogicalOrExpr([NotNull] LuxParser.LogicalOrExprContext context);
 	/// <summary>
 	/// Visit a parse tree produced by the <c>StringLiteral</c>
 	/// labeled alternative in <see cref="LuxParser.expr"/>.

@@ -1099,18 +1099,6 @@ public interface ILuxListener : IParseTreeListener {
 	/// <param name="context">The parse tree.</param>
 	void ExitNilCoalesceExpr([NotNull] LuxParser.NilCoalesceExprContext context);
 	/// <summary>
-	/// Enter a parse tree produced by the <c>BitwiseAndExpr</c>
-	/// labeled alternative in <see cref="LuxParser.expr"/>.
-	/// </summary>
-	/// <param name="context">The parse tree.</param>
-	void EnterBitwiseAndExpr([NotNull] LuxParser.BitwiseAndExprContext context);
-	/// <summary>
-	/// Exit a parse tree produced by the <c>BitwiseAndExpr</c>
-	/// labeled alternative in <see cref="LuxParser.expr"/>.
-	/// </summary>
-	/// <param name="context">The parse tree.</param>
-	void ExitBitwiseAndExpr([NotNull] LuxParser.BitwiseAndExprContext context);
-	/// <summary>
 	/// Enter a parse tree produced by the <c>BitShiftExpr</c>
 	/// labeled alternative in <see cref="LuxParser.expr"/>.
 	/// </summary>
@@ -1122,6 +1110,18 @@ public interface ILuxListener : IParseTreeListener {
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	void ExitBitShiftExpr([NotNull] LuxParser.BitShiftExprContext context);
+	/// <summary>
+	/// Enter a parse tree produced by the <c>BitwiseAndExpr</c>
+	/// labeled alternative in <see cref="LuxParser.expr"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void EnterBitwiseAndExpr([NotNull] LuxParser.BitwiseAndExprContext context);
+	/// <summary>
+	/// Exit a parse tree produced by the <c>BitwiseAndExpr</c>
+	/// labeled alternative in <see cref="LuxParser.expr"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void ExitBitwiseAndExpr([NotNull] LuxParser.BitwiseAndExprContext context);
 	/// <summary>
 	/// Enter a parse tree produced by the <c>UnaryExpr</c>
 	/// labeled alternative in <see cref="LuxParser.expr"/>.
@@ -1147,17 +1147,17 @@ public interface ILuxListener : IParseTreeListener {
 	/// <param name="context">The parse tree.</param>
 	void ExitPrefixExpr([NotNull] LuxParser.PrefixExprContext context);
 	/// <summary>
-	/// Enter a parse tree produced by the <c>LogicalOrExpr</c>
+	/// Enter a parse tree produced by the <c>PowerExpr</c>
 	/// labeled alternative in <see cref="LuxParser.expr"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
-	void EnterLogicalOrExpr([NotNull] LuxParser.LogicalOrExprContext context);
+	void EnterPowerExpr([NotNull] LuxParser.PowerExprContext context);
 	/// <summary>
-	/// Exit a parse tree produced by the <c>LogicalOrExpr</c>
+	/// Exit a parse tree produced by the <c>PowerExpr</c>
 	/// labeled alternative in <see cref="LuxParser.expr"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
-	void ExitLogicalOrExpr([NotNull] LuxParser.LogicalOrExprContext context);
+	void ExitPowerExpr([NotNull] LuxParser.PowerExprContext context);
 	/// <summary>
 	/// Enter a parse tree produced by the <c>ConcatExpr</c>
 	/// labeled alternative in <see cref="LuxParser.expr"/>.
@@ -1171,17 +1171,17 @@ public interface ILuxListener : IParseTreeListener {
 	/// <param name="context">The parse tree.</param>
 	void ExitConcatExpr([NotNull] LuxParser.ConcatExprContext context);
 	/// <summary>
-	/// Enter a parse tree produced by the <c>PowerExpr</c>
+	/// Enter a parse tree produced by the <c>LogicalOrExpr</c>
 	/// labeled alternative in <see cref="LuxParser.expr"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
-	void EnterPowerExpr([NotNull] LuxParser.PowerExprContext context);
+	void EnterLogicalOrExpr([NotNull] LuxParser.LogicalOrExprContext context);
 	/// <summary>
-	/// Exit a parse tree produced by the <c>PowerExpr</c>
+	/// Exit a parse tree produced by the <c>LogicalOrExpr</c>
 	/// labeled alternative in <see cref="LuxParser.expr"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
-	void ExitPowerExpr([NotNull] LuxParser.PowerExprContext context);
+	void ExitLogicalOrExpr([NotNull] LuxParser.LogicalOrExprContext context);
 	/// <summary>
 	/// Enter a parse tree produced by the <c>StringLiteral</c>
 	/// labeled alternative in <see cref="LuxParser.expr"/>.

@@ -1044,17 +1044,6 @@ public partial class LuxBaseVisitor<Result> : AbstractParseTreeVisitor<Result>, 
 	/// <return>The visitor result.</return>
 	public virtual Result VisitNilCoalesceExpr([NotNull] LuxParser.NilCoalesceExprContext context) { return VisitChildren(context); }
 	/// <summary>
-	/// Visit a parse tree produced by the <c>BitwiseAndExpr</c>
-	/// labeled alternative in <see cref="LuxParser.expr"/>.
-	/// <para>
-	/// The default implementation returns the result of calling <see cref="AbstractParseTreeVisitor{Result}.VisitChildren(IRuleNode)"/>
-	/// on <paramref name="context"/>.
-	/// </para>
-	/// </summary>
-	/// <param name="context">The parse tree.</param>
-	/// <return>The visitor result.</return>
-	public virtual Result VisitBitwiseAndExpr([NotNull] LuxParser.BitwiseAndExprContext context) { return VisitChildren(context); }
-	/// <summary>
 	/// Visit a parse tree produced by the <c>BitShiftExpr</c>
 	/// labeled alternative in <see cref="LuxParser.expr"/>.
 	/// <para>
@@ -1065,6 +1054,17 @@ public partial class LuxBaseVisitor<Result> : AbstractParseTreeVisitor<Result>, 
 	/// <param name="context">The parse tree.</param>
 	/// <return>The visitor result.</return>
 	public virtual Result VisitBitShiftExpr([NotNull] LuxParser.BitShiftExprContext context) { return VisitChildren(context); }
+	/// <summary>
+	/// Visit a parse tree produced by the <c>BitwiseAndExpr</c>
+	/// labeled alternative in <see cref="LuxParser.expr"/>.
+	/// <para>
+	/// The default implementation returns the result of calling <see cref="AbstractParseTreeVisitor{Result}.VisitChildren(IRuleNode)"/>
+	/// on <paramref name="context"/>.
+	/// </para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	public virtual Result VisitBitwiseAndExpr([NotNull] LuxParser.BitwiseAndExprContext context) { return VisitChildren(context); }
 	/// <summary>
 	/// Visit a parse tree produced by the <c>UnaryExpr</c>
 	/// labeled alternative in <see cref="LuxParser.expr"/>.
@@ -1088,7 +1088,7 @@ public partial class LuxBaseVisitor<Result> : AbstractParseTreeVisitor<Result>, 
 	/// <return>The visitor result.</return>
 	public virtual Result VisitPrefixExpr([NotNull] LuxParser.PrefixExprContext context) { return VisitChildren(context); }
 	/// <summary>
-	/// Visit a parse tree produced by the <c>LogicalOrExpr</c>
+	/// Visit a parse tree produced by the <c>PowerExpr</c>
 	/// labeled alternative in <see cref="LuxParser.expr"/>.
 	/// <para>
 	/// The default implementation returns the result of calling <see cref="AbstractParseTreeVisitor{Result}.VisitChildren(IRuleNode)"/>
@@ -1097,7 +1097,7 @@ public partial class LuxBaseVisitor<Result> : AbstractParseTreeVisitor<Result>, 
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	/// <return>The visitor result.</return>
-	public virtual Result VisitLogicalOrExpr([NotNull] LuxParser.LogicalOrExprContext context) { return VisitChildren(context); }
+	public virtual Result VisitPowerExpr([NotNull] LuxParser.PowerExprContext context) { return VisitChildren(context); }
 	/// <summary>
 	/// Visit a parse tree produced by the <c>ConcatExpr</c>
 	/// labeled alternative in <see cref="LuxParser.expr"/>.
@@ -1110,7 +1110,7 @@ public partial class LuxBaseVisitor<Result> : AbstractParseTreeVisitor<Result>, 
 	/// <return>The visitor result.</return>
 	public virtual Result VisitConcatExpr([NotNull] LuxParser.ConcatExprContext context) { return VisitChildren(context); }
 	/// <summary>
-	/// Visit a parse tree produced by the <c>PowerExpr</c>
+	/// Visit a parse tree produced by the <c>LogicalOrExpr</c>
 	/// labeled alternative in <see cref="LuxParser.expr"/>.
 	/// <para>
 	/// The default implementation returns the result of calling <see cref="AbstractParseTreeVisitor{Result}.VisitChildren(IRuleNode)"/>
@@ -1119,7 +1119,7 @@ public partial class LuxBaseVisitor<Result> : AbstractParseTreeVisitor<Result>, 
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	/// <return>The visitor result.</return>
-	public virtual Result VisitPowerExpr([NotNull] LuxParser.PowerExprContext context) { return VisitChildren(context); }
+	public virtual Result VisitLogicalOrExpr([NotNull] LuxParser.LogicalOrExprContext context) { return VisitChildren(context); }
 	/// <summary>
 	/// Visit a parse tree produced by the <c>StringLiteral</c>
 	/// labeled alternative in <see cref="LuxParser.expr"/>.
