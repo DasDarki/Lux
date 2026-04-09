@@ -126,5 +126,10 @@ public enum DiagnosticCode
     [Format("Expression of type '{0}' is possibly nil. Use '?.' to access fields safely or check for nil first.")]
     ErrPossiblyNil = 0x2006,
 
+    [Level(DiagnosticLevel.Error)]
+    [Category(DiagnosticCategory.Type)]
+    [Format("Non-exhaustive match on type '{0}': missing case(s) for {1}. Handle the missing case(s) explicitly.")]
+    ErrNonExhaustiveMatch = 0x2007,
+
     #endregion
 }

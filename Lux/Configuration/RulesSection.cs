@@ -46,28 +46,29 @@ public sealed class RulesSection
     public bool DeepFreeze { get; set; } = false;
     
     /// <summary>
-    /// Whether to enforce exhaustive matching in pattern/switch matching. If true, the compiler will report an error if
-    /// a pattern/switch expression does not cover all possible cases. This is useful for ensuring that all cases are
-    /// handled in pattern/switch expressions, which can lead to safer and more maintainable code. If false, the
-    /// compiler will not report any errors but will try to return the default value for the non-matched cases. If this
-    /// is not possible, the compiler will regardless of the rules state report an error.
+    /// Strictness level for exhaustive matching in if/elseif chains that match on a union or enum
+    /// type via <c>is</c> checks or enum member equality. See <see cref="ExhaustiveMatchLevel"/> for
+    /// the available levels. <see cref="ExhaustiveMatchLevel.None"/> disables the check entirely,
+    /// <see cref="ExhaustiveMatchLevel.Relaxed"/> accepts an <c>else</c> branch as a catch-all, and
+    /// <see cref="ExhaustiveMatchLevel.Explicit"/> requires every variant to be covered by its own
+    /// branch regardless of <c>else</c>.
     /// </summary>
-    public bool ExhaustiveMatch  { get; set; } = false;
-    
+    public ExhaustiveMatchLevel ExhaustiveMatch { get; set; } = ExhaustiveMatchLevel.None;
+
     internal void Merge(RulesSection section)
     {
         AllowAny = Config.MergeVal(AllowAny, section.AllowAny, false);
         StrictNil = Config.MergeVal(StrictNil, section.StrictNil, false);
         ImmutableDefault = Config.MergeVal(ImmutableDefault, section.ImmutableDefault, false);
         DeepFreeze = Config.MergeVal(DeepFreeze, section.DeepFreeze, false);
-        ExhaustiveMatch = Config.MergeVal(ExhaustiveMatch, section.ExhaustiveMatch, false);
+        ExhaustiveMatch = Config.MergeVal(ExhaustiveMatch, section.ExhaustiveMatch, ExhaustiveMatchLevel.None);
     }
 
     internal void ApplyStrictPreset()
-    {        
+    {
         AllowAny = Config.MergeVal(AllowAny, true, false);
         StrictNil = Config.MergeVal(StrictNil, true, false);
         ImmutableDefault = Config.MergeVal(ImmutableDefault, true, false);
-        ExhaustiveMatch = Config.MergeVal(ExhaustiveMatch, true, false);
+        ExhaustiveMatch = Config.MergeVal(ExhaustiveMatch, ExhaustiveMatchLevel.Explicit, ExhaustiveMatchLevel.None);
     }
 }

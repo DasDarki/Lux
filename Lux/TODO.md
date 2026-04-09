@@ -3,7 +3,7 @@
   - [x] Add function invocation check via `?` operator (e.g. `myFunction?()` to safely call a function that may be nil)
   - [x] Make strict nilabilty configurable via the config (currently always enforced - but in the config there is already a flag)
 - [ ] Named varargs
-- [ ] Exhaustive Matching checking
+- [x] Exhaustive Matching checking
 - [ ] Immutability with deep freeze and const
 - [ ] Operator overloading
 - [x] Type check expression and type casting

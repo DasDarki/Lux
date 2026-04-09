@@ -1,3 +1,4 @@
+using Lux.Configuration;
 using Lux.Diagnostics;
 using Lux.IR;
 using Type = Lux.IR.Type;
@@ -22,6 +23,16 @@ public sealed class InferTypesPass() : Pass(PassName, PassScope.PerFile,
     private sealed record SymPath(SymID Sym) : AccessPath;
 
     private sealed record FieldPath(AccessPath Base, string Field) : AccessPath;
+
+    /// <summary>
+    /// A single case in an exhaustive-match chain. Either a type test (`x is T`) or an enum member
+    /// equality test (`x == Enum.Member`).
+    /// </summary>
+    private abstract record MatchCase;
+
+    private sealed record TypeMatchCase(TypID TargetType) : MatchCase;
+
+    private sealed record EnumMemberMatchCase(TypID EnumTypeId, string Member) : MatchCase;
 
     private readonly Dictionary<AccessPath, TypID> _narrowed = new();
 
@@ -116,6 +127,7 @@ public sealed class InferTypesPass() : Pass(PassName, PassScope.PerFile,
                     PopAllNarrows(elseSaved);
                 }
 
+                CheckExhaustiveMatch(pc, ifStmt);
                 break;
             }
             case NumericForStmt nf:
@@ -1371,6 +1383,112 @@ public sealed class InferTypesPass() : Pass(PassName, PassScope.PerFile,
             default:
                 return pc.Types.PrimAny.ID;
         }
+    }
+
+    /// <summary>
+    /// Verifies that an if/elseif chain without an else branch covers every case of its scrutinee when
+    /// matching on a union type via `is` or an enum type via equality with enum members. Emits
+    /// <see cref="DiagnosticCode.ErrNonExhaustiveMatch"/> for each missing case. Only runs when
+    /// <see cref="RulesSection.ExhaustiveMatch"/> is enabled.
+    /// </summary>
+    private void CheckExhaustiveMatch(PassContext pc, IfStmt ifStmt)
+    {
+        var level = pc.Config.Rules.ExhaustiveMatch;
+        if (level == ExhaustiveMatchLevel.None) return;
+        if (level == ExhaustiveMatchLevel.Relaxed && ifStmt.ElseBody != null) return;
+
+        var conditions = new List<Expr>(1 + ifStmt.ElseIfs.Count) { ifStmt.Condition };
+        foreach (var ei in ifStmt.ElseIfs) conditions.Add(ei.Condition);
+
+        AccessPath? scrutPath = null;
+        var cases = new List<MatchCase>(conditions.Count);
+
+        foreach (var cond in conditions)
+        {
+            var extracted = ExtractMatchCase(pc, cond);
+            if (extracted == null) return;
+            var (path, mc) = extracted.Value;
+            if (scrutPath == null) scrutPath = path;
+            else if (!scrutPath.Equals(path)) return;
+            cases.Add(mc);
+        }
+
+        if (scrutPath == null || cases.Count == 0) return;
+
+        if (cases.All(c => c is TypeMatchCase))
+        {
+            var scrutType = ResolveAccessPathType(pc, scrutPath);
+            if (!pc.Pkg!.Types.GetByID(scrutType, out var t) || t is not UnionType union) return;
+
+            var covered = cases.Cast<TypeMatchCase>().Select(c => c.TargetType).ToHashSet();
+            var missing = union.Types.Where(m => !covered.Contains(m.ID)).ToList();
+            if (missing.Count == 0) return;
+
+            var missingNames = string.Join(", ", missing.Select(m => m.Key.Value));
+            pc.Diag.Report(ifStmt.Span, DiagnosticCode.ErrNonExhaustiveMatch,
+                union.Key.Value, missingNames);
+            return;
+        }
+
+        if (cases.All(c => c is EnumMemberMatchCase))
+        {
+            var first = (EnumMemberMatchCase)cases[0];
+            if (cases.Cast<EnumMemberMatchCase>().Any(c => c.EnumTypeId != first.EnumTypeId)) return;
+            if (!pc.Pkg!.Types.GetByID(first.EnumTypeId, out var t) || t is not EnumType enumType) return;
+
+            var covered = cases.Cast<EnumMemberMatchCase>().Select(c => c.Member).ToHashSet();
+            var missing = enumType.Members.Where(m => !covered.Contains(m.Name)).ToList();
+            if (missing.Count == 0) return;
+
+            var missingNames = string.Join(", ", missing.Select(m => enumType.Name + "." + m.Name));
+            pc.Diag.Report(ifStmt.Span, DiagnosticCode.ErrNonExhaustiveMatch,
+                enumType.Name, missingNames);
+        }
+    }
+
+    /// <summary>
+    /// Extracts a single match case from a branch condition. Returns null if the condition is not a
+    /// recognized match form (type test `x is T` or enum equality `x == Enum.Member`).
+    /// </summary>
+    private (AccessPath path, MatchCase mc)? ExtractMatchCase(PassContext pc, Expr cond)
+    {
+        var c = cond is ParenExpr p ? p.Inner : cond;
+
+        if (c is TypeCheckExpr tchk)
+        {
+            var path = GetAccessPath(tchk.Inner);
+            if (path == null || tchk.TargetType.ResolvedType == TypID.Invalid) return null;
+            return (path, new TypeMatchCase(tchk.TargetType.ResolvedType));
+        }
+
+        if (c is BinaryExpr bin && bin.Op == BinaryOp.Eq)
+        {
+            if (bin.Right is DotAccessExpr rd && IsEnumMemberRef(pc, rd))
+            {
+                var path = GetAccessPath(bin.Left);
+                if (path == null) return null;
+                return (path, new EnumMemberMatchCase(rd.Type, rd.FieldName.Name));
+            }
+
+            if (bin.Left is DotAccessExpr ld && IsEnumMemberRef(pc, ld))
+            {
+                var path = GetAccessPath(bin.Right);
+                if (path == null) return null;
+                return (path, new EnumMemberMatchCase(ld.Type, ld.FieldName.Name));
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Returns true when the dot access refers to a member of an enum type (its expression type is
+    /// an <see cref="EnumType"/>).
+    /// </summary>
+    private bool IsEnumMemberRef(PassContext pc, DotAccessExpr dot)
+    {
+        if (dot.Type == TypID.Invalid) return false;
+        return pc.Pkg!.Types.GetByID(dot.Type, out var t) && t is EnumType;
     }
 
     /// <summary>
