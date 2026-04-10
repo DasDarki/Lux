@@ -15,7 +15,7 @@
 - [ ] Annotations
 - [ ] Pattern matching
 - [x] Pre/post increment and decrement operators (`++` and `~~`; `~~` instead of `--` to avoid conflict with Lua comments)
-- [ ] Alternative boolean operators (`&&` for and, `||` for or, `!` for not and `!=` for ~=) - should be configurable via the config (currently only the Lua operators are supported) ; IMPORTANT: prevent conflict with existing syntax
+- [x] Alternative boolean operators (`&&` for and, `||` for or, `!` for not and `!=` for ~=) - should be configurable via the config (currently only the Lua operators are supported) ; IMPORTANT: prevent conflict with existing syntax
 - [ ] Async/await and Promises
 - [ ] Add setup scripts allowing to create templates (setup.lux/.lua -> with prompting and then generating the project structure and files): lux create user/repo (auto detect git url - or manually add it, auto detect setup script)
 - [ ] Add a REPL for interactive coding and testing

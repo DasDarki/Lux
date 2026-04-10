@@ -1364,6 +1364,20 @@ public partial class LuxBaseListener : ILuxListener {
 	/// <param name="context">The parse tree.</param>
 	public virtual void ExitMultiplicativeExpr([NotNull] LuxParser.MultiplicativeExprContext context) { }
 	/// <summary>
+	/// Enter a parse tree produced by the <c>AltLogicalOrExpr</c>
+	/// labeled alternative in <see cref="LuxParser.expr"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void EnterAltLogicalOrExpr([NotNull] LuxParser.AltLogicalOrExprContext context) { }
+	/// <summary>
+	/// Exit a parse tree produced by the <c>AltLogicalOrExpr</c>
+	/// labeled alternative in <see cref="LuxParser.expr"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void ExitAltLogicalOrExpr([NotNull] LuxParser.AltLogicalOrExprContext context) { }
+	/// <summary>
 	/// Enter a parse tree produced by the <c>TrueLiteral</c>
 	/// labeled alternative in <see cref="LuxParser.expr"/>.
 	/// <para>The default implementation does nothing.</para>
@@ -1447,6 +1461,34 @@ public partial class LuxBaseListener : ILuxListener {
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	public virtual void ExitBitwiseAndExpr([NotNull] LuxParser.BitwiseAndExprContext context) { }
+	/// <summary>
+	/// Enter a parse tree produced by the <c>AltLogicalNotExpr</c>
+	/// labeled alternative in <see cref="LuxParser.expr"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void EnterAltLogicalNotExpr([NotNull] LuxParser.AltLogicalNotExprContext context) { }
+	/// <summary>
+	/// Exit a parse tree produced by the <c>AltLogicalNotExpr</c>
+	/// labeled alternative in <see cref="LuxParser.expr"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void ExitAltLogicalNotExpr([NotNull] LuxParser.AltLogicalNotExprContext context) { }
+	/// <summary>
+	/// Enter a parse tree produced by the <c>AltLogicalAndExpr</c>
+	/// labeled alternative in <see cref="LuxParser.expr"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void EnterAltLogicalAndExpr([NotNull] LuxParser.AltLogicalAndExprContext context) { }
+	/// <summary>
+	/// Exit a parse tree produced by the <c>AltLogicalAndExpr</c>
+	/// labeled alternative in <see cref="LuxParser.expr"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void ExitAltLogicalAndExpr([NotNull] LuxParser.AltLogicalAndExprContext context) { }
 	/// <summary>
 	/// Enter a parse tree produced by the <c>UnaryExpr</c>
 	/// labeled alternative in <see cref="LuxParser.expr"/>.
@@ -1699,6 +1741,20 @@ public partial class LuxBaseListener : ILuxListener {
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	public virtual void ExitNeqOp([NotNull] LuxParser.NeqOpContext context) { }
+	/// <summary>
+	/// Enter a parse tree produced by the <c>AltNeqOp</c>
+	/// labeled alternative in <see cref="LuxParser.compareOp"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void EnterAltNeqOp([NotNull] LuxParser.AltNeqOpContext context) { }
+	/// <summary>
+	/// Exit a parse tree produced by the <c>AltNeqOp</c>
+	/// labeled alternative in <see cref="LuxParser.compareOp"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void ExitAltNeqOp([NotNull] LuxParser.AltNeqOpContext context) { }
 	/// <summary>
 	/// Enter a parse tree produced by the <c>EqOp</c>
 	/// labeled alternative in <see cref="LuxParser.compareOp"/>.

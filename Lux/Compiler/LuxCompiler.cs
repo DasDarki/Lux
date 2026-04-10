@@ -130,7 +130,7 @@ public class LuxCompiler
         var parser = new LuxParser(tokenStream);
         parser.RemoveErrorListeners();
         parser.AddErrorListener(new DiagnosticsTokenErrorListener(Diagnostics, file.Filename));
-        var visitor = new IRVisitor(file.Filename, NodeAlloc, Diagnostics);
+        var visitor = new IRVisitor(file.Filename, NodeAlloc, Diagnostics, Config);
         var ir = visitor.Visit(parser.script());
         if (ir is not IRScript script)
         {

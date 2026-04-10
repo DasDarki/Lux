@@ -489,6 +489,7 @@ expr
     // ─── Unary prefix ───
 
     | unaryOp expr                                              # UnaryExpr
+    | BANG expr                                                 # AltLogicalNotExpr
     | INC expr                                                  # PreIncExpr
     | DEC expr                                                  # PreDecExpr
 
@@ -515,8 +516,10 @@ expr
 
     | expr compareOp expr                                       # ComparisonExpr
     | expr AND expr                                             # LogicalAndExpr
+    | expr ANDAND expr                                          # AltLogicalAndExpr
     | <assoc=right> expr QQ expr                                # NilCoalesceExpr
     | expr OR expr                                              # LogicalOrExpr
+    | expr OROR expr                                            # AltLogicalOrExpr
     ;
 
 // ─── Operator Groups ───
@@ -527,6 +530,7 @@ compareOp
     | LTE                                                       # LteOp
     | GTE                                                       # GteOp
     | NEQ                                                       # NeqOp
+    | BANGEQ                                                    # AltNeqOp
     | EQ                                                        # EqOp
     ;
 
@@ -712,6 +716,9 @@ QQ       : '??';
 QDOT     : '?.';
 INC      : '++';
 DEC      : '~~';
+ANDAND   : '&&';
+OROR     : '||';
+BANGEQ   : '!=';
 
 // Single-character
 

@@ -85,7 +85,7 @@ public sealed class LuxWorkspace
             var parser = new LuxParser(tokenStream);
             parser.RemoveErrorListeners();
             parser.AddErrorListener(new DiagnosticsTokenErrorListener(diag, filePath));
-            var visitor = new IRVisitor(filePath, nodeAlloc, diag);
+            var visitor = new IRVisitor(filePath, nodeAlloc, diag, _config);
             var ir = visitor.Visit(parser.script());
             hir = ir as IRScript;
         }

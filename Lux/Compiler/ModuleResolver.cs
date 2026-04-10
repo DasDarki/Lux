@@ -141,7 +141,7 @@ public sealed class ModuleResolver(Config config)
         return null;
     }
 
-    private static PreparsedFile? LoadAndInject(string filePath, List<PackageContext> pkgs,
+    private PreparsedFile? LoadAndInject(string filePath, List<PackageContext> pkgs,
         DiagnosticsBag diag, IDAlloc<NodeID> nodeAlloc)
     {
         var targetPkg = pkgs.FirstOrDefault();
@@ -160,7 +160,7 @@ public sealed class ModuleResolver(Config config)
         var tokenStream = new CommonTokenStream(lexer);
         var parser = new LuxParser(tokenStream);
         parser.RemoveErrorListeners();
-        var visitor = new IRVisitor(filePath, nodeAlloc, diag);
+        var visitor = new IRVisitor(filePath, nodeAlloc, diag, config);
         var ir = visitor.Visit(parser.script());
 
         if (ir is not IRScript script) return null;

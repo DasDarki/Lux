@@ -92,6 +92,11 @@ public enum DiagnosticCode
     [Format("String interpolation is disabled in the configuration. Enable [code] string_interpolation = true to use backtick strings.")]
     ErrStringInterpolationDisabled = 0x1006,
 
+    [Level(DiagnosticLevel.Error)]
+    [Category(DiagnosticCategory.Syntax)]
+    [Format("Alternative boolean operator '{0}' is disabled in the configuration. Enable [code] alt_boolean_operators = true to use it, or use '{1}' instead.")]
+    ErrAltBooleanOperatorsDisabled = 0x0006,
+
     #endregion
 
     #region Type

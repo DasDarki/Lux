@@ -91,7 +91,7 @@ public sealed class ResolveLibsPass() : Pass(PassName, PassScope.PerBuild)
         var tokenStream = new CommonTokenStream(lexer);
         var parser = new LuxParser(tokenStream);
         parser.RemoveErrorListeners();
-        var visitor = new IRVisitor(filePath, nodeAlloc, diag);
+        var visitor = new IRVisitor(filePath, nodeAlloc, diag, context.Config);
         var ir = visitor.Visit(parser.script());
         if (ir is not IRScript script) return;
 

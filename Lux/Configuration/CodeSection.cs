@@ -22,6 +22,13 @@ public sealed class CodeSection
     public bool StringInterpolation  { get; set; } = true;
 
     /// <summary>
+    /// Enables alternative, C-style boolean operators: <c>&amp;&amp;</c> for <c>and</c>, <c>||</c> for <c>or</c>,
+    /// <c>!</c> (prefix) for <c>not</c> and <c>!=</c> for <c>~=</c>. When disabled, using these forms emits a
+    /// diagnostic. The Lua-style operators are always accepted.
+    /// </summary>
+    public bool AltBooleanOperators { get; set; } = true;
+
+    /// <summary>
     /// Sets the policy on how to handle semicolons in code.
     /// </summary>
     public Policy Semicolons { get; set; } = Policy.Optional;
@@ -45,6 +52,7 @@ public sealed class CodeSection
         IndexBase = Config.MergeVal(IndexBase, section.IndexBase, 0);
         ConcatOperator = Config.MergeVal(ConcatOperator, section.ConcatOperator, "+");
         StringInterpolation = Config.MergeVal(StringInterpolation, section.StringInterpolation, true);
+        AltBooleanOperators = Config.MergeVal(AltBooleanOperators, section.AltBooleanOperators, false);
         Semicolons = Config.MergeVal(Semicolons, section.Semicolons, Policy.Optional);
         ImportStatement = Config.MergeVal(ImportStatement, section.ImportStatement, "require(%s)");
         StripUnused = Config.MergeVal(StripUnused, section.StripUnused, true);

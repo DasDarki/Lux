@@ -185,21 +185,37 @@ internal partial class IRVisitor
     public override Node VisitLogicalOrExpr(LuxParser.LogicalOrExprContext context)
         => new BinaryExpr(NewNodeID, SpanFromCtx(context), BinaryOp.Or, (Expr)Visit(context.expr(0)), (Expr)Visit(context.expr(1)));
 
+    public override Node VisitAltLogicalOrExpr(LuxParser.AltLogicalOrExprContext context)
+    {
+        CheckAltBooleanOperator(SpanFromCtx(context), "||", "or");
+        return new BinaryExpr(NewNodeID, SpanFromCtx(context), BinaryOp.Or, (Expr)Visit(context.expr(0)), (Expr)Visit(context.expr(1)));
+    }
+
     public override Node VisitNilCoalesceExpr(LuxParser.NilCoalesceExprContext context)
         => new BinaryExpr(NewNodeID, SpanFromCtx(context), BinaryOp.NilCoalesce, (Expr)Visit(context.expr(0)), (Expr)Visit(context.expr(1)));
 
     public override Node VisitLogicalAndExpr(LuxParser.LogicalAndExprContext context)
         => new BinaryExpr(NewNodeID, SpanFromCtx(context), BinaryOp.And, (Expr)Visit(context.expr(0)), (Expr)Visit(context.expr(1)));
 
+    public override Node VisitAltLogicalAndExpr(LuxParser.AltLogicalAndExprContext context)
+    {
+        CheckAltBooleanOperator(SpanFromCtx(context), "&&", "and");
+        return new BinaryExpr(NewNodeID, SpanFromCtx(context), BinaryOp.And, (Expr)Visit(context.expr(0)), (Expr)Visit(context.expr(1)));
+    }
+
     public override Node VisitComparisonExpr(LuxParser.ComparisonExprContext context)
     {
-        var op = context.compareOp() switch
+        var compareOp = context.compareOp();
+        if (compareOp is LuxParser.AltNeqOpContext)
+            CheckAltBooleanOperator(SpanFromCtx(compareOp), "!=", "~=");
+        var op = compareOp switch
         {
             LuxParser.LtOpContext => BinaryOp.Lt,
             LuxParser.GtOpContext => BinaryOp.Gt,
             LuxParser.LteOpContext => BinaryOp.Lte,
             LuxParser.GteOpContext => BinaryOp.Gte,
             LuxParser.NeqOpContext => BinaryOp.Neq,
+            LuxParser.AltNeqOpContext => BinaryOp.Neq,
             LuxParser.EqOpContext => BinaryOp.Eq,
             _ => throw new InvalidOperationException("Unknown compare op")
         };
@@ -271,6 +287,18 @@ internal partial class IRVisitor
             _ => throw new InvalidOperationException("Unknown unary op")
         };
         return new UnaryExpr(NewNodeID, SpanFromCtx(context), op, (Expr)Visit(context.expr()));
+    }
+
+    public override Node VisitAltLogicalNotExpr(LuxParser.AltLogicalNotExprContext context)
+    {
+        CheckAltBooleanOperator(SpanFromCtx(context), "!", "not");
+        return new UnaryExpr(NewNodeID, SpanFromCtx(context), UnaryOp.LogicalNot, (Expr)Visit(context.expr()));
+    }
+
+    private void CheckAltBooleanOperator(TextSpan span, string altForm, string luaForm)
+    {
+        if (!_config.Code.AltBooleanOperators)
+            diag.Report(span, DiagnosticCode.ErrAltBooleanOperatorsDisabled, altForm, luaForm);
     }
 
     #endregion

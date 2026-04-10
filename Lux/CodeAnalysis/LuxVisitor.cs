@@ -696,6 +696,13 @@ public interface ILuxVisitor<Result> : IParseTreeVisitor<Result> {
 	/// <return>The visitor result.</return>
 	Result VisitMultiplicativeExpr([NotNull] LuxParser.MultiplicativeExprContext context);
 	/// <summary>
+	/// Visit a parse tree produced by the <c>AltLogicalOrExpr</c>
+	/// labeled alternative in <see cref="LuxParser.expr"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitAltLogicalOrExpr([NotNull] LuxParser.AltLogicalOrExprContext context);
+	/// <summary>
 	/// Visit a parse tree produced by the <c>TrueLiteral</c>
 	/// labeled alternative in <see cref="LuxParser.expr"/>.
 	/// </summary>
@@ -737,6 +744,20 @@ public interface ILuxVisitor<Result> : IParseTreeVisitor<Result> {
 	/// <param name="context">The parse tree.</param>
 	/// <return>The visitor result.</return>
 	Result VisitBitwiseAndExpr([NotNull] LuxParser.BitwiseAndExprContext context);
+	/// <summary>
+	/// Visit a parse tree produced by the <c>AltLogicalNotExpr</c>
+	/// labeled alternative in <see cref="LuxParser.expr"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitAltLogicalNotExpr([NotNull] LuxParser.AltLogicalNotExprContext context);
+	/// <summary>
+	/// Visit a parse tree produced by the <c>AltLogicalAndExpr</c>
+	/// labeled alternative in <see cref="LuxParser.expr"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitAltLogicalAndExpr([NotNull] LuxParser.AltLogicalAndExprContext context);
 	/// <summary>
 	/// Visit a parse tree produced by the <c>UnaryExpr</c>
 	/// labeled alternative in <see cref="LuxParser.expr"/>.
@@ -863,6 +884,13 @@ public interface ILuxVisitor<Result> : IParseTreeVisitor<Result> {
 	/// <param name="context">The parse tree.</param>
 	/// <return>The visitor result.</return>
 	Result VisitNeqOp([NotNull] LuxParser.NeqOpContext context);
+	/// <summary>
+	/// Visit a parse tree produced by the <c>AltNeqOp</c>
+	/// labeled alternative in <see cref="LuxParser.compareOp"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitAltNeqOp([NotNull] LuxParser.AltNeqOpContext context);
 	/// <summary>
 	/// Visit a parse tree produced by the <c>EqOp</c>
 	/// labeled alternative in <see cref="LuxParser.compareOp"/>.
