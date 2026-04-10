@@ -406,6 +406,9 @@ public sealed class DetectUnusedPass() : Pass(PassName, PassScope.PerBuild, depe
             case NonNilAssertExpr nonNilAssert:
                 TrackExprUsage(pc, pkg, nonNilAssert.Inner);
                 break;
+            case IncDecExpr incDec:
+                TrackExprUsage(pc, pkg, incDec.Target);
+                break;
             case TypeCheckExpr typeCheck:
                 TrackExprUsage(pc, pkg, typeCheck.Inner);
                 break;

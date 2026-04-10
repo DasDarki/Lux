@@ -494,6 +494,8 @@ public sealed class BindDeclarePass() : Pass(PassName, PassScope.PerFile, depend
                 return true;
             case NonNilAssertExpr nonNilAssert:
                 return BindExprScopes(ctx, nonNilAssert.Inner, scope);
+            case IncDecExpr incDec:
+                return BindExprScopes(ctx, incDec.Target, scope);
             case TypeCheckExpr typeCheck:
                 pkg.Scopes.BindNode(typeCheck.TargetType.ID, scope);
                 return BindExprScopes(ctx, typeCheck.Inner, scope);

@@ -65,6 +65,13 @@ public interface ILuxVisitor<Result> : IParseTreeVisitor<Result> {
 	/// <return>The visitor result.</return>
 	Result VisitFunctionCallStat([NotNull] LuxParser.FunctionCallStatContext context);
 	/// <summary>
+	/// Visit a parse tree produced by the <c>IncDecStat_</c>
+	/// labeled alternative in <see cref="LuxParser.stmt"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitIncDecStat_([NotNull] LuxParser.IncDecStat_Context context);
+	/// <summary>
 	/// Visit a parse tree produced by the <c>LabelStat</c>
 	/// labeled alternative in <see cref="LuxParser.stmt"/>.
 	/// </summary>
@@ -230,6 +237,34 @@ public interface ILuxVisitor<Result> : IParseTreeVisitor<Result> {
 	/// <param name="context">The parse tree.</param>
 	/// <return>The visitor result.</return>
 	Result VisitLabel([NotNull] LuxParser.LabelContext context);
+	/// <summary>
+	/// Visit a parse tree produced by the <c>PostIncStat</c>
+	/// labeled alternative in <see cref="LuxParser.incDecStat"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitPostIncStat([NotNull] LuxParser.PostIncStatContext context);
+	/// <summary>
+	/// Visit a parse tree produced by the <c>PostDecStat</c>
+	/// labeled alternative in <see cref="LuxParser.incDecStat"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitPostDecStat([NotNull] LuxParser.PostDecStatContext context);
+	/// <summary>
+	/// Visit a parse tree produced by the <c>PreIncStat</c>
+	/// labeled alternative in <see cref="LuxParser.incDecStat"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitPreIncStat([NotNull] LuxParser.PreIncStatContext context);
+	/// <summary>
+	/// Visit a parse tree produced by the <c>PreDecStat</c>
+	/// labeled alternative in <see cref="LuxParser.incDecStat"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitPreDecStat([NotNull] LuxParser.PreDecStatContext context);
 	/// <summary>
 	/// Visit a parse tree produced by <see cref="LuxParser.returnStat"/>.
 	/// </summary>
@@ -591,6 +626,13 @@ public interface ILuxVisitor<Result> : IParseTreeVisitor<Result> {
 	/// <return>The visitor result.</return>
 	Result VisitStructField([NotNull] LuxParser.StructFieldContext context);
 	/// <summary>
+	/// Visit a parse tree produced by the <c>PreIncExpr</c>
+	/// labeled alternative in <see cref="LuxParser.expr"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitPreIncExpr([NotNull] LuxParser.PreIncExprContext context);
+	/// <summary>
 	/// Visit a parse tree produced by the <c>BitwiseOrExpr</c>
 	/// labeled alternative in <see cref="LuxParser.expr"/>.
 	/// </summary>
@@ -618,6 +660,13 @@ public interface ILuxVisitor<Result> : IParseTreeVisitor<Result> {
 	/// <param name="context">The parse tree.</param>
 	/// <return>The visitor result.</return>
 	Result VisitFunctionDefExpr([NotNull] LuxParser.FunctionDefExprContext context);
+	/// <summary>
+	/// Visit a parse tree produced by the <c>PreDecExpr</c>
+	/// labeled alternative in <see cref="LuxParser.expr"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitPreDecExpr([NotNull] LuxParser.PreDecExprContext context);
 	/// <summary>
 	/// Visit a parse tree produced by the <c>LogicalAndExpr</c>
 	/// labeled alternative in <see cref="LuxParser.expr"/>.
@@ -654,12 +703,26 @@ public interface ILuxVisitor<Result> : IParseTreeVisitor<Result> {
 	/// <return>The visitor result.</return>
 	Result VisitTrueLiteral([NotNull] LuxParser.TrueLiteralContext context);
 	/// <summary>
+	/// Visit a parse tree produced by the <c>PostIncExpr</c>
+	/// labeled alternative in <see cref="LuxParser.expr"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitPostIncExpr([NotNull] LuxParser.PostIncExprContext context);
+	/// <summary>
 	/// Visit a parse tree produced by the <c>NilCoalesceExpr</c>
 	/// labeled alternative in <see cref="LuxParser.expr"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	/// <return>The visitor result.</return>
 	Result VisitNilCoalesceExpr([NotNull] LuxParser.NilCoalesceExprContext context);
+	/// <summary>
+	/// Visit a parse tree produced by the <c>PostDecExpr</c>
+	/// labeled alternative in <see cref="LuxParser.expr"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitPostDecExpr([NotNull] LuxParser.PostDecExprContext context);
 	/// <summary>
 	/// Visit a parse tree produced by the <c>BitShiftExpr</c>
 	/// labeled alternative in <see cref="LuxParser.expr"/>.

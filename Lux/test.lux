@@ -1,68 +1,40 @@
--- Test: Iteration type checking
+-- Test: Pre/Post Increment and Decrement
+local x: number = 10
+
+x++
+print(x)  -- 11
+
+x~~
+print(x)  -- 10
+
+-- As expression: post-increment returns old value
+local a = x++
+print(a, x)  -- 10, 11
+
+-- Pre-increment returns new value
+local b = ++x
+print(b, x)  -- 12, 12
+
+-- Pre-decrement returns new value
+local c = ~~x
+print(c, x)  -- 11, 11
+
+-- Post-decrement returns old value
+local d = x~~
+print(d, x)  -- 11, 10
+
+-- On table fields
+local obj = { count = 0 }
+obj.count++
+print(obj.count)  -- 1
+
+local old = obj.count++
+print(old, obj.count)  -- 1, 2
+
+-- On array elements
 local arr: number[] = {10, 20, 30}
-for i, v in ipairs(arr) do
-    print(i + 1, v * 2)
-end
+arr[1]++
+print(arr[1])  -- 11
 
-local tbl = {a = 1, b = 2}
-for k, v in pairs(tbl) do
-    print(k, v)
-end
-
-export enum Color
-    Red
-    Green
-    Blue
-end
-
--- Test: Named varargs
-function sum(...nums: number): number
-    local total = 0
-    for i = 1, #nums do
-        total = total + nums[i]
-    end
-    return total
-end
-
-local s = sum(1, 2, 3, 4, 5)
-print("Sum: " .. s)
-
--- Test: Default parameters
-function greet(name: string, greeting: string = "Hello"): string
-    return greeting .. ", " .. name .. "!"
-end
-
-local msg1 = greet("World")
-local msg2 = greet("World", "Hi")
-print(msg1)
-print(msg2)
-
-function createPoint(x: number = 0, y: number = 0): number
-    return x + y
-end
-
-local p1 = createPoint()
-local p2 = createPoint(5)
-local p3 = createPoint(5, 10)
-print(p1, p2, p3)
-
--- Test: Varargs + type checking
-function logAll(...items: string)
-    for i = 1, #items do
-        print(items[i])
-    end
-end
-
-logAll("a", "b", "c")
-
--- Test: Function overloading
-export function overload(x: number): number
-    return x * 2
-end
-
-function overload(x: string): string
-    return x .. x
-end
-
-print(overload(5))       -- Should print 10
-print(overload("Hi"))    -- Should print "HiHi"
+local prev = arr[1]++
+print(prev, arr[1])  -- 11, 12

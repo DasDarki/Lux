@@ -131,5 +131,10 @@ public enum DiagnosticCode
     [Format("Non-exhaustive match on type '{0}': missing case(s) for {1}. Handle the missing case(s) explicitly.")]
     ErrNonExhaustiveMatch = 0x2007,
 
+    [Level(DiagnosticLevel.Error)]
+    [Category(DiagnosticCategory.Type)]
+    [Format("Invalid assignment target. Only variables, fields, and index expressions can be assigned to.")]
+    ErrInvalidAssignTarget = 0x2008,
+
     #endregion
 }

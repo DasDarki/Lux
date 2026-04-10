@@ -202,6 +202,26 @@ public sealed class LuaGenerator(Config config)
 
     #endregion
 
+    #region Increment / Decrement Helpers
+
+    public string GetIncDecHelper(bool isPre, bool isIncrement)
+    {
+        var key = (isPre ? "pre" : "post") + (isIncrement ? "inc" : "dec");
+        var op = isIncrement ? "+" : "-";
+        if (isPre)
+        {
+            return RequireHelper(key, name =>
+                $"local function {name}(get, set) local v = get() {op} 1 set(v) return v end");
+        }
+        else
+        {
+            return RequireHelper(key, name =>
+                $"local function {name}(get, set) local v = get() set(v {op} 1) return v end");
+        }
+    }
+
+    #endregion
+
     #region Import Helpers
 
     public string EmitImport(string modulePath)

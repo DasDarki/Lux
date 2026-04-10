@@ -514,6 +514,9 @@ public sealed class InferTypesPass() : Pass(PassName, PassScope.PerFile,
             case NonNilAssertExpr nna:
                 result = StripNil(pc, SynthesizeExpr(pc, nna.Inner));
                 break;
+            case IncDecExpr incDec:
+                result = InferIncDec(pc, incDec);
+                break;
             case TypeCheckExpr tchk:
                 SynthesizeExpr(pc, tchk.Inner);
                 result = tt.PrimBool.ID;
@@ -650,6 +653,21 @@ public sealed class InferTypesPass() : Pass(PassName, PassScope.PerFile,
             default:
                 return tt.PrimAny.ID;
         }
+    }
+
+    private TypID InferIncDec(PassContext pc, IncDecExpr incDec)
+    {
+        var tt = pc.Types;
+        var t = SynthesizeExpr(pc, incDec.Target);
+
+        if (incDec.Target is not (NameExpr or DotAccessExpr or IndexAccessExpr))
+        {
+            pc.Diag.Report(incDec.Target.Span, DiagnosticCode.ErrInvalidAssignTarget);
+            return tt.PrimNumber.ID;
+        }
+
+        EnsureAssignable(pc, incDec.Target.Span, tt.PrimNumber.ID, t);
+        return tt.PrimNumber.ID;
     }
 
     private TypID InferFunctionDef(PassContext pc, FunctionDefExpr fde)

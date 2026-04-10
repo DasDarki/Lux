@@ -364,6 +364,9 @@ public sealed class ResolveNamesPass() : Pass(PassName, PassScope.PerFile, depen
             case NonNilAssertExpr nonNilAssert:
                 ResolveExprNames(pc, nonNilAssert.Inner, pkg);
                 break;
+            case IncDecExpr incDec:
+                ResolveExprNames(pc, incDec.Target, pkg);
+                break;
             case TypeCheckExpr typeCheck:
                 ResolveExprNames(pc, typeCheck.Inner, pkg);
                 break;

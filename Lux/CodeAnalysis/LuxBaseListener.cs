@@ -102,6 +102,20 @@ public partial class LuxBaseListener : ILuxListener {
 	/// <param name="context">The parse tree.</param>
 	public virtual void ExitFunctionCallStat([NotNull] LuxParser.FunctionCallStatContext context) { }
 	/// <summary>
+	/// Enter a parse tree produced by the <c>IncDecStat_</c>
+	/// labeled alternative in <see cref="LuxParser.stmt"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void EnterIncDecStat_([NotNull] LuxParser.IncDecStat_Context context) { }
+	/// <summary>
+	/// Exit a parse tree produced by the <c>IncDecStat_</c>
+	/// labeled alternative in <see cref="LuxParser.stmt"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void ExitIncDecStat_([NotNull] LuxParser.IncDecStat_Context context) { }
+	/// <summary>
 	/// Enter a parse tree produced by the <c>LabelStat</c>
 	/// labeled alternative in <see cref="LuxParser.stmt"/>.
 	/// <para>The default implementation does nothing.</para>
@@ -433,6 +447,62 @@ public partial class LuxBaseListener : ILuxListener {
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	public virtual void ExitLabel([NotNull] LuxParser.LabelContext context) { }
+	/// <summary>
+	/// Enter a parse tree produced by the <c>PostIncStat</c>
+	/// labeled alternative in <see cref="LuxParser.incDecStat"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void EnterPostIncStat([NotNull] LuxParser.PostIncStatContext context) { }
+	/// <summary>
+	/// Exit a parse tree produced by the <c>PostIncStat</c>
+	/// labeled alternative in <see cref="LuxParser.incDecStat"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void ExitPostIncStat([NotNull] LuxParser.PostIncStatContext context) { }
+	/// <summary>
+	/// Enter a parse tree produced by the <c>PostDecStat</c>
+	/// labeled alternative in <see cref="LuxParser.incDecStat"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void EnterPostDecStat([NotNull] LuxParser.PostDecStatContext context) { }
+	/// <summary>
+	/// Exit a parse tree produced by the <c>PostDecStat</c>
+	/// labeled alternative in <see cref="LuxParser.incDecStat"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void ExitPostDecStat([NotNull] LuxParser.PostDecStatContext context) { }
+	/// <summary>
+	/// Enter a parse tree produced by the <c>PreIncStat</c>
+	/// labeled alternative in <see cref="LuxParser.incDecStat"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void EnterPreIncStat([NotNull] LuxParser.PreIncStatContext context) { }
+	/// <summary>
+	/// Exit a parse tree produced by the <c>PreIncStat</c>
+	/// labeled alternative in <see cref="LuxParser.incDecStat"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void ExitPreIncStat([NotNull] LuxParser.PreIncStatContext context) { }
+	/// <summary>
+	/// Enter a parse tree produced by the <c>PreDecStat</c>
+	/// labeled alternative in <see cref="LuxParser.incDecStat"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void EnterPreDecStat([NotNull] LuxParser.PreDecStatContext context) { }
+	/// <summary>
+	/// Exit a parse tree produced by the <c>PreDecStat</c>
+	/// labeled alternative in <see cref="LuxParser.incDecStat"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void ExitPreDecStat([NotNull] LuxParser.PreDecStatContext context) { }
 	/// <summary>
 	/// Enter a parse tree produced by <see cref="LuxParser.returnStat"/>.
 	/// <para>The default implementation does nothing.</para>
@@ -1154,6 +1224,20 @@ public partial class LuxBaseListener : ILuxListener {
 	/// <param name="context">The parse tree.</param>
 	public virtual void ExitStructField([NotNull] LuxParser.StructFieldContext context) { }
 	/// <summary>
+	/// Enter a parse tree produced by the <c>PreIncExpr</c>
+	/// labeled alternative in <see cref="LuxParser.expr"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void EnterPreIncExpr([NotNull] LuxParser.PreIncExprContext context) { }
+	/// <summary>
+	/// Exit a parse tree produced by the <c>PreIncExpr</c>
+	/// labeled alternative in <see cref="LuxParser.expr"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void ExitPreIncExpr([NotNull] LuxParser.PreIncExprContext context) { }
+	/// <summary>
 	/// Enter a parse tree produced by the <c>BitwiseOrExpr</c>
 	/// labeled alternative in <see cref="LuxParser.expr"/>.
 	/// <para>The default implementation does nothing.</para>
@@ -1209,6 +1293,20 @@ public partial class LuxBaseListener : ILuxListener {
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	public virtual void ExitFunctionDefExpr([NotNull] LuxParser.FunctionDefExprContext context) { }
+	/// <summary>
+	/// Enter a parse tree produced by the <c>PreDecExpr</c>
+	/// labeled alternative in <see cref="LuxParser.expr"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void EnterPreDecExpr([NotNull] LuxParser.PreDecExprContext context) { }
+	/// <summary>
+	/// Exit a parse tree produced by the <c>PreDecExpr</c>
+	/// labeled alternative in <see cref="LuxParser.expr"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void ExitPreDecExpr([NotNull] LuxParser.PreDecExprContext context) { }
 	/// <summary>
 	/// Enter a parse tree produced by the <c>LogicalAndExpr</c>
 	/// labeled alternative in <see cref="LuxParser.expr"/>.
@@ -1280,6 +1378,20 @@ public partial class LuxBaseListener : ILuxListener {
 	/// <param name="context">The parse tree.</param>
 	public virtual void ExitTrueLiteral([NotNull] LuxParser.TrueLiteralContext context) { }
 	/// <summary>
+	/// Enter a parse tree produced by the <c>PostIncExpr</c>
+	/// labeled alternative in <see cref="LuxParser.expr"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void EnterPostIncExpr([NotNull] LuxParser.PostIncExprContext context) { }
+	/// <summary>
+	/// Exit a parse tree produced by the <c>PostIncExpr</c>
+	/// labeled alternative in <see cref="LuxParser.expr"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void ExitPostIncExpr([NotNull] LuxParser.PostIncExprContext context) { }
+	/// <summary>
 	/// Enter a parse tree produced by the <c>NilCoalesceExpr</c>
 	/// labeled alternative in <see cref="LuxParser.expr"/>.
 	/// <para>The default implementation does nothing.</para>
@@ -1293,6 +1405,20 @@ public partial class LuxBaseListener : ILuxListener {
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	public virtual void ExitNilCoalesceExpr([NotNull] LuxParser.NilCoalesceExprContext context) { }
+	/// <summary>
+	/// Enter a parse tree produced by the <c>PostDecExpr</c>
+	/// labeled alternative in <see cref="LuxParser.expr"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void EnterPostDecExpr([NotNull] LuxParser.PostDecExprContext context) { }
+	/// <summary>
+	/// Exit a parse tree produced by the <c>PostDecExpr</c>
+	/// labeled alternative in <see cref="LuxParser.expr"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void ExitPostDecExpr([NotNull] LuxParser.PostDecExprContext context) { }
 	/// <summary>
 	/// Enter a parse tree produced by the <c>BitShiftExpr</c>
 	/// labeled alternative in <see cref="LuxParser.expr"/>.

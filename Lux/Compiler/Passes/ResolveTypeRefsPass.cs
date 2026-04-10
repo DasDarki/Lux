@@ -363,6 +363,9 @@ public class ResolveTypeRefsPass() : Pass(PassName, PassScope.PerBuild, dependen
             case NonNilAssertExpr nonNilAssert:
                 ResolveExprTypes(tt, nonNilAssert.Inner);
                 break;
+            case IncDecExpr incDec:
+                ResolveExprTypes(tt, incDec.Target);
+                break;
             case TypeCheckExpr typeCheck:
                 ResolveExprTypes(tt, typeCheck.Inner);
                 ResolveTypeRef(tt, typeCheck.TargetType);

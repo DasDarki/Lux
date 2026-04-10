@@ -669,6 +669,17 @@ public sealed class CodegenPass() : Pass(PassName, PassScope.PerBuild, true, Man
 
     private void EmitExprStmt(PassContext ctx, PackageContext pkg, LuaGenerator gen, ExprStmt exprStmt)
     {
+        if (exprStmt.Expression is IncDecExpr incDec)
+        {
+            EmitExpr(ctx, pkg, gen, incDec.Target);
+            gen.Write(incDec.IsIncrement ? " = " : " = ");
+            EmitExpr(ctx, pkg, gen, incDec.Target);
+            gen.Write(incDec.IsIncrement ? " + 1" : " - 1");
+            gen.NewLine();
+            gen.WriteSemicolon();
+            return;
+        }
+
         EmitExpr(ctx, pkg, gen, exprStmt.Expression);
         gen.NewLine();
         gen.WriteSemicolon();
@@ -742,6 +753,9 @@ public sealed class CodegenPass() : Pass(PassName, PassScope.PerBuild, true, Man
                 break;
             case NonNilAssertExpr nna:
                 EmitExpr(ctx, pkg, gen, nna.Inner);
+                break;
+            case IncDecExpr incDec:
+                EmitIncDec(ctx, pkg, gen, incDec);
                 break;
             case TypeCastExpr tcast:
                 EmitExpr(ctx, pkg, gen, tcast.Inner);
@@ -964,6 +978,17 @@ public sealed class CodegenPass() : Pass(PassName, PassScope.PerBuild, true, Man
         if (needsParens) gen.Write("(");
         EmitExpr(ctx, pkg, gen, un.Operand);
         if (needsParens) gen.Write(")");
+    }
+
+    private void EmitIncDec(PassContext ctx, PackageContext pkg, LuaGenerator gen, IncDecExpr incDec)
+    {
+        var helper = gen.GetIncDecHelper(incDec.IsPre, incDec.IsIncrement);
+        gen.Write(helper);
+        gen.Write("(function() return ");
+        EmitExpr(ctx, pkg, gen, incDec.Target);
+        gen.Write(" end, function(__v) ");
+        EmitExpr(ctx, pkg, gen, incDec.Target);
+        gen.Write(" = __v end)");
     }
 
     private void EmitFunctionDef(PassContext ctx, PackageContext pkg, LuaGenerator gen, FunctionDefExpr fd)

@@ -62,6 +62,7 @@ stmt
     : ';'                                                       # EmptyStat
     | varList ASSIGN exprList                                   # AssignStat
     | functionCall                                              # FunctionCallStat
+    | incDecStat                                                # IncDecStat_
     | label                                                     # LabelStat
     | BREAK                                                     # BreakStat
     | GOTO NAME                                                 # GotoStat
@@ -125,6 +126,20 @@ genericFor
 
 label
     : DCOLON NAME DCOLON
+    ;
+
+// ─── Increment / Decrement Statements ───
+// Examples:
+//   x++
+//   ++x
+//   arr[i]~~
+//   ~~obj.field
+
+incDecStat
+    : var INC                                                   # PostIncStat
+    | var DEC                                                   # PostDecStat
+    | INC var                                                   # PreIncStat
+    | DEC var                                                   # PreDecStat
     ;
 
 // ─── Return ───
@@ -474,10 +489,14 @@ expr
     // ─── Unary prefix ───
 
     | unaryOp expr                                              # UnaryExpr
+    | INC expr                                                  # PreIncExpr
+    | DEC expr                                                  # PreDecExpr
 
     // ─── Postfix ───
 
     | expr BANG                                                 # NonNilAssertExpr
+    | expr INC                                                  # PostIncExpr
+    | expr DEC                                                  # PostDecExpr
 
     // ─── Binary Operators (high → low precedence) ───
 
@@ -691,6 +710,8 @@ LTE      : '<=';
 GTE      : '>=';
 QQ       : '??';
 QDOT     : '?.';
+INC      : '++';
+DEC      : '~~';
 
 // Single-character
 

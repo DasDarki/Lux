@@ -109,6 +109,13 @@ public sealed class NonNilAssertExpr(NodeID id, TextSpan span, Expr inner) : Exp
     public Expr Inner { get; } = inner;
 }
 
+public sealed class IncDecExpr(NodeID id, TextSpan span, Expr target, bool isPre, bool isIncrement) : Expr(id, span)
+{
+    public Expr Target { get; } = target;
+    public bool IsPre { get; } = isPre;
+    public bool IsIncrement { get; } = isIncrement;
+}
+
 public sealed class TypeCheckExpr(NodeID id, TextSpan span, Expr inner, TypeRef targetType) : Expr(id, span)
 {
     public Expr Inner { get; } = inner;

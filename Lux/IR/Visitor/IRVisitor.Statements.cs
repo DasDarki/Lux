@@ -16,6 +16,24 @@ internal partial class IRVisitor
     public override Node VisitFunctionCallStat(LuxParser.FunctionCallStatContext context)
         => new ExprStmt(NewNodeID, SpanFromCtx(context), (Expr)Visit(context.functionCall()));
 
+    public override Node VisitIncDecStat_(LuxParser.IncDecStat_Context context) => Visit(context.incDecStat());
+
+    public override Node VisitPostIncStat(LuxParser.PostIncStatContext context)
+        => new ExprStmt(NewNodeID, SpanFromCtx(context),
+            new IncDecExpr(NewNodeID, SpanFromCtx(context), (Expr)Visit(context.var()), isPre: false, isIncrement: true));
+
+    public override Node VisitPostDecStat(LuxParser.PostDecStatContext context)
+        => new ExprStmt(NewNodeID, SpanFromCtx(context),
+            new IncDecExpr(NewNodeID, SpanFromCtx(context), (Expr)Visit(context.var()), isPre: false, isIncrement: false));
+
+    public override Node VisitPreIncStat(LuxParser.PreIncStatContext context)
+        => new ExprStmt(NewNodeID, SpanFromCtx(context),
+            new IncDecExpr(NewNodeID, SpanFromCtx(context), (Expr)Visit(context.var()), isPre: true, isIncrement: true));
+
+    public override Node VisitPreDecStat(LuxParser.PreDecStatContext context)
+        => new ExprStmt(NewNodeID, SpanFromCtx(context),
+            new IncDecExpr(NewNodeID, SpanFromCtx(context), (Expr)Visit(context.var()), isPre: true, isIncrement: false));
+
     public override Node VisitLabelStat(LuxParser.LabelStatContext context) => Visit(context.label());
     public override Node VisitBreakStat(LuxParser.BreakStatContext context) => new BreakStmt(NewNodeID, SpanFromCtx(context));
     public override Node VisitGotoStat(LuxParser.GotoStatContext context) => new GotoStmt(NewNodeID, SpanFromCtx(context), NameRefFromTerm(context.NAME()));

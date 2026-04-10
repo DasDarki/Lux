@@ -158,6 +158,18 @@ internal partial class IRVisitor
     public override Node VisitNonNilAssertExpr(LuxParser.NonNilAssertExprContext context)
         => new NonNilAssertExpr(NewNodeID, SpanFromCtx(context), (Expr)Visit(context.expr()));
 
+    public override Node VisitPreIncExpr(LuxParser.PreIncExprContext context)
+        => new IncDecExpr(NewNodeID, SpanFromCtx(context), (Expr)Visit(context.expr()), isPre: true, isIncrement: true);
+
+    public override Node VisitPreDecExpr(LuxParser.PreDecExprContext context)
+        => new IncDecExpr(NewNodeID, SpanFromCtx(context), (Expr)Visit(context.expr()), isPre: true, isIncrement: false);
+
+    public override Node VisitPostIncExpr(LuxParser.PostIncExprContext context)
+        => new IncDecExpr(NewNodeID, SpanFromCtx(context), (Expr)Visit(context.expr()), isPre: false, isIncrement: true);
+
+    public override Node VisitPostDecExpr(LuxParser.PostDecExprContext context)
+        => new IncDecExpr(NewNodeID, SpanFromCtx(context), (Expr)Visit(context.expr()), isPre: false, isIncrement: false);
+
     public override Node VisitTypeCheckExpr(LuxParser.TypeCheckExprContext context)
         => new TypeCheckExpr(NewNodeID, SpanFromCtx(context),
             (Expr)Visit(context.expr()), (TypeRef)Visit(context.typeExpr()));
