@@ -1,0 +1,53 @@
+import { execFileSync } from "child_process";
+import * as vscode from "vscode";
+import {
+  LanguageClient,
+  LanguageClientOptions,
+  ServerOptions,
+  TransportKind,
+} from "vscode-languageclient/node";
+
+let client: LanguageClient | undefined;
+
+function resolveCommand(name: string): string {
+  if (process.platform !== "win32") return name;
+  try {
+    const result = execFileSync("where", [name], { encoding: "utf-8" });
+    const first = result.split(/\r?\n/).find((l) => l.trim().length > 0);
+    if (first) return first.trim();
+  } catch {
+    // fall through
+  }
+  return name;
+}
+
+export async function activate(context: vscode.ExtensionContext): Promise<void> {
+  const config = vscode.workspace.getConfiguration("lux");
+  const configured = config.get<string>("serverPath") || "";
+  const serverPath = configured || resolveCommand("lux");
+
+  const serverOptions: ServerOptions = {
+    command: serverPath,
+    args: ["lps"],
+    transport: TransportKind.stdio,
+  };
+
+  const clientOptions: LanguageClientOptions = {
+    documentSelector: [{ scheme: "file", language: "lux" }],
+    synchronize: {
+      fileEvents: vscode.workspace.createFileSystemWatcher("**/*.{lux,d.sel}"),
+    },
+    outputChannelName: "Lux Language Server",
+  };
+
+  client = new LanguageClient("lux", "Lux Language Server", serverOptions, clientOptions);
+
+  await client.start();
+}
+
+export async function deactivate(): Promise<void> {
+  if (client) {
+    await client.stop();
+    client = undefined;
+  }
+}

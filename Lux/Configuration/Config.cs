@@ -196,6 +196,29 @@ public sealed class Config
         }
     }
 
+    public Config Clone()
+    {
+        return new Config
+        {
+            Name = Name,
+            Target = Target,
+            Entry = Entry,
+            Extends = [..Extends],
+            Preset = Preset,
+            Output = Output,
+            Minify = Minify,
+            GenerateDocs = GenerateDocs,
+            GenerateDeclarations = GenerateDeclarations,
+            Source = Source,
+            Globals = [..Globals],
+            Annotations = [..Annotations],
+            Scripts = Scripts,
+            Code = Code,
+            Mangle = Mangle,
+            Rules = Rules
+        };
+    }
+
     internal static T MergeVal<T>(T current, T @new, T @default)
     {
         if (Equals(current, @default))

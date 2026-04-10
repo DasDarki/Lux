@@ -37,6 +37,15 @@ public sealed class PassManager
         InferTypesPass.PassName,
         DetectUnusedPass.PassName
     ];
+
+    public static readonly string[] SingleFilePipeline = [
+        ResolveLibsPass.PassName,
+        BindDeclarePass.PassName,
+        ResolveNamesPass.PassName,
+        ResolveTypeRefsPass.PassName,
+        InferTypesPass.PassName,
+        DetectUnusedPass.PassName
+    ];
     
     private readonly Dictionary<string, Pass> _passes = new();
     private readonly List<string> _passOrder = [];

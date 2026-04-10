@@ -28,6 +28,14 @@ public sealed class CompletionHandler(LuxWorkspace workspace) : CompletionHandle
             var line = request.Position.Line + 1;
             var col = request.Position.Character + 1;
 
+            var importItems = TryImportPathCompletion(result, request.Position);
+            if (importItems != null)
+                return Task.FromResult(new CompletionList(importItems));
+
+            var importSpecItems = TryImportSpecifierCompletion(result, request.Position);
+            if (importSpecItems != null)
+                return Task.FromResult(new CompletionList(importSpecItems));
+
             var memberItems = TryMemberCompletion(result, request.Position);
             if (memberItems != null)
             {
@@ -193,6 +201,147 @@ public sealed class CompletionHandler(LuxWorkspace workspace) : CompletionHandle
         return items;
     }
 
+    private List<CompletionItem>? TryImportPathCompletion(AnalysisResult result,
+        OmniSharp.Extensions.LanguageServer.Protocol.Models.Position pos)
+    {
+        var lines = result.SourceText.Split('\n');
+        if (pos.Line < 0 || pos.Line >= lines.Length) return null;
+        var lineText = lines[pos.Line].TrimEnd('\r');
+
+        var trimmed = lineText.TrimStart();
+        if (!trimmed.StartsWith("import ") && !trimmed.StartsWith("from ")) return null;
+
+        var cursor = Math.Min(pos.Character, lineText.Length);
+        var quoteChar = '\0';
+        var quoteStart = -1;
+        for (var i = 0; i < cursor; i++)
+        {
+            if (lineText[i] == '"' || lineText[i] == '\'')
+            {
+                if (quoteChar == '\0')
+                {
+                    quoteChar = lineText[i];
+                    quoteStart = i + 1;
+                }
+                else if (lineText[i] == quoteChar)
+                {
+                    quoteChar = '\0';
+                    quoteStart = -1;
+                }
+            }
+        }
+
+        if (quoteChar == '\0' || quoteStart < 0) return null;
+
+        var partial = lineText.Substring(quoteStart, cursor - quoteStart);
+        var fileDir = Path.GetDirectoryName(result.FilePath);
+        if (fileDir == null) return null;
+
+        string searchDir;
+        string prefix;
+        var lastSlash = partial.LastIndexOfAny(['/', '\\']);
+        if (lastSlash >= 0)
+        {
+            var relDir = partial[..(lastSlash + 1)];
+            searchDir = Path.GetFullPath(Path.Combine(fileDir, relDir));
+            prefix = relDir;
+        }
+        else
+        {
+            searchDir = fileDir;
+            prefix = partial.StartsWith("./") ? "./" : "";
+        }
+
+        if (!Directory.Exists(searchDir)) return null;
+
+        var items = new List<CompletionItem>();
+        foreach (var dir in Directory.GetDirectories(searchDir))
+        {
+            var name = Path.GetFileName(dir);
+            items.Add(new CompletionItem
+            {
+                Label = name,
+                Kind = CompletionItemKind.Folder,
+                InsertText = prefix + name + "/"
+            });
+        }
+
+        foreach (var file in Directory.GetFiles(searchDir, "*.lux"))
+        {
+            var name = Path.GetFileNameWithoutExtension(file);
+            if (string.Equals(Path.GetFullPath(file), Path.GetFullPath(result.FilePath),
+                    StringComparison.OrdinalIgnoreCase))
+                continue;
+            items.Add(new CompletionItem
+            {
+                Label = name,
+                Kind = CompletionItemKind.File,
+                InsertText = prefix + name
+            });
+        }
+
+        foreach (var file in Directory.GetFiles(searchDir, "*.d.lux"))
+        {
+            var name = Path.GetFileName(file);
+            var baseName = name[..^6];
+            items.Add(new CompletionItem
+            {
+                Label = baseName,
+                Kind = CompletionItemKind.File,
+                InsertText = prefix + baseName
+            });
+        }
+
+        return items;
+    }
+
+    private List<CompletionItem>? TryImportSpecifierCompletion(AnalysisResult result,
+        OmniSharp.Extensions.LanguageServer.Protocol.Models.Position pos)
+    {
+        var lines = result.SourceText.Split('\n');
+        if (pos.Line < 0 || pos.Line >= lines.Length) return null;
+        var lineText = lines[pos.Line].TrimEnd('\r');
+
+        var trimmed = lineText.TrimStart();
+        if (!trimmed.StartsWith("import ")) return null;
+
+        var cursor = Math.Min(pos.Character, lineText.Length);
+        var braceIdx = lineText.IndexOf('{');
+        var closeBraceIdx = lineText.IndexOf('}');
+        if (braceIdx < 0 || cursor <= braceIdx || (closeBraceIdx >= 0 && cursor > closeBraceIdx))
+            return null;
+
+        string? moduleName = null;
+        foreach (var stmt in result.Hir.Body)
+        {
+            if (stmt is not ImportStmt import) continue;
+            if (import.Span.StartLn != pos.Line + 1) continue;
+            moduleName = import.Module.Name;
+            break;
+        }
+
+        if (moduleName == null) return null;
+
+        var exports = workspace.CollectExportsFromModule(result, moduleName);
+        if (exports == null) return null;
+
+        var items = new List<CompletionItem>();
+        foreach (var (name, info) in exports)
+        {
+            var typeStr = workspace.FormatType(result.Types, info.Type.ID);
+            items.Add(new CompletionItem
+            {
+                Label = name,
+                Kind = info.SymKind == IR.SymbolKind.Function
+                    ? CompletionItemKind.Function
+                    : CompletionItemKind.Variable,
+                Detail = typeStr
+            });
+        }
+
+        return items;
+    }
+
     private static TypID StripNil(TypeTable types, TypID id)
     {
         if (!types.GetByID(id, out var t)) return id;
@@ -214,7 +363,7 @@ public sealed class CompletionHandler(LuxWorkspace workspace) : CompletionHandle
         return new CompletionRegistrationOptions
         {
             DocumentSelector = TextDocumentSelector.ForLanguage("lux"),
-            TriggerCharacters = new Container<string>(".", "?"),
+            TriggerCharacters = new Container<string>(".", "?", "/", "\"", "'", " "),
             ResolveProvider = false
         };
     }

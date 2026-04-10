@@ -25,3 +25,8 @@
 - [x] Iteration type checking and type inference for loops (enums are also iterable)
 - [x] BUG: Without explicit parens, a is number and b is string parses as ((a is number) and b) is string. The expr rule's operator alternatives are listed in inverted ANTLR4 precedence order (is/as end up looser than and/or, and similarly mul ends up looser
   than add). The narrowing logic itself handles compound conditions correctly once parens force the right parse — fixing the grammar would touch the entire arithmetic precedence chain and is out of scope here.
+- [ ] Extend LSP:
+  - [ ] Auto import
+  - [ ] Find usages
+  - [ ] Go to definition
+  - [ ] CTRL+click on import path opens file

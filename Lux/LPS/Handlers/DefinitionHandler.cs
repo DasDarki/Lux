@@ -1,3 +1,4 @@
+using Lux.Compiler;
 using Lux.IR;
 using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Client.Capabilities;
@@ -16,6 +17,18 @@ public sealed class DefinitionHandler(LuxWorkspace workspace) : DefinitionHandle
         var line = request.Position.Line + 1;
         var col = request.Position.Character + 1;
 
+        var importTarget = TryResolveImportPath(result, request.Position);
+        if (importTarget != null)
+        {
+            var location = new Location
+            {
+                Uri = DocumentUri.FromFileSystemPath(importTarget),
+                Range = new OmniSharp.Extensions.LanguageServer.Protocol.Models.Range(
+                    new Position(0, 0), new Position(0, 0))
+            };
+            return Task.FromResult<LocationOrLocationLinks?>(new LocationOrLocationLinks(location));
+        }
+
         var nameRef = NodeFinder.FindNameRef(result.Hir, line, col);
         if (nameRef == null || nameRef.Sym == SymID.Invalid)
             return Task.FromResult<LocationOrLocationLinks?>(null);
@@ -29,13 +42,50 @@ public sealed class DefinitionHandler(LuxWorkspace workspace) : DefinitionHandle
         if (!result.NodeRegistry.TryGetValue(sym.DeclaringNode, out var declNode))
             return Task.FromResult<LocationOrLocationLinks?>(null);
 
-        var location = new Location
+        var fileUri = result.Uri;
+        if (result.FileMap.TryGetValue(sym.DeclaringNode, out var declFile))
+            fileUri = DocumentUri.FromFileSystemPath(declFile).ToString();
+
+        var location2 = new Location
         {
-            Uri = DocumentUri.Parse(result.Uri),
+            Uri = DocumentUri.Parse(fileUri),
             Range = LuxWorkspace.SpanToRange(declNode.Span)
         };
 
-        return Task.FromResult<LocationOrLocationLinks?>(new LocationOrLocationLinks(location));
+        return Task.FromResult<LocationOrLocationLinks?>(new LocationOrLocationLinks(location2));
+    }
+
+    private string? TryResolveImportPath(AnalysisResult result, Position pos)
+    {
+        var lines = result.SourceText.Split('\n');
+        if (pos.Line < 0 || pos.Line >= lines.Length) return null;
+        var lineText = lines[pos.Line].TrimEnd('\r');
+
+        foreach (var stmt in result.Hir.Body)
+        {
+            if (stmt is not ImportStmt import) continue;
+            if (import.Module.Span.StartLn - 1 != pos.Line) continue;
+
+            var modStart = import.Module.Span.StartCol - 1;
+            var modEnd = import.Module.Span.EndCol - 1;
+            if (pos.Character < modStart || pos.Character > modEnd) continue;
+
+            var moduleName = import.Module.Name;
+            if (moduleName.EndsWith(".lux")) moduleName = moduleName[..^4];
+
+            var dir = Path.GetDirectoryName(result.FilePath);
+            if (dir == null) return null;
+
+            var candidate = Path.GetFullPath(Path.Combine(dir, moduleName + ".lux"));
+            if (File.Exists(candidate)) return candidate;
+
+            var dCandidate = Path.GetFullPath(Path.Combine(dir, moduleName + ".d.lux"));
+            if (File.Exists(dCandidate)) return dCandidate;
+
+            return null;
+        }
+
+        return null;
     }
 
     protected override DefinitionRegistrationOptions CreateRegistrationOptions(

@@ -8,7 +8,7 @@ namespace Lux.Compiler.Passes;
 /// transformed and resolved through symbol IDs for later simple renaming/mangling. It also handles scope resolution
 /// for symbols and checks if the usages are valid.
 /// </summary>
-public sealed class ResolveNamesPass() : Pass(PassName, PassScope.PerFile, dependencies: ResolveImportsPass.PassName)
+public sealed class ResolveNamesPass() : Pass(PassName, PassScope.PerFile)
 {
     public const string PassName = "ResolveNames";
 

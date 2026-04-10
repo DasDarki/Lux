@@ -40,6 +40,9 @@ public sealed class ModuleResolver(Config config)
     private ResolvedModule? DoResolve(string moduleName, string? importerPath,
         List<PackageContext> pkgs, DiagnosticsBag diag, IDAlloc<NodeID> nodeAlloc)
     {
+        if (moduleName.EndsWith(".lux"))
+            moduleName = moduleName[..^4];
+
         var found = FindDeclareModule(moduleName, pkgs);
         if (found != null) return found;
 

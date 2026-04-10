@@ -142,4 +142,23 @@ public enum DiagnosticCode
     ErrInvalidAssignTarget = 0x2008,
 
     #endregion
+
+    #region Module
+
+    [Level(DiagnosticLevel.Error)]
+    [Category(DiagnosticCategory.Semantic)]
+    [Format("Module '{0}' could not be found")]
+    ErrModuleNotFound = 0x3001,
+
+    [Level(DiagnosticLevel.Error)]
+    [Category(DiagnosticCategory.Semantic)]
+    [Format("Symbol '{0}' is not exported from module '{1}'")]
+    ErrSymbolNotExported = 0x3002,
+
+    [Level(DiagnosticLevel.Error)]
+    [Category(DiagnosticCategory.Semantic)]
+    [Format("Symbol '{0}' does not exist in module '{1}'")]
+    ErrSymbolNotFound = 0x3003,
+
+    #endregion
 }

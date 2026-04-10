@@ -14,6 +14,7 @@ public sealed class AnalysisResult
     public required DiagnosticsBag Diagnostics { get; init; }
     public required CommonTokenStream TokenStream { get; init; }
     public required Dictionary<NodeID, Node> NodeRegistry { get; init; }
+    public required Dictionary<NodeID, string> FileMap { get; init; }
 
     public IRScript Hir => File.Hir;
     public SymbolArena Syms => Package.Syms;
