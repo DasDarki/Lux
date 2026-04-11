@@ -3,7 +3,7 @@ using Lux.IR;
 
 namespace Lux.Compiler.Passes;
 
-public sealed class CodegenPass() : Pass(PassName, PassScope.PerBuild, true, ManglePase.PassName)
+public sealed class CodegenPass() : Pass(PassName, PassScope.PerBuild, true)
 {
     public const string PassName = "CodegenPass";
 

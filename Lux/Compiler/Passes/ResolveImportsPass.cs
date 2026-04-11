@@ -2,7 +2,7 @@ using Lux.IR;
 
 namespace Lux.Compiler.Passes;
 
-public sealed class ResolveImportsPass() : Pass(PassName, PassScope.PerBuild, dependencies: BindDeclarePass.PassName)
+public sealed class ResolveImportsPass() : Pass(PassName, PassScope.PerBuild)
 {
     public const string PassName = "ResolveImports";
 

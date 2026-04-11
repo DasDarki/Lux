@@ -9,8 +9,7 @@ namespace Lux.Compiler.Passes;
 /// The infer types pass is responsible for inferring the types of expressions in the source code. It takes care of
 /// inferring the types of variables, function return types, and other expressions based on their usage and context.
 /// </summary>
-public sealed class InferTypesPass() : Pass(PassName, PassScope.PerFile,
-    dependencies: [ResolveNamesPass.PassName, ResolveTypeRefsPass.PassName])
+public sealed class InferTypesPass() : Pass(PassName, PassScope.PerFile)
 {
     public const string PassName = "InferTypes";
 

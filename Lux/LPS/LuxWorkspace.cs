@@ -114,17 +114,29 @@ public sealed class LuxWorkspace
         var file = new PreparsedFile(filePath, sourceText) { Hir = hir };
         pkg.Files.Add(file);
 
+        var cache = new Dictionary<string, object>();
+
         try
         {
-            var pm = new PassManager();
-            pm.BuildOrder(PassManager.SingleFilePipeline);
-            pm.Run(diag, [pkg], types, symAlloc, scopeAlloc, nodeAlloc, names, new Dictionary<string, object>(), effectiveConfig);
+            var pm1 = new PassManager();
+            pm1.BuildOrder(PassManager.SingleFilePhase1);
+            pm1.Run(diag, [pkg], types, symAlloc, scopeAlloc, nodeAlloc, names, cache, effectiveConfig);
         }
         catch
         {
         }
 
         var importedFiles = PostResolveImports(hir, filePath, pkg, types, diag, effectiveConfig);
+
+        try
+        {
+            var pm2 = new PassManager();
+            pm2.BuildOrder(PassManager.SingleFilePhase2);
+            pm2.Run(diag, [pkg], types, symAlloc, scopeAlloc, nodeAlloc, names, cache, effectiveConfig);
+        }
+        catch
+        {
+        }
 
         var nodeRegistry = NodeFinder.BuildNodeRegistry(hir);
         var fileMap = new Dictionary<NodeID, string>();
@@ -447,12 +459,12 @@ public sealed class LuxWorkspace
     {
         if (typId == TypID.Invalid) return "any";
         if (!types.GetByID(typId, out var typ)) return "unknown";
-        return PrettifyTypeKey((string)typ.Key);
+        return PrettifyTypeKey(typ.Key);
     }
 
     public string FormatType(TypeTable types, IR.Type typ)
     {
-        return PrettifyTypeKey((string)typ.Key);
+        return PrettifyTypeKey(typ.Key);
     }
 
     private static string PrettifyTypeKey(string key)

@@ -7,7 +7,7 @@ namespace Lux.Compiler.Passes;
 /// The resolve type refs pass is responsible for resolving type references in the source code. It binds their
 /// type references to their respective type IDs.
 /// </summary>
-public class ResolveTypeRefsPass() : Pass(PassName, PassScope.PerBuild, dependencies: BindDeclarePass.PassName)
+public class ResolveTypeRefsPass() : Pass(PassName, PassScope.PerBuild)
 {
     public const string PassName = "ResolveTypeRefs";
 

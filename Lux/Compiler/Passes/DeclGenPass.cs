@@ -4,7 +4,7 @@ using Type = Lux.IR.Type;
 
 namespace Lux.Compiler.Passes;
 
-public sealed class DeclGenPass() : Pass(PassName, PassScope.PerBuild, true, InferTypesPass.PassName)
+public sealed class DeclGenPass() : Pass(PassName, PassScope.PerBuild, true)
 {
     public const string PassName = "DeclGen";
 

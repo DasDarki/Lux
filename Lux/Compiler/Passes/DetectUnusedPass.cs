@@ -7,7 +7,7 @@ namespace Lux.Compiler.Passes;
 /// source code. It helps to identify and remove any code that is not being used, which can improve the performance and
 /// readability of the code.
 /// </summary>
-public sealed class DetectUnusedPass() : Pass(PassName, PassScope.PerBuild, dependencies: InferTypesPass.PassName)
+public sealed class DetectUnusedPass() : Pass(PassName, PassScope.PerBuild)
 {
     public const string PassName = "DetectUnused";
 

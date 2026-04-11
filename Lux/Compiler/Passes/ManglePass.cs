@@ -5,7 +5,7 @@ namespace Lux.Compiler.Passes;
 /// <summary>
 /// The mangle pass is responsible for mangling the names of variables, functions, and other symbols in the source code. 
 /// </summary>
-public sealed class ManglePase() : Pass(PassName, PassScope.PerFile, true, DetectUnusedPass.PassName)
+public sealed class ManglePase() : Pass(PassName, PassScope.PerFile, true)
 {
     public const string PassName = "Mangle";
 

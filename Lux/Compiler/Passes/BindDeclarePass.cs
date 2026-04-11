@@ -6,7 +6,7 @@ namespace Lux.Compiler.Passes;
 /// The bind declare pass is responsible for binding the declarations in the source code. It takes care of declaring
 /// symbols and binding them with their nodes to their respective scopes.
 /// </summary>
-public sealed class BindDeclarePass() : Pass(PassName, PassScope.PerFile, dependencies: ResolveLibsPass.PassName)
+public sealed class BindDeclarePass() : Pass(PassName, PassScope.PerFile)
 {
     public const string PassName = "BindDeclare";
 
