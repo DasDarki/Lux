@@ -126,7 +126,7 @@ public sealed class LuxWorkspace
         {
         }
 
-        var importedFiles = PostResolveImports(hir, filePath, pkg, types, diag, effectiveConfig);
+        var (importedFiles, importedDecls) = PostResolveImports(hir, filePath, pkg, types, diag, effectiveConfig);
 
         try
         {
@@ -143,16 +143,6 @@ public sealed class LuxWorkspace
         foreach (var (id, _) in nodeRegistry)
             fileMap.TryAdd(id, filePath);
 
-        foreach (var impFile in importedFiles)
-        {
-            if (impFile.Filename == null) continue;
-            foreach (var (id, node) in NodeFinder.BuildNodeRegistry(impFile.Hir))
-            {
-                nodeRegistry.TryAdd(id, node);
-                fileMap.TryAdd(id, impFile.Filename);
-            }
-        }
-
         var result = new AnalysisResult
         {
             Uri = uri,
@@ -163,17 +153,20 @@ public sealed class LuxWorkspace
             Diagnostics = diag,
             TokenStream = tokenStream,
             NodeRegistry = nodeRegistry,
-            FileMap = fileMap
+            FileMap = fileMap,
+            ImportedDeclarations = importedDecls
         };
 
         _results[uri] = result;
         PublishDiagnostics(uri, filePath, diag);
     }
 
-    private List<PreparsedFile> PostResolveImports(IRScript hir, string importerPath,
+    private (List<PreparsedFile> Files, Dictionary<SymID, ImportedDecl> Decls) PostResolveImports(
+        IRScript hir, string importerPath,
         PackageContext pkg, TypeTable types, DiagnosticsBag diag, Config effectiveConfig)
     {
         var importedFiles = new List<PreparsedFile>();
+        var importedDecls = new Dictionary<SymID, ImportedDecl>();
 
         foreach (var stmt in hir.Body)
         {
@@ -220,7 +213,9 @@ public sealed class LuxWorkspace
                         if (exports.TryGetValue(memberName, out var exportInfo))
                         {
                             var importName = spec.Alias ?? spec.Name;
-                            SetImportedType(pkg, types, importName.Name, exportInfo);
+                            var symId = SetImportedType(pkg, types, importName.Name, exportInfo);
+                            if (symId != SymID.Invalid && exportInfo.DeclNode != null)
+                                importedDecls[symId] = new ImportedDecl(resolvedPath, exportInfo.DeclNode.Span, exportInfo.DeclNode);
                         }
                         else if (allTopLevel.ContainsKey(memberName))
                         {
@@ -250,7 +245,7 @@ public sealed class LuxWorkspace
             }
         }
 
-        return importedFiles;
+        return (importedFiles, importedDecls);
     }
 
     private AnalysisResult? AnalyzeImportedFile(string filePath, Config baseConfig)
@@ -324,7 +319,7 @@ public sealed class LuxWorkspace
         };
     }
 
-    public record struct ExportInfo(IR.Type Type, IR.SymbolKind SymKind, SymID Sym, NodeID DeclaringNode);
+    public record struct ExportInfo(IR.Type Type, IR.SymbolKind SymKind, SymID Sym, Node? DeclNode);
 
     private static Dictionary<string, ExportInfo> CollectExports(AnalysisResult result)
     {
@@ -337,12 +332,20 @@ public sealed class LuxWorkspace
                 if (result.Scopes.Lookup(result.Package.Root, name, out var scopeSym))
                 {
                     if (result.Syms.GetByID(scopeSym, out var sym) && result.Types.GetByID(sym.Type, out var typ))
-                        exports[name] = new ExportInfo(typ, sym.Kind, scopeSym, sym.DeclaringNode);
+                    {
+                        Node? declNode = sym.DeclaringNode != NodeID.Invalid
+                            ? result.NodeRegistry.GetValueOrDefault(sym.DeclaringNode)
+                            : null;
+                        exports[name] = new ExportInfo(typ, sym.Kind, scopeSym, declNode);
+                    }
                 }
                 else if (symId != SymID.Invalid && result.Syms.GetByID(symId, out var directSym) &&
                          result.Types.GetByID(directSym.Type, out var directTyp))
                 {
-                    exports[name] = new ExportInfo(directTyp, directSym.Kind, symId, directSym.DeclaringNode);
+                    Node? declNode = directSym.DeclaringNode != NodeID.Invalid
+                        ? result.NodeRegistry.GetValueOrDefault(directSym.DeclaringNode)
+                        : null;
+                    exports[name] = new ExportInfo(directTyp, directSym.Kind, symId, declNode);
                 }
             }
         }
@@ -370,19 +373,20 @@ public sealed class LuxWorkspace
             FunctionDecl { NamePath.Count: > 0 } fd => [(fd.NamePath[0].Name, fd.NamePath[0].Sym)],
             LocalFunctionDecl lfd => [(lfd.Name.Name, lfd.Name.Sym)],
             LocalDecl ld => ld.Variables.Select(v => (v.Name.Name, v.Name.Sym)).ToList(),
+            EnumDecl ed => [(ed.Name.Name, ed.Name.Sym)],
             _ => []
         };
     }
 
-    private void SetImportedType(PackageContext pkg, TypeTable types, string name, ExportInfo exportInfo)
+    private SymID SetImportedType(PackageContext pkg, TypeTable types, string name, ExportInfo exportInfo)
     {
         var importedType = ImportType(types, exportInfo.Type, null);
         if (pkg.Scopes.Lookup(pkg.Root, name, out var symId) && pkg.Syms.GetByID(symId, out var sym))
         {
             sym.Type = importedType.ID;
-            if (exportInfo.DeclaringNode != NodeID.Invalid)
-                sym.DeclaringNode = exportInfo.DeclaringNode;
+            return symId;
         }
+        return SymID.Invalid;
     }
 
     private static void SetImportedSymbolType(PackageContext pkg, string name, TypID typeId)
@@ -413,6 +417,8 @@ public sealed class LuxWorkspace
                 ImportType(dstTypes, tm.ValueType, srcTypes))),
             StructType st => dstTypes.DeclareType(new StructType(
                 st.Fields.Select(f => new StructType.Field(f.Name, ImportType(dstTypes, f.Type, srcTypes))))),
+            EnumType et => dstTypes.DeclareType(new EnumType(
+                et.Name, et.Members, ImportType(dstTypes, et.BaseType, srcTypes))),
             _ => dstTypes.DeclareType(new IR.Type(srcType.Kind))
         };
     }
@@ -465,11 +471,13 @@ public sealed class LuxWorkspace
     {
         if (typId == TypID.Invalid) return "any";
         if (!types.GetByID(typId, out var typ)) return "unknown";
+        if (typ is EnumType et) return et.Name;
         return PrettifyTypeKey(typ.Key);
     }
 
     public string FormatType(TypeTable types, IR.Type typ)
     {
+        if (typ is EnumType et) return et.Name;
         return PrettifyTypeKey(typ.Key);
     }
 
@@ -482,6 +490,27 @@ public sealed class LuxWorkspace
             .Replace("PrimitiveString", "string")
             .Replace("PrimitiveNil", "nil")
             .Replace("PrimitiveAny", "any");
+    }
+
+    public List<Location> FindUsages(SymID targetSym, AnalysisResult originResult)
+    {
+        var locations = new List<Location>();
+
+        foreach (var (uri, res) in _results)
+        {
+            var allRefs = NodeFinder.CollectAllNameRefs(res.Hir);
+            foreach (var nr in allRefs)
+            {
+                if (nr.Sym != targetSym) continue;
+                locations.Add(new Location
+                {
+                    Uri = DocumentUri.Parse(uri),
+                    Range = SpanToRange(nr.Span)
+                });
+            }
+        }
+
+        return locations;
     }
 
     public Dictionary<string, ExportInfo>? CollectExportsFromModule(AnalysisResult result, string moduleName)

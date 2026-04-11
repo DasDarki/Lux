@@ -1,4 +1,3 @@
-using Lux.Compiler;
 using Lux.IR;
 using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Client.Capabilities;
@@ -36,6 +35,26 @@ public sealed class DefinitionHandler(LuxWorkspace workspace) : DefinitionHandle
         if (!result.Syms.GetByID(nameRef.Sym, out var sym))
             return Task.FromResult<LocationOrLocationLinks?>(null);
 
+        if (IsOnDeclaration(nameRef, sym, result))
+        {
+            var usages = workspace.FindUsages(nameRef.Sym, result);
+            if (usages.Count > 0)
+            {
+                var links = usages.Select(l => new LocationOrLocationLink(l)).ToList();
+                return Task.FromResult<LocationOrLocationLinks?>(new LocationOrLocationLinks(links));
+            }
+        }
+
+        if (result.ImportedDeclarations.TryGetValue(nameRef.Sym, out var imported))
+        {
+            var loc = new Location
+            {
+                Uri = DocumentUri.FromFileSystemPath(imported.FilePath),
+                Range = LuxWorkspace.SpanToRange(imported.Span)
+            };
+            return Task.FromResult<LocationOrLocationLinks?>(new LocationOrLocationLinks(loc));
+        }
+
         if (sym.DeclaringNode == NodeID.Invalid)
             return Task.FromResult<LocationOrLocationLinks?>(null);
 
@@ -53,6 +72,20 @@ public sealed class DefinitionHandler(LuxWorkspace workspace) : DefinitionHandle
         };
 
         return Task.FromResult<LocationOrLocationLinks?>(new LocationOrLocationLinks(location2));
+    }
+
+    private static bool IsOnDeclaration(NameRef nameRef, Symbol sym, AnalysisResult result)
+    {
+        if (sym.DeclaringNode == NodeID.Invalid) return false;
+        if (!result.NodeRegistry.TryGetValue(sym.DeclaringNode, out var dn)) return false;
+        return dn switch
+        {
+            FunctionDecl fd => fd.NamePath.Any(n => ReferenceEquals(n, nameRef)),
+            LocalFunctionDecl lfd => ReferenceEquals(lfd.Name, nameRef),
+            LocalDecl ld => ld.Variables.Any(v => ReferenceEquals(v.Name, nameRef)),
+            EnumDecl ed => ReferenceEquals(ed.Name, nameRef),
+            _ => false
+        };
     }
 
     private string? TryResolveImportPath(AnalysisResult result, Position pos)

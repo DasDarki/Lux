@@ -12,7 +12,7 @@ public sealed class CompletionHandler(LuxWorkspace workspace) : CompletionHandle
 {
     private static readonly string[] Keywords =
     [
-        "and", "break", "do", "else", "elseif", "end", "false", "for",
+        "and", "break", "do", "else", "elseif", "end", "enum", "false", "for",
         "function", "goto", "if", "in", "local", "nil", "not", "or",
         "repeat", "return", "then", "true", "until", "while",
         "as", "declare", "export", "from", "import", "module"
@@ -60,12 +60,16 @@ public sealed class CompletionHandler(LuxWorkspace workspace) : CompletionHandle
             foreach (var sym in symbols)
             {
                 var typeStr = workspace.FormatType(result.Types, sym.Type);
+                var kind = sym.Kind switch
+                {
+                    LuxSymbolKind.Function => CompletionItemKind.Function,
+                    LuxSymbolKind.Enum => CompletionItemKind.Enum,
+                    _ => CompletionItemKind.Variable
+                };
                 items.Add(new CompletionItem
                 {
                     Label = sym.Name,
-                    Kind = sym.Kind == LuxSymbolKind.Function
-                        ? CompletionItemKind.Function
-                        : CompletionItemKind.Variable,
+                    Kind = kind,
                     Detail = typeStr
                 });
             }
@@ -186,19 +190,35 @@ public sealed class CompletionHandler(LuxWorkspace workspace) : CompletionHandle
         // Final type at the position right before the trailing `.` / `?.`.
         var finalTypeId = StripNil(result.Types, currentTypeId);
         if (!result.Types.GetByID(finalTypeId, out var finalType)) return null;
+
+        if (finalType is EnumType enumType)
+        {
+            var items = new List<CompletionItem>();
+            foreach (var m in enumType.Members)
+            {
+                items.Add(new CompletionItem
+                {
+                    Label = m.Name,
+                    Kind = CompletionItemKind.EnumMember,
+                    Detail = m.Value != null ? $"{enumType.Name}.{m.Name} = {m.Value}" : $"{enumType.Name}.{m.Name}"
+                });
+            }
+            return items;
+        }
+
         if (finalType is not StructType finalStruct) return new List<CompletionItem>();
 
-        var items = new List<CompletionItem>();
+        var structItems = new List<CompletionItem>();
         foreach (var f in finalStruct.Fields)
         {
-            items.Add(new CompletionItem
+            structItems.Add(new CompletionItem
             {
                 Label = f.Name.Name,
                 Kind = f.Type is FunctionType ? CompletionItemKind.Method : CompletionItemKind.Field,
                 Detail = workspace.FormatType(result.Types, f.Type.ID)
             });
         }
-        return items;
+        return structItems;
     }
 
     private List<CompletionItem>? TryImportPathCompletion(AnalysisResult result,

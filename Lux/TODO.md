@@ -27,6 +27,6 @@
   than add). The narrowing logic itself handles compound conditions correctly once parens force the right parse — fixing the grammar would touch the entire arithmetic precedence chain and is out of scope here.
 - [ ] Extend LSP:
   - [ ] Auto import
-  - [ ] Find usages
+  - [x] Find usages
   - [x] Go to definition
   - [x] CTRL+click on import path opens file

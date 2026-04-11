@@ -4,6 +4,8 @@ using Lux.IR;
 
 namespace Lux.LPS;
 
+public sealed record ImportedDecl(string FilePath, TextSpan Span, Node DeclNode);
+
 public sealed class AnalysisResult
 {
     public required string Uri { get; init; }
@@ -15,6 +17,8 @@ public sealed class AnalysisResult
     public required CommonTokenStream TokenStream { get; init; }
     public required Dictionary<NodeID, Node> NodeRegistry { get; init; }
     public required Dictionary<NodeID, string> FileMap { get; init; }
+
+    public Dictionary<SymID, ImportedDecl> ImportedDeclarations { get; set; } = new();
 
     public IRScript Hir => File.Hir;
     public SymbolArena Syms => Package.Syms;

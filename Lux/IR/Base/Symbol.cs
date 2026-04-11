@@ -87,7 +87,7 @@ public sealed class Symbol(SymID id, SymbolKind kind, string name, ScopeID owner
     /// <summary>
     /// The declaring node of the symbol. This is the node in the IR that declares the symbol.
     /// </summary>
-    public NodeID DeclaringNode { get; set; } = declaringNode;
+    public NodeID DeclaringNode { get; } = declaringNode;
     
     /// <summary>
     /// The flags of the symbol. This is used to indicate additional properties of the symbol.
