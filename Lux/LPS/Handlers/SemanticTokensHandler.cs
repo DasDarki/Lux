@@ -110,28 +110,142 @@ public sealed class SemanticTokensHandler(LuxWorkspace workspace) : SemanticToke
             overrides[(line, col)] = tokenType;
         }
 
-        CollectEnumMemberTokens(result.Hir.Body, overrides);
+        CollectEnumMemberTokens(result, result.Hir.Body, overrides);
 
         return overrides;
     }
 
-    private static void CollectEnumMemberTokens(List<Stmt> stmts, Dictionary<(int, int), int> overrides)
+    private static void CollectEnumMemberTokens(AnalysisResult result, List<Stmt> stmts, Dictionary<(int, int), int> overrides)
     {
-        foreach (var stmt in stmts)
+        foreach (var stmt in stmts) CollectEnumMemberFromStmt(result, stmt, overrides);
+    }
+
+    private static void CollectEnumMemberFromStmt(AnalysisResult result, Stmt stmt, Dictionary<(int, int), int> overrides)
+    {
+        switch (stmt)
         {
-            if (stmt is EnumDecl ed)
-            {
+            case EnumDecl ed:
                 foreach (var m in ed.Members)
                 {
                     var line = m.Name.Span.StartLn - 1;
                     var col = m.Name.Span.StartCol - 1;
                     overrides[(line, col)] = TK_ENUM_MEMBER;
                 }
-            }
-            else if (stmt is ExportStmt exp)
-            {
-                CollectEnumMemberTokens([exp.Declaration], overrides);
-            }
+                break;
+            case ExportStmt exp:
+                CollectEnumMemberFromStmt(result, exp.Declaration, overrides);
+                break;
+            case FunctionDecl fd:
+                CollectEnumMemberTokens(result, fd.Body, overrides);
+                if (fd.ReturnStmt != null) CollectEnumMemberFromStmt(result, fd.ReturnStmt, overrides);
+                break;
+            case LocalFunctionDecl lfd:
+                CollectEnumMemberTokens(result, lfd.Body, overrides);
+                if (lfd.ReturnStmt != null) CollectEnumMemberFromStmt(result, lfd.ReturnStmt, overrides);
+                break;
+            case LocalDecl ld:
+                foreach (var v in ld.Values) CollectEnumMemberFromExpr(result, v, overrides);
+                break;
+            case AssignStmt a:
+                foreach (var t in a.Targets) CollectEnumMemberFromExpr(result, t, overrides);
+                foreach (var v in a.Values) CollectEnumMemberFromExpr(result, v, overrides);
+                break;
+            case ExprStmt es:
+                CollectEnumMemberFromExpr(result, es.Expression, overrides);
+                break;
+            case DoBlockStmt db:
+                CollectEnumMemberTokens(result, db.Body, overrides);
+                break;
+            case WhileStmt ws:
+                CollectEnumMemberFromExpr(result, ws.Condition, overrides);
+                CollectEnumMemberTokens(result, ws.Body, overrides);
+                break;
+            case RepeatStmt rs:
+                CollectEnumMemberTokens(result, rs.Body, overrides);
+                CollectEnumMemberFromExpr(result, rs.Condition, overrides);
+                break;
+            case IfStmt ifs:
+                CollectEnumMemberFromExpr(result, ifs.Condition, overrides);
+                CollectEnumMemberTokens(result, ifs.Body, overrides);
+                foreach (var ei in ifs.ElseIfs)
+                {
+                    CollectEnumMemberFromExpr(result, ei.Condition, overrides);
+                    CollectEnumMemberTokens(result, ei.Body, overrides);
+                }
+                if (ifs.ElseBody != null) CollectEnumMemberTokens(result, ifs.ElseBody, overrides);
+                break;
+            case NumericForStmt nf:
+                CollectEnumMemberFromExpr(result, nf.Start, overrides);
+                CollectEnumMemberFromExpr(result, nf.Limit, overrides);
+                if (nf.Step != null) CollectEnumMemberFromExpr(result, nf.Step, overrides);
+                CollectEnumMemberTokens(result, nf.Body, overrides);
+                break;
+            case GenericForStmt gf:
+                foreach (var iter in gf.Iterators) CollectEnumMemberFromExpr(result, iter, overrides);
+                CollectEnumMemberTokens(result, gf.Body, overrides);
+                break;
+            case ReturnStmt ret:
+                foreach (var v in ret.Values) CollectEnumMemberFromExpr(result, v, overrides);
+                break;
+        }
+    }
+
+    private static void CollectEnumMemberFromExpr(AnalysisResult result, Expr expr, Dictionary<(int, int), int> overrides)
+    {
+        switch (expr)
+        {
+            case DotAccessExpr dot:
+                CollectEnumMemberFromExpr(result, dot.Object, overrides);
+                if (dot.Object is NameExpr ne && ne.Name.Sym != SymID.Invalid &&
+                    result.Syms.GetByID(ne.Name.Sym, out var sym) && sym.Kind == LuxSymbolKind.Enum)
+                {
+                    var line = dot.FieldName.Span.StartLn - 1;
+                    var col = dot.FieldName.Span.StartCol - 1;
+                    overrides[(line, col)] = TK_ENUM_MEMBER;
+                }
+                break;
+            case ParenExpr pe:
+                CollectEnumMemberFromExpr(result, pe.Inner, overrides);
+                break;
+            case BinaryExpr bin:
+                CollectEnumMemberFromExpr(result, bin.Left, overrides);
+                CollectEnumMemberFromExpr(result, bin.Right, overrides);
+                break;
+            case UnaryExpr un:
+                CollectEnumMemberFromExpr(result, un.Operand, overrides);
+                break;
+            case IndexAccessExpr idx:
+                CollectEnumMemberFromExpr(result, idx.Object, overrides);
+                CollectEnumMemberFromExpr(result, idx.Index, overrides);
+                break;
+            case FunctionCallExpr call:
+                CollectEnumMemberFromExpr(result, call.Callee, overrides);
+                foreach (var a in call.Arguments) CollectEnumMemberFromExpr(result, a, overrides);
+                break;
+            case MethodCallExpr mc:
+                CollectEnumMemberFromExpr(result, mc.Object, overrides);
+                foreach (var a in mc.Arguments) CollectEnumMemberFromExpr(result, a, overrides);
+                break;
+            case FunctionDefExpr fd:
+                CollectEnumMemberTokens(result, fd.Body, overrides);
+                if (fd.ReturnStmt != null) CollectEnumMemberFromStmt(result, fd.ReturnStmt, overrides);
+                break;
+            case TableConstructorExpr tc:
+                foreach (var f in tc.Fields)
+                {
+                    if (f.Key != null) CollectEnumMemberFromExpr(result, f.Key, overrides);
+                    CollectEnumMemberFromExpr(result, f.Value, overrides);
+                }
+                break;
+            case NonNilAssertExpr nna:
+                CollectEnumMemberFromExpr(result, nna.Inner, overrides);
+                break;
+            case TypeCheckExpr tchk:
+                CollectEnumMemberFromExpr(result, tchk.Inner, overrides);
+                break;
+            case TypeCastExpr tcast:
+                CollectEnumMemberFromExpr(result, tcast.Inner, overrides);
+                break;
         }
     }
 

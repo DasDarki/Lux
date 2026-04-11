@@ -24,7 +24,7 @@ function resolveCommand(name: string): string {
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
   const config = vscode.workspace.getConfiguration("lux");
   const configured = config.get<string>("serverPath") || "";
-  const serverPath = configured || resolveCommand("lux");
+  const serverPath = configured || resolveCommand("lux") || resolveCommand("Lux");
 
   const serverOptions: ServerOptions = {
     command: serverPath,
@@ -35,7 +35,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   const clientOptions: LanguageClientOptions = {
     documentSelector: [{ scheme: "file", language: "lux" }],
     synchronize: {
-      fileEvents: vscode.workspace.createFileSystemWatcher("**/*.{lux,d.sel}"),
+      fileEvents: vscode.workspace.createFileSystemWatcher("**/*.{lux,d.lux}"),
     },
     outputChannelName: "Lux Language Server",
   };
