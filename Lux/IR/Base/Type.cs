@@ -75,7 +75,7 @@ public sealed class TableArrayType(Type elementType) : Type(TypeKind.TableArray)
 
     protected override TypeKey GenerateNewKey()
     {
-        return $"array<{ElementType.Key}>";
+        return $"{ElementType.Key}[]";
     }
 }
 
@@ -99,7 +99,7 @@ public sealed class TableMapType(Type keyType, Type valueType) : Type(TypeKind.T
 
     protected override TypeKey GenerateNewKey()
     {
-        return $"map<{KeyType.Key},{ValueType.Key}>";
+        return $"map<{KeyType.Key}, {ValueType.Key}>";
     }
 }
 
@@ -146,7 +146,7 @@ public sealed class TupleType(IEnumerable<TupleType.Field> fields) : Type(TypeKi
         
         public override string ToString()
         {
-            return Name is null ? Type.Key.Value : $"{Name.Name}:{Type.Key.Value}";
+            return Name is null ? Type.Key.Value : $"{Name.Name}: {Type.Key.Value}";
         }
     }
 }
@@ -158,7 +158,7 @@ public sealed class UnionType(IEnumerable<Type> types) : Type(TypeKind.Union)
     protected override TypeKey GenerateNewKey()
     {
         var typeKeys = Types.Select(t => t.Key);
-        return $"union<{string.Join("|", typeKeys)}>";
+        return string.Join(" | ", typeKeys);
     }
 
     private static List<Type> ConvertTypes(IEnumerable<Type> types)
@@ -211,22 +211,68 @@ public sealed class StructType(IEnumerable<StructType.Field> fields) : Type(Type
     }
 }
 
-public sealed class FunctionType(IEnumerable<Type> paramTypes, Type returnType, bool isVararg = false, Type? varargType = null, List<int>? defaultParams = null) : Type(TypeKind.Function)
+public sealed class FunctionType : Type
 {
-    public List<Type> ParamTypes { get; } = paramTypes.ToList();
-    public Type ReturnType { get; } = returnType;
-    public bool IsVararg { get; } = isVararg;
-    public Type? VarargType { get; } = varargType;
-    public List<int> DefaultParams { get; } = defaultParams ?? [];
+    public List<Type> ParamTypes { get; }
+    public List<string> ParamNames { get; }
+    public Type ReturnType { get; }
+    public bool IsVararg { get; }
+    public Type? VarargType { get; }
+    public List<int> DefaultParams { get; }
 
     public int MinParamCount => ParamTypes.Count - DefaultParams.Count;
+    
+    public FunctionType(IEnumerable<Tuple<string, Type>> paramTypes, Type returnType, bool isVararg = false, Type? varargType = null, List<int>? defaultParams = null) : base(TypeKind.Function)
+    {
+        var @params = paramTypes.ToList();
+        ParamTypes = @params.Select(p => p.Item2).ToList();
+        ParamNames = @params.Select(p => p.Item1).ToList();
+        ReturnType = returnType;
+        IsVararg = isVararg;
+        VarargType = varargType;
+        DefaultParams = defaultParams ?? [];
+    }
+    
+    public FunctionType(IEnumerable<Type> paramTypes, Type returnType, bool isVararg = false, Type? varargType = null, List<int>? defaultParams = null) : base(TypeKind.Function)
+    {
+        ParamTypes = paramTypes.ToList();
+        ParamNames = [];
+        for (var i = 0; i < ParamTypes.Count; i++)
+        {
+            ParamNames.Add($"arg{i}");
+        }
+        ReturnType = returnType;
+        IsVararg = isVararg;
+        VarargType = varargType;
+        DefaultParams = defaultParams ?? [];
+    }
+    
+    public FunctionType(IEnumerable<Type> paramTypes, List<string> paramNames, Type returnType, bool isVarargs, Type? varargType, List<int>? defaultParams) : base(TypeKind.Function)
+    {
+        ParamTypes = paramTypes.ToList();
+        ParamNames = paramNames;
+        ReturnType = returnType;
+        IsVararg = isVarargs;
+        VarargType = varargType;
+        DefaultParams = defaultParams ?? [];
+    }
 
     protected override TypeKey GenerateNewKey()
     {
-        var paramKeys = ParamTypes.Select(t => t.Key).ToList();
-        if (IsVararg)
-            paramKeys.Add($"...{(VarargType != null ? VarargType.Key.Value : "any")}");
-        return $"func<{string.Join(",", paramKeys)}->{ReturnType.Key}>";
+        var parameters = new List<string>();
+        for (var i = 0; i < ParamTypes.Count; i++)
+        {
+            var pPrefix = "";
+            var pType = ParamTypes[i].Key.Value;
+            var pName = ParamNames[i];
+            if (DefaultParams.Contains(i))
+                pType += " = ...";
+            if (IsVararg && i == ParamTypes.Count - 1)
+                pPrefix = "...";
+            parameters.Add($"{pPrefix}{pName}: {pType}");
+        }
+        
+        return $"({string.Join(", ", parameters)}) -> {ReturnType.Key}";
     }
 }
 
@@ -426,6 +472,18 @@ public sealed class TypeTable
     /// type table, and returns the type ID of the new type.
     /// </summary>
     public TypID FuncOf(IEnumerable<Type> paramTypes, Type returnType, bool isVararg = false, Type? varargType = null, List<int>? defaultParams = null)
+    {
+        var funcType = new FunctionType(paramTypes, returnType, isVararg, varargType, defaultParams);
+        return DeclareType(funcType);
+    }
+    
+    /// <summary>
+    /// Creates a new function type with the specified parameter types and return type, declares the new type in the
+    /// type table, and returns the type ID of the new type. The parameters are named, which means that each parameter
+    /// has a name and a type. This is an overload of the <see cref="FuncOf(IEnumerable{Type}, Type, bool, Type?, List{int}?)"/>
+    /// method that allows passing the parameters as a params array of tuples for convenience.
+    /// </summary>
+    public TypID FuncOf(IEnumerable<Tuple<string, Type>> paramTypes, Type returnType, bool isVararg = false, Type? varargType = null, List<int>? defaultParams = null)
     {
         var funcType = new FunctionType(paramTypes, returnType, isVararg, varargType, defaultParams);
         return DeclareType(funcType);

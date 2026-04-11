@@ -81,4 +81,32 @@ public sealed class TextSpan(string? file, int startLn, int startCol, int endLn,
     {
         return Of(node.Symbol, file);
     }
+
+    public static TextSpan Combine(TextSpan a, TextSpan b)
+    {
+        int startLn, startCol, endLn, endCol;
+        if (a.StartLn < b.StartLn || (a.StartLn == b.StartLn && a.StartCol <= b.StartCol))
+        {
+            startLn = a.StartLn;
+            startCol = a.StartCol;
+        }
+        else
+        {
+            startLn = b.StartLn;
+            startCol = b.StartCol;
+        }
+
+        if (a.EndLn > b.EndLn || (a.EndLn == b.EndLn && a.EndCol >= b.EndCol))
+        {
+            endLn = a.EndLn;
+            endCol = a.EndCol;
+        }
+        else
+        {
+            endLn = b.EndLn;
+            endCol = b.EndCol;
+        }
+
+        return new TextSpan(a.File ?? b.File, startLn, startCol, endLn, endCol);
+    }
 }

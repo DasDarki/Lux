@@ -191,7 +191,7 @@ public sealed class InferTypesPass() : Pass(PassName, PassScope.PerFile)
                 break;
             case DeclareFunctionDecl dfd:
             {
-                var paramTypes = new List<Type>();
+                var paramTypes = new List<Tuple<string, Type>>();
                 var dfdIsVararg = false;
                 Type? dfdVarargType = null;
                 foreach (var param in dfd.Parameters)
@@ -204,7 +204,7 @@ public sealed class InferTypesPass() : Pass(PassName, PassScope.PerFile)
                     }
                     else
                     {
-                        paramTypes.Add(t);
+                        paramTypes.Add(new Tuple<string, Type>(param.Name.Name, t));
                     }
                     if (param.Name.Sym != SymID.Invalid)
                     {
@@ -250,7 +250,7 @@ public sealed class InferTypesPass() : Pass(PassName, PassScope.PerFile)
     private void ResolveFunctionLike(PassContext pc, List<Parameter> parameters, TypeRef? returnTypeRef,
         List<Stmt> body, ReturnStmt? returnStmt, NameRef? funcName)
     {
-        var paramTypes = new List<Type>();
+        var paramTypes = new List<Tuple<string, Type>>();
         var isVararg = false;
         Type? varargType = null;
         var defaultIndices = new List<int>();
@@ -274,7 +274,7 @@ public sealed class InferTypesPass() : Pass(PassName, PassScope.PerFile)
             }
             else
             {
-                paramTypes.Add(t);
+                paramTypes.Add(new Tuple<string, Type>(param.Name.Name, t));
                 if (param.Name.Sym != SymID.Invalid)
                 {
                     pc.Pkg!.Syms.SetType(param.Name.Sym, t.ID);
@@ -671,7 +671,7 @@ public sealed class InferTypesPass() : Pass(PassName, PassScope.PerFile)
 
     private TypID InferFunctionDef(PassContext pc, FunctionDefExpr fde)
     {
-        var paramTypes = new List<Type>();
+        var paramTypes = new List<Tuple<string, Type>>();
         var fdeIsVararg = false;
         Type? fdeVarargType = null;
         var fdeDefaults = new List<int>();
@@ -694,7 +694,7 @@ public sealed class InferTypesPass() : Pass(PassName, PassScope.PerFile)
             }
             else
             {
-                paramTypes.Add(t);
+                paramTypes.Add(new Tuple<string, Type>(param.Name.Name, t));
                 if (param.Name.Sym != SymID.Invalid)
                 {
                     pc.Pkg!.Syms.SetType(param.Name.Sym, t.ID);

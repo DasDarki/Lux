@@ -220,7 +220,7 @@ public sealed class LuxWorkspace
                         if (exports.TryGetValue(memberName, out var exportInfo))
                         {
                             var importName = spec.Alias ?? spec.Name;
-                            SetImportedType(pkg, types, importName.Name, exportInfo.Type, exportInfo.SymKind);
+                            SetImportedType(pkg, types, importName.Name, exportInfo);
                         }
                         else if (allTopLevel.ContainsKey(memberName))
                         {
@@ -324,7 +324,7 @@ public sealed class LuxWorkspace
         };
     }
 
-    public record struct ExportInfo(IR.Type Type, IR.SymbolKind SymKind, SymID Sym);
+    public record struct ExportInfo(IR.Type Type, IR.SymbolKind SymKind, SymID Sym, NodeID DeclaringNode);
 
     private static Dictionary<string, ExportInfo> CollectExports(AnalysisResult result)
     {
@@ -337,12 +337,12 @@ public sealed class LuxWorkspace
                 if (result.Scopes.Lookup(result.Package.Root, name, out var scopeSym))
                 {
                     if (result.Syms.GetByID(scopeSym, out var sym) && result.Types.GetByID(sym.Type, out var typ))
-                        exports[name] = new ExportInfo(typ, sym.Kind, scopeSym);
+                        exports[name] = new ExportInfo(typ, sym.Kind, scopeSym, sym.DeclaringNode);
                 }
                 else if (symId != SymID.Invalid && result.Syms.GetByID(symId, out var directSym) &&
                          result.Types.GetByID(directSym.Type, out var directTyp))
                 {
-                    exports[name] = new ExportInfo(directTyp, directSym.Kind, symId);
+                    exports[name] = new ExportInfo(directTyp, directSym.Kind, symId, directSym.DeclaringNode);
                 }
             }
         }
@@ -374,10 +374,15 @@ public sealed class LuxWorkspace
         };
     }
 
-    private void SetImportedType(PackageContext pkg, TypeTable types, string name, IR.Type srcType, IR.SymbolKind kind)
+    private void SetImportedType(PackageContext pkg, TypeTable types, string name, ExportInfo exportInfo)
     {
-        var importedType = ImportType(types, srcType, null);
-        SetImportedSymbolType(pkg, name, importedType.ID);
+        var importedType = ImportType(types, exportInfo.Type, null);
+        if (pkg.Scopes.Lookup(pkg.Root, name, out var symId) && pkg.Syms.GetByID(symId, out var sym))
+        {
+            sym.Type = importedType.ID;
+            if (exportInfo.DeclaringNode != NodeID.Invalid)
+                sym.DeclaringNode = exportInfo.DeclaringNode;
+        }
     }
 
     private static void SetImportedSymbolType(PackageContext pkg, string name, TypID typeId)
@@ -394,6 +399,7 @@ public sealed class LuxWorkspace
         {
             FunctionType ft => dstTypes.DeclareType(new FunctionType(
                 ft.ParamTypes.Select(p => ImportType(dstTypes, p, srcTypes)),
+                ft.ParamNames,
                 ImportType(dstTypes, ft.ReturnType, srcTypes),
                 ft.IsVararg,
                 ft.VarargType != null ? ImportType(dstTypes, ft.VarargType, srcTypes) : null,

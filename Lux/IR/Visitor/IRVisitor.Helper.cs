@@ -181,20 +181,22 @@ internal partial class IRVisitor
 
     private Expr WrapWithSuffix(Expr obj, LuxParser.SuffixContext suffix)
     {
+        TextSpan Span(ParserRuleContext ctx) => TextSpan.Combine(obj.Span, SpanFromCtx(ctx));
+
         return suffix switch
         {
             LuxParser.DotSuffixContext dot =>
-                new DotAccessExpr(NewNodeID, SpanFromCtx(dot), obj, NameRefFromTerm(dot.NAME())),
+                new DotAccessExpr(NewNodeID, Span(dot), obj, NameRefFromTerm(dot.NAME())),
             LuxParser.OptDotSuffixContext odot =>
-                new DotAccessExpr(NewNodeID, SpanFromCtx(odot), obj, NameRefFromTerm(odot.NAME()), isOptional: true),
+                new DotAccessExpr(NewNodeID, Span(odot), obj, NameRefFromTerm(odot.NAME()), isOptional: true),
             LuxParser.IndexSuffixContext idx =>
-                new IndexAccessExpr(NewNodeID, SpanFromCtx(idx), obj, (Expr)Visit(idx.expr())),
+                new IndexAccessExpr(NewNodeID, Span(idx), obj, (Expr)Visit(idx.expr())),
             LuxParser.MethodCallSuffixContext mc =>
-                new MethodCallExpr(NewNodeID, SpanFromCtx(mc), obj, NameRefFromTerm(mc.NAME()), VisitArgsContent(mc.args())),
+                new MethodCallExpr(NewNodeID, Span(mc), obj, NameRefFromTerm(mc.NAME()), VisitArgsContent(mc.args())),
             LuxParser.CallSuffixContext call =>
-                new FunctionCallExpr(NewNodeID, SpanFromCtx(call), obj, VisitArgsContent(call.args())),
+                new FunctionCallExpr(NewNodeID, Span(call), obj, VisitArgsContent(call.args())),
             LuxParser.OptCallSuffixContext optCall =>
-                new FunctionCallExpr(NewNodeID, SpanFromCtx(optCall), obj, VisitArgsContent(optCall.args()), isOptional: true),
+                new FunctionCallExpr(NewNodeID, Span(optCall), obj, VisitArgsContent(optCall.args()), isOptional: true),
             _ => throw new InvalidOperationException($"Unknown suffix type: {suffix.GetType().Name}")
         };
     }

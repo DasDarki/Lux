@@ -28,5 +28,5 @@
 - [ ] Extend LSP:
   - [ ] Auto import
   - [ ] Find usages
-  - [ ] Go to definition
-  - [ ] CTRL+click on import path opens file
+  - [x] Go to definition
+  - [x] CTRL+click on import path opens file

@@ -15,45 +15,24 @@ public sealed class SignatureHelpHandler(LuxWorkspace workspace) : SignatureHelp
         var line = request.Position.Line + 1;
         var col = request.Position.Character + 1;
 
-        var node = NodeFinder.Find(result.Hir, line, col);
-        FunctionCallExpr? callExpr = null;
-        MethodCallExpr? methodExpr = null;
-
-        var current = node;
-        while (current != null)
-        {
-            if (current is FunctionCallExpr fce) { callExpr = fce; break; }
-            if (current is MethodCallExpr mce) { methodExpr = mce; break; }
-            if (!result.NodeRegistry.TryGetValue(current.ID, out _)) break;
-
-            Node? parent = null;
-            foreach (var (_, n) in result.NodeRegistry)
-            {
-                if (n is FunctionCallExpr fc && (fc.Callee == current || fc.Arguments.Contains(current as Expr)))
-                { parent = fc; break; }
-                if (n is MethodCallExpr mc && (mc.Object == current || mc.Arguments.Contains(current as Expr)))
-                { parent = mc; break; }
-            }
-            current = parent;
-        }
+        var callNode = NodeFinder.FindEnclosingCall(result.Hir, line, col);
+        if (callNode == null) return Task.FromResult<SignatureHelp?>(null);
 
         var calleeSym = SymID.Invalid;
-        int activeParam;
+        List<Expr> arguments;
 
-        if (callExpr != null)
+        switch (callNode)
         {
-            if (callExpr.Callee is NameExpr ne)
-                calleeSym = ne.Name.Sym;
-            activeParam = CountActiveParam(callExpr.Arguments, line, col);
-        }
-        else if (methodExpr != null)
-        {
-            calleeSym = methodExpr.MethodName.Sym;
-            activeParam = CountActiveParam(methodExpr.Arguments, line, col);
-        }
-        else
-        {
-            return Task.FromResult<SignatureHelp?>(null);
+            case FunctionCallExpr fce:
+                if (fce.Callee is NameExpr ne) calleeSym = ne.Name.Sym;
+                arguments = fce.Arguments;
+                break;
+            case MethodCallExpr mce:
+                calleeSym = mce.MethodName.Sym;
+                arguments = mce.Arguments;
+                break;
+            default:
+                return Task.FromResult<SignatureHelp?>(null);
         }
 
         if (calleeSym == SymID.Invalid || !result.Syms.GetByID(calleeSym, out var sym))
@@ -61,6 +40,8 @@ public sealed class SignatureHelpHandler(LuxWorkspace workspace) : SignatureHelp
 
         if (!result.Types.GetByID(sym.Type, out var typ) || typ is not FunctionType ft)
             return Task.FromResult<SignatureHelp?>(null);
+
+        var activeParam = CountActiveParam(result.SourceText, request.Position);
 
         var paramInfos = new List<ParameterInformation>();
         List<Parameter>? declParams = null;
@@ -113,9 +94,12 @@ public sealed class SignatureHelpHandler(LuxWorkspace workspace) : SignatureHelp
             {
                 var pType = workspace.FormatType(result.Types, ft.ParamTypes[i]);
                 var defaultHint = ft.DefaultParams.Contains(i) ? " = ..." : "";
+                var argName = $"arg{i}";
+                if (ft.ParamNames != null && i < ft.ParamNames.Count && !string.IsNullOrEmpty(ft.ParamNames[i]))
+                    argName = ft.ParamNames[i];
                 paramInfos.Add(new ParameterInformation
                 {
-                    Label = new ParameterInformationLabel($"arg{i}: {pType}{defaultHint}")
+                    Label = new ParameterInformationLabel($"{argName}: {pType}{defaultHint}")
                 });
             }
             if (ft.IsVararg)
@@ -144,19 +128,39 @@ public sealed class SignatureHelpHandler(LuxWorkspace workspace) : SignatureHelp
         {
             Signatures = new Container<SignatureInformation>(sigInfo),
             ActiveSignature = 0,
-            ActiveParameter = activeParam
+            ActiveParameter = Math.Min(activeParam, Math.Max(0, paramInfos.Count - 1))
         });
     }
 
-    private static int CountActiveParam(List<Expr> arguments, int line, int col)
+    private static int CountActiveParam(string sourceText, OmniSharp.Extensions.LanguageServer.Protocol.Models.Position pos)
     {
-        for (var i = arguments.Count - 1; i >= 0; i--)
+        var lines = sourceText.Split('\n');
+        if (pos.Line < 0 || pos.Line >= lines.Length) return 0;
+        var lineText = lines[pos.Line].TrimEnd('\r');
+        var cursor = Math.Min(pos.Character, lineText.Length);
+
+        var depth = 0;
+        var commas = 0;
+
+        for (var i = cursor - 1; i >= 0; i--)
         {
-            var arg = arguments[i];
-            if (line > arg.Span.StartLn || (line == arg.Span.StartLn && col >= arg.Span.StartCol))
-                return i;
+            var ch = lineText[i];
+            switch (ch)
+            {
+                case ')' or ']' or '}':
+                    depth++;
+                    break;
+                case '(' or '[' or '{':
+                    if (depth == 0) return commas;
+                    depth--;
+                    break;
+                case ',' when depth == 0:
+                    commas++;
+                    break;
+            }
         }
-        return 0;
+
+        return commas;
     }
 
     protected override SignatureHelpRegistrationOptions CreateRegistrationOptions(
