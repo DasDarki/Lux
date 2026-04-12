@@ -291,6 +291,18 @@ public interface ILuxListener : IParseTreeListener {
 	/// <param name="context">The parse tree.</param>
 	void ExitDeclareStat_([NotNull] LuxParser.DeclareStat_Context context);
 	/// <summary>
+	/// Enter a parse tree produced by the <c>MatchStat_</c>
+	/// labeled alternative in <see cref="LuxParser.stmt"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void EnterMatchStat_([NotNull] LuxParser.MatchStat_Context context);
+	/// <summary>
+	/// Exit a parse tree produced by the <c>MatchStat_</c>
+	/// labeled alternative in <see cref="LuxParser.stmt"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void ExitMatchStat_([NotNull] LuxParser.MatchStat_Context context);
+	/// <summary>
 	/// Enter a parse tree produced by <see cref="LuxParser.doBlock"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
@@ -606,6 +618,70 @@ public interface ILuxListener : IParseTreeListener {
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	void ExitExportEnum([NotNull] LuxParser.ExportEnumContext context);
+	/// <summary>
+	/// Enter a parse tree produced by <see cref="LuxParser.matchStat"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void EnterMatchStat([NotNull] LuxParser.MatchStatContext context);
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="LuxParser.matchStat"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void ExitMatchStat([NotNull] LuxParser.MatchStatContext context);
+	/// <summary>
+	/// Enter a parse tree produced by <see cref="LuxParser.matchExpr"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void EnterMatchExpr([NotNull] LuxParser.MatchExprContext context);
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="LuxParser.matchExpr"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void ExitMatchExpr([NotNull] LuxParser.MatchExprContext context);
+	/// <summary>
+	/// Enter a parse tree produced by <see cref="LuxParser.matchArm"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void EnterMatchArm([NotNull] LuxParser.MatchArmContext context);
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="LuxParser.matchArm"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void ExitMatchArm([NotNull] LuxParser.MatchArmContext context);
+	/// <summary>
+	/// Enter a parse tree produced by <see cref="LuxParser.matchExprArm"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void EnterMatchExprArm([NotNull] LuxParser.MatchExprArmContext context);
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="LuxParser.matchExprArm"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void ExitMatchExprArm([NotNull] LuxParser.MatchExprArmContext context);
+	/// <summary>
+	/// Enter a parse tree produced by the <c>BindingPattern</c>
+	/// labeled alternative in <see cref="LuxParser.matchPattern"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void EnterBindingPattern([NotNull] LuxParser.BindingPatternContext context);
+	/// <summary>
+	/// Exit a parse tree produced by the <c>BindingPattern</c>
+	/// labeled alternative in <see cref="LuxParser.matchPattern"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void ExitBindingPattern([NotNull] LuxParser.BindingPatternContext context);
+	/// <summary>
+	/// Enter a parse tree produced by the <c>ValuePattern</c>
+	/// labeled alternative in <see cref="LuxParser.matchPattern"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void EnterValuePattern([NotNull] LuxParser.ValuePatternContext context);
+	/// <summary>
+	/// Exit a parse tree produced by the <c>ValuePattern</c>
+	/// labeled alternative in <see cref="LuxParser.matchPattern"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void ExitValuePattern([NotNull] LuxParser.ValuePatternContext context);
 	/// <summary>
 	/// Enter a parse tree produced by <see cref="LuxParser.declareStat"/>.
 	/// </summary>
@@ -1422,6 +1498,18 @@ public interface ILuxListener : IParseTreeListener {
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	void ExitTableConstructorExpr([NotNull] LuxParser.TableConstructorExprContext context);
+	/// <summary>
+	/// Enter a parse tree produced by the <c>MatchExprExpr</c>
+	/// labeled alternative in <see cref="LuxParser.expr"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void EnterMatchExprExpr([NotNull] LuxParser.MatchExprExprContext context);
+	/// <summary>
+	/// Exit a parse tree produced by the <c>MatchExprExpr</c>
+	/// labeled alternative in <see cref="LuxParser.expr"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void ExitMatchExprExpr([NotNull] LuxParser.MatchExprExprContext context);
 	/// <summary>
 	/// Enter a parse tree produced by the <c>LtOp</c>
 	/// labeled alternative in <see cref="LuxParser.compareOp"/>.

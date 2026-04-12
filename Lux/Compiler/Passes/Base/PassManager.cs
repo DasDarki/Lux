@@ -18,6 +18,7 @@ public sealed class PassManager
         ResolveImportsPass.PassName,
         ResolveNamesPass.PassName,
         ResolveTypeRefsPass.PassName,
+        CheckImmutabilityPass.PassName,
         InferTypesPass.PassName,
         DetectUnusedPass.PassName,
         DeclGenPass.PassName,
@@ -34,6 +35,7 @@ public sealed class PassManager
         ResolveImportsPass.PassName,
         ResolveNamesPass.PassName,
         ResolveTypeRefsPass.PassName,
+        CheckImmutabilityPass.PassName,
         InferTypesPass.PassName,
         DetectUnusedPass.PassName
     ];
@@ -43,6 +45,7 @@ public sealed class PassManager
         BindDeclarePass.PassName,
         ResolveNamesPass.PassName,
         ResolveTypeRefsPass.PassName,
+        CheckImmutabilityPass.PassName,
         InferTypesPass.PassName,
         DetectUnusedPass.PassName
     ];
@@ -55,6 +58,7 @@ public sealed class PassManager
     ];
 
     public static readonly string[] SingleFilePhase2 = [
+        CheckImmutabilityPass.PassName,
         InferTypesPass.PassName,
         DetectUnusedPass.PassName
     ];
@@ -72,6 +76,7 @@ public sealed class PassManager
         Register(new ResolveImportsPass());
         Register(new ResolveNamesPass());
         Register(new ResolveTypeRefsPass());
+        Register(new CheckImmutabilityPass());
         Register(new InferTypesPass());
         Register(new DetectUnusedPass());
         Register(new DeclGenPass());

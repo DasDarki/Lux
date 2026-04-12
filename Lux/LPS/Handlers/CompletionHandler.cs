@@ -15,7 +15,7 @@ public sealed class CompletionHandler(LuxWorkspace workspace) : CompletionHandle
         "and", "break", "do", "else", "elseif", "end", "enum", "false", "for",
         "function", "goto", "if", "in", "local", "nil", "not", "or",
         "repeat", "return", "then", "true", "until", "while",
-        "as", "declare", "export", "from", "import", "module"
+        "as", "case", "declare", "export", "from", "import", "match", "meta", "module", "mut", "when"
     ];
 
     public override Task<CompletionList> Handle(CompletionParams request, CancellationToken ct)

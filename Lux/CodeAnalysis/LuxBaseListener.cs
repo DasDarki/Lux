@@ -340,6 +340,20 @@ public partial class LuxBaseListener : ILuxListener {
 	/// <param name="context">The parse tree.</param>
 	public virtual void ExitDeclareStat_([NotNull] LuxParser.DeclareStat_Context context) { }
 	/// <summary>
+	/// Enter a parse tree produced by the <c>MatchStat_</c>
+	/// labeled alternative in <see cref="LuxParser.stmt"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void EnterMatchStat_([NotNull] LuxParser.MatchStat_Context context) { }
+	/// <summary>
+	/// Exit a parse tree produced by the <c>MatchStat_</c>
+	/// labeled alternative in <see cref="LuxParser.stmt"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void ExitMatchStat_([NotNull] LuxParser.MatchStat_Context context) { }
+	/// <summary>
 	/// Enter a parse tree produced by <see cref="LuxParser.doBlock"/>.
 	/// <para>The default implementation does nothing.</para>
 	/// </summary>
@@ -713,6 +727,82 @@ public partial class LuxBaseListener : ILuxListener {
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	public virtual void ExitExportEnum([NotNull] LuxParser.ExportEnumContext context) { }
+	/// <summary>
+	/// Enter a parse tree produced by <see cref="LuxParser.matchStat"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void EnterMatchStat([NotNull] LuxParser.MatchStatContext context) { }
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="LuxParser.matchStat"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void ExitMatchStat([NotNull] LuxParser.MatchStatContext context) { }
+	/// <summary>
+	/// Enter a parse tree produced by <see cref="LuxParser.matchExpr"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void EnterMatchExpr([NotNull] LuxParser.MatchExprContext context) { }
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="LuxParser.matchExpr"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void ExitMatchExpr([NotNull] LuxParser.MatchExprContext context) { }
+	/// <summary>
+	/// Enter a parse tree produced by <see cref="LuxParser.matchArm"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void EnterMatchArm([NotNull] LuxParser.MatchArmContext context) { }
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="LuxParser.matchArm"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void ExitMatchArm([NotNull] LuxParser.MatchArmContext context) { }
+	/// <summary>
+	/// Enter a parse tree produced by <see cref="LuxParser.matchExprArm"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void EnterMatchExprArm([NotNull] LuxParser.MatchExprArmContext context) { }
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="LuxParser.matchExprArm"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void ExitMatchExprArm([NotNull] LuxParser.MatchExprArmContext context) { }
+	/// <summary>
+	/// Enter a parse tree produced by the <c>BindingPattern</c>
+	/// labeled alternative in <see cref="LuxParser.matchPattern"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void EnterBindingPattern([NotNull] LuxParser.BindingPatternContext context) { }
+	/// <summary>
+	/// Exit a parse tree produced by the <c>BindingPattern</c>
+	/// labeled alternative in <see cref="LuxParser.matchPattern"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void ExitBindingPattern([NotNull] LuxParser.BindingPatternContext context) { }
+	/// <summary>
+	/// Enter a parse tree produced by the <c>ValuePattern</c>
+	/// labeled alternative in <see cref="LuxParser.matchPattern"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void EnterValuePattern([NotNull] LuxParser.ValuePatternContext context) { }
+	/// <summary>
+	/// Exit a parse tree produced by the <c>ValuePattern</c>
+	/// labeled alternative in <see cref="LuxParser.matchPattern"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void ExitValuePattern([NotNull] LuxParser.ValuePatternContext context) { }
 	/// <summary>
 	/// Enter a parse tree produced by <see cref="LuxParser.declareStat"/>.
 	/// <para>The default implementation does nothing.</para>
@@ -1671,6 +1761,20 @@ public partial class LuxBaseListener : ILuxListener {
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	public virtual void ExitTableConstructorExpr([NotNull] LuxParser.TableConstructorExprContext context) { }
+	/// <summary>
+	/// Enter a parse tree produced by the <c>MatchExprExpr</c>
+	/// labeled alternative in <see cref="LuxParser.expr"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void EnterMatchExprExpr([NotNull] LuxParser.MatchExprExprContext context) { }
+	/// <summary>
+	/// Exit a parse tree produced by the <c>MatchExprExpr</c>
+	/// labeled alternative in <see cref="LuxParser.expr"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void ExitMatchExprExpr([NotNull] LuxParser.MatchExprExprContext context) { }
 	/// <summary>
 	/// Enter a parse tree produced by the <c>LtOp</c>
 	/// labeled alternative in <see cref="LuxParser.compareOp"/>.

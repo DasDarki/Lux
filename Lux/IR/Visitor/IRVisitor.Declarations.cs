@@ -19,7 +19,8 @@ internal partial class IRVisitor
     {
         var vars = VisitAttribNameListContent(context.attribNameList());
         var values = context.exprList()?.expr().Select(e => (Expr)Visit(e)).ToList() ?? [];
-        return new LocalDecl(NewNodeID, SpanFromCtx(context), vars, values);
+        var isMutable = context.MUT() != null;
+        return new LocalDecl(NewNodeID, SpanFromCtx(context), vars, values, isMutable);
     }
 
     public override Node VisitDeclareStat(LuxParser.DeclareStatContext context)

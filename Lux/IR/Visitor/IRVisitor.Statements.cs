@@ -51,6 +51,64 @@ internal partial class IRVisitor
     public override Node VisitImportStat_(LuxParser.ImportStat_Context context) => Visit(context.importStat());
     public override Node VisitExportStat_(LuxParser.ExportStat_Context context) => Visit(context.exportStat());
     public override Node VisitDeclareStat_(LuxParser.DeclareStat_Context context) => Visit(context.declareStat());
+    public override Node VisitMatchStat_(LuxParser.MatchStat_Context context) => Visit(context.matchStat());
+
+    public override Node VisitMatchStat(LuxParser.MatchStatContext context)
+    {
+        var scrutinee = (Expr)Visit(context.expr());
+        var arms = context.matchArm().Select(VisitMatchArmNode).ToList();
+        return new MatchStmt(NewNodeID, SpanFromCtx(context), scrutinee, arms);
+    }
+
+    public override Node VisitMatchExprExpr(LuxParser.MatchExprExprContext context) => Visit(context.matchExpr());
+
+    public override Node VisitMatchExpr(LuxParser.MatchExprContext context)
+    {
+        var scrutinee = (Expr)Visit(context.expr());
+        var arms = context.matchExprArm().Select(VisitMatchExprArmNode).ToList();
+        return new MatchExpr(NewNodeID, SpanFromCtx(context), scrutinee, arms);
+    }
+
+    private MatchArm VisitMatchArmNode(LuxParser.MatchArmContext ctx)
+    {
+        var pattern = VisitMatchPatternNode(ctx.matchPattern());
+        var guard = ctx.WHEN() != null ? (Expr)Visit(ctx.expr()) : null;
+        var (body, ret) = VisitBlockContent(ctx.block());
+        if (ret != null) body.Add(ret);
+        return new MatchArm(pattern, guard, body, SpanFromCtx(ctx));
+    }
+
+
+    private MatchExprArm VisitMatchExprArmNode(LuxParser.MatchExprArmContext ctx)
+    {
+        var pattern = VisitMatchPatternNode(ctx.matchPattern());
+        var exprs = ctx.expr();
+        Expr? guard = null;
+        if (ctx.WHEN() != null)
+        {
+            guard = (Expr)Visit(exprs[0]);
+        }
+        var value = (Expr)Visit(exprs[^1]);
+        return new MatchExprArm(pattern, guard, value, SpanFromCtx(ctx));
+    }
+
+    private MatchPattern VisitMatchPatternNode(LuxParser.MatchPatternContext ctx)
+    {
+        if (ctx is LuxParser.BindingPatternContext bp)
+        {
+            var name = NameRefFromTerm(bp.NAME());
+            var typeRef = (TypeRef)Visit(bp.typeAnnotation().typeExpr());
+            return new MatchPattern(MatchPatternKind.TypeBinding, null, typeRef, name, SpanFromCtx(ctx));
+        }
+
+        // ValuePattern — check for wildcard `_`
+        var vp = (LuxParser.ValuePatternContext)ctx;
+        var expr = (Expr)Visit(vp.expr());
+        if (expr is NameExpr ne && ne.Name.Name == "_")
+            return new MatchPattern(MatchPatternKind.Wildcard, null, null, null, SpanFromCtx(ctx));
+
+        return new MatchPattern(MatchPatternKind.Value, expr, null, null, SpanFromCtx(ctx));
+    }
 
     #endregion
 

@@ -4,8 +4,8 @@
   - [x] Make strict nilabilty configurable via the config (currently always enforced - but in the config there is already a flag)
 - [x] Named varargs
 - [x] Exhaustive Matching checking
-- [ ] Immutability with deep freeze and const
-- [ ] Expression Type checking and operator overloading (meta table functions; declarations in .d.lux files) to allow non string and non number types to be used with operators (e.g. `+` for string concatenation, `*` for array repetition, etc.)
+- [x] Immutability with deep freeze and const
+- [x] Expression Type checking and operator overloading (meta table functions; declarations in .d.lux files) to allow non string and non number types to be used with operators (e.g. `+` for string concatenation, `*` for array repetition, etc.)
 - [x] Type check expression and type casting
 - [x] Function overloading and default parameters
 - [x] Enums
@@ -13,7 +13,7 @@
 - [ ] Generics
 - [ ] Classes with inheritance and interfaces
 - [ ] Annotations
-- [ ] Pattern matching
+- [x] Pattern matching
 - [x] Pre/post increment and decrement operators (`++` and `~~`; `~~` instead of `--` to avoid conflict with Lua comments)
 - [x] Alternative boolean operators (`&&` for and, `||` for or, `!` for not and `!=` for ~=) - should be configurable via the config (currently only the Lua operators are supported) ; IMPORTANT: prevent conflict with existing syntax
 - [ ] Async/await and Promises
@@ -27,6 +27,7 @@
   than add). The narrowing logic itself handles compound conditions correctly once parens force the right parse — fixing the grammar would touch the entire arithmetic precedence chain and is out of scope here.
 - [ ] Extend LSP:
   - [ ] Auto import
+  - [ ] Code actions (rename, compile, etc.)
   - [x] Find usages
   - [x] Go to definition
   - [x] CTRL+click on import path opens file

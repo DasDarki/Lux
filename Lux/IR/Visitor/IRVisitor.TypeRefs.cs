@@ -83,6 +83,7 @@ internal partial class IRVisitor
         var fields = context.structField().Select(f => new StructTypeField(
             NameRefFromTerm(f.NAME()),
             (TypeRef)Visit(f.typeExpr()),
+            f.META() != null,
             SpanFromCtx(f)
         )).ToList();
         return new StructTypeRef(NewNodeID, SpanFromCtx(context), fields);

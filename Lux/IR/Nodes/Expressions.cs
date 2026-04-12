@@ -132,3 +132,9 @@ public sealed class TableConstructorExpr(NodeID id, TextSpan span, List<TableFie
 {
     public List<TableField> Fields { get; } = fields;
 }
+
+public sealed class MatchExpr(NodeID id, TextSpan span, Expr scrutinee, List<MatchExprArm> arms) : Expr(id, span)
+{
+    public Expr Scrutinee { get; } = scrutinee;
+    public List<MatchExprArm> Arms { get; } = arms;
+}

@@ -33,11 +33,13 @@ public sealed class LocalFunctionDecl(
 
 public sealed class LocalDecl(
     NodeID id, TextSpan span,
-    List<AttribVar> variables, List<Expr> values
+    List<AttribVar> variables, List<Expr> values,
+    bool isMutable = false
 ) : Decl(id, span)
 {
     public List<AttribVar> Variables { get; } = variables;
     public List<Expr> Values { get; } = values;
+    public bool IsMutable { get; } = isMutable;
 }
 
 public sealed class DeclareFunctionDecl(

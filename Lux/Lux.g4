@@ -79,6 +79,7 @@ stmt
     | importStat                                                # ImportStat_
     | exportStat                                                # ExportStat_
     | declareStat                                               # DeclareStat_
+    | matchStat                                                 # MatchStat_
     ;
 
 // ─── Block Statements ───
@@ -166,7 +167,7 @@ localFunctionDecl
 //   local x <const>: number = 42
 
 localDecl
-    : LOCAL attribNameList (ASSIGN exprList)?
+    : LOCAL MUT? attribNameList (ASSIGN exprList)?
     ;
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -222,6 +223,31 @@ exportStat
     | EXPORT localFunctionDecl                                   # ExportLocalFunction
     | EXPORT localDecl                                           # ExportLocal
     | EXPORT enumDecl                                            # ExportEnum
+    ;
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  Match / Pattern Matching
+// ─────────────────────────────────────────────────────────────────────────────
+
+matchStat
+    : MATCH expr matchArm+ END
+    ;
+
+matchExpr
+    : MATCH expr matchExprArm+ END
+    ;
+
+matchArm
+    : CASE matchPattern (WHEN expr)? THEN block
+    ;
+
+matchExprArm
+    : CASE matchPattern (WHEN expr)? THEN expr
+    ;
+
+matchPattern
+    : NAME typeAnnotation                                        # BindingPattern
+    | expr                                                       # ValuePattern
     ;
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -461,7 +487,7 @@ tableType
     ;
 
 structField
-    : NAME COLON typeExpr
+    : META? NAME COLON typeExpr
     ;
 
 
@@ -481,6 +507,7 @@ expr
     | functionDef                                               # FunctionDefExpr
     | prefixExp                                                 # PrefixExpr
     | tableConstructor                                          # TableConstructorExpr
+    | matchExpr                                                 # MatchExprExpr
 
     // ─── Power (tightest, right-associative) ───
 
@@ -693,7 +720,12 @@ EXPORT   : 'export';
 FROM     : 'from';
 IMPORT   : 'import';
 IS       : 'is';
+CASE     : 'case';
+MATCH    : 'match';
+META     : 'meta';
 MODULE   : 'module';
+MUT      : 'mut';
+WHEN     : 'when';
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  Operators & Punctuation

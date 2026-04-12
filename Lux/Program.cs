@@ -117,7 +117,6 @@ internal class Program
         }
 
         config ??= new Config();
-        config.Rules.ExhaustiveMatch = ExhaustiveMatchLevel.Relaxed;
 
         if (luxFiles.Count == 0)
         {

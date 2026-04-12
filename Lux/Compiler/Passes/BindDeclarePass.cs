@@ -225,6 +225,24 @@ public sealed class BindDeclarePass() : Pass(PassName, PassScope.PerFile)
             case ExportStmt exportStmt:
                 return BindDeclScopes(ctx, exportStmt.Declaration, scope);
 
+            case MatchStmt matchStmt:
+            {
+                pkg.Scopes.BindNode(matchStmt.ID, scope);
+                if (!BindExprScopes(ctx, matchStmt.Scrutinee, scope)) return false;
+                foreach (var arm in matchStmt.Arms)
+                {
+                    var armScope = pkg.Scopes.NewScope(scope);
+                    if (arm.Pattern.Kind == MatchPatternKind.TypeBinding && arm.Pattern.Binding != null)
+                    {
+                        DeclareSymbol(ctx, armScope, arm.Pattern.Binding.Name, SymbolKind.Variable, matchStmt.ID);
+                    }
+                    if (arm.Pattern.ValueExpr != null && !BindExprScopes(ctx, arm.Pattern.ValueExpr, scope)) return false;
+                    if (arm.Guard != null && !BindExprScopes(ctx, arm.Guard, armScope)) return false;
+                    if (!BindStmtListScopes(ctx, arm.Body, armScope)) return false;
+                }
+                return true;
+            }
+
             default:
                 throw new InvalidOperationException($"Unsupported statement type: {stmt.GetType().Name}");
         }
@@ -318,9 +336,26 @@ public sealed class BindDeclarePass() : Pass(PassName, PassScope.PerFile)
                     }
                 }
 
+                var immutableDefault = ctx.Config.Rules.ImmutableDefault;
+                var deepFreeze = ctx.Config.Rules.DeepFreeze;
+
                 foreach (var variable in localDecl.Variables)
                 {
-                    DeclareSymbol(ctx, scope, variable.Name.Name, SymbolKind.Variable, localDecl.ID);
+                    var flags = new List<SymbolFlags>();
+                    if (localDecl.IsMutable || variable.Attribute == "mutable")
+                    {
+                        flags.Add(SymbolFlags.Mutable);
+                    }
+                    else if (immutableDefault)
+                    {
+                        flags.Add(SymbolFlags.Immutable);
+                        if (deepFreeze) flags.Add(SymbolFlags.DeepFreeze);
+                    }
+
+                    if (variable.Attribute == "const")
+                        flags.Add(SymbolFlags.Const);
+
+                    DeclareSymbol(ctx, scope, variable.Name.Name, SymbolKind.Variable, localDecl.ID, flags.ToArray());
                 }
 
                 return true;
@@ -521,15 +556,33 @@ public sealed class BindDeclarePass() : Pass(PassName, PassScope.PerFile)
 
                 return true;
 
+            case MatchExpr matchExpr:
+            {
+                pkg.Scopes.BindNode(matchExpr.ID, scope);
+                if (!BindExprScopes(ctx, matchExpr.Scrutinee, scope)) return false;
+                foreach (var arm in matchExpr.Arms)
+                {
+                    var armScope = pkg.Scopes.NewScope(scope);
+                    if (arm.Pattern.Kind == MatchPatternKind.TypeBinding && arm.Pattern.Binding != null)
+                    {
+                        DeclareSymbol(ctx, armScope, arm.Pattern.Binding.Name, SymbolKind.Variable, matchExpr.ID);
+                    }
+                    if (arm.Pattern.ValueExpr != null && !BindExprScopes(ctx, arm.Pattern.ValueExpr, scope)) return false;
+                    if (arm.Guard != null && !BindExprScopes(ctx, arm.Guard, armScope)) return false;
+                    if (!BindExprScopes(ctx, arm.Value, armScope)) return false;
+                }
+                return true;
+            }
+
             default:
                 throw new InvalidOperationException($"Unsupported expression type: {expr.GetType().Name}");
         }
     }
 
-    private static void DeclareSymbol(PassContext ctx, ScopeID scope, string name, SymbolKind kind, NodeID decl)
+    private static void DeclareSymbol(PassContext ctx, ScopeID scope, string name, SymbolKind kind, NodeID decl, params SymbolFlags[] flags)
     {
         var pkg = ctx.Pkg!;
-        var symId = pkg.Syms.NewSymbol(kind, name, scope, TypID.Invalid, decl);
+        var symId = pkg.Syms.NewSymbol(kind, name, scope, TypID.Invalid, decl, flags);
         pkg.Scopes.DeclareSymbol(scope, name, symId, pkg.Syms);
     }
 }

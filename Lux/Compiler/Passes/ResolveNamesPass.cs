@@ -162,6 +162,15 @@ public sealed class ResolveNamesPass() : Pass(PassName, PassScope.PerFile)
             case ExportStmt exportStmt:
                 ResolveDeclNames(pc, exportStmt.Declaration, pkg);
                 break;
+            case MatchStmt matchStmt:
+                ResolveExprNames(pc, matchStmt.Scrutinee, pkg);
+                foreach (var arm in matchStmt.Arms)
+                {
+                    if (arm.Pattern.ValueExpr != null) ResolveExprNames(pc, arm.Pattern.ValueExpr, pkg);
+                    if (arm.Guard != null) ResolveExprNames(pc, arm.Guard, pkg);
+                    ResolveStmtListNames(pc, arm.Body, pkg);
+                }
+                break;
             default:
                 throw new InvalidOperationException($"Unexpected statement type: {stmt.GetType().Name}");
         }
@@ -387,6 +396,15 @@ public sealed class ResolveNamesPass() : Pass(PassName, PassScope.PerFile)
             }
                 break;
 
+            case MatchExpr matchExpr:
+                ResolveExprNames(pc, matchExpr.Scrutinee, pkg);
+                foreach (var arm in matchExpr.Arms)
+                {
+                    if (arm.Pattern.ValueExpr != null) ResolveExprNames(pc, arm.Pattern.ValueExpr, pkg);
+                    if (arm.Guard != null) ResolveExprNames(pc, arm.Guard, pkg);
+                    ResolveExprNames(pc, arm.Value, pkg);
+                }
+                break;
             default:
                 throw new InvalidOperationException($"Unexpected expression type: {expr.GetType().Name}");
         }

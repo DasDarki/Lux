@@ -1,40 +1,15 @@
--- Test: Pre/Post Increment and Decrement
-local x: number = 10
+local arr = {1, 2, 3}
 
-x++
-print(x)  -- 11
+enum Status
+    Ok
+    Error
+    SomethingElse
+end
 
-x~~
-print(x)  -- 10
+local status = Status.Ok
 
--- As expression: post-increment returns old value
-local a = x++
-print(a, x)  -- 10, 11
-
--- Pre-increment returns new value
-local b = ++x
-print(b, x)  -- 12, 12
-
--- Pre-decrement returns new value
-local c = ~~x
-print(c, x)  -- 11, 11
-
--- Post-decrement returns old value
-local d = x~~
-print(d, x)  -- 11, 10
-
--- On table fields
-local obj = { count = 0 }
-obj.count++
-print(obj.count)  -- 1
-
-local old = obj.count++
-print(old, obj.count)  -- 1, 2
-
--- On array elements
-local arr: number[] = {10, 20, 30}
-arr[1]++
-print(arr[1])  -- 11
-
-local prev = arr[1]++
-print(prev, arr[1])  -- 11, 12
+local msg = match arr
+    case Status.Ok then "success"
+    case Status.Error then "failure"
+    case _ then 1
+end

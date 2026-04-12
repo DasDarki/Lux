@@ -199,14 +199,15 @@ public sealed class StructType(IEnumerable<StructType.Field> fields) : Type(Type
         return $"struct<{string.Join(",", fieldKeys)}>";
     }
     
-    public sealed class Field(NameRef name, Type type)
+    public sealed class Field(NameRef name, Type type, bool isMeta = false)
     {
         public NameRef Name { get; } = name;
         public Type Type { get; } = type;
+        public bool IsMeta { get; } = isMeta;
 
         public override string ToString()
         {
-            return $"{Name.Name}:{Type.Key.Value}";
+            return $"{(IsMeta ? "meta " : "")}{Name.Name}:{Type.Key.Value}";
         }
     }
 }

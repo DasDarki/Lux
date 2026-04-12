@@ -184,6 +184,13 @@ public interface ILuxVisitor<Result> : IParseTreeVisitor<Result> {
 	/// <return>The visitor result.</return>
 	Result VisitDeclareStat_([NotNull] LuxParser.DeclareStat_Context context);
 	/// <summary>
+	/// Visit a parse tree produced by the <c>MatchStat_</c>
+	/// labeled alternative in <see cref="LuxParser.stmt"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitMatchStat_([NotNull] LuxParser.MatchStat_Context context);
+	/// <summary>
 	/// Visit a parse tree produced by <see cref="LuxParser.doBlock"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
@@ -370,6 +377,44 @@ public interface ILuxVisitor<Result> : IParseTreeVisitor<Result> {
 	/// <param name="context">The parse tree.</param>
 	/// <return>The visitor result.</return>
 	Result VisitExportEnum([NotNull] LuxParser.ExportEnumContext context);
+	/// <summary>
+	/// Visit a parse tree produced by <see cref="LuxParser.matchStat"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitMatchStat([NotNull] LuxParser.MatchStatContext context);
+	/// <summary>
+	/// Visit a parse tree produced by <see cref="LuxParser.matchExpr"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitMatchExpr([NotNull] LuxParser.MatchExprContext context);
+	/// <summary>
+	/// Visit a parse tree produced by <see cref="LuxParser.matchArm"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitMatchArm([NotNull] LuxParser.MatchArmContext context);
+	/// <summary>
+	/// Visit a parse tree produced by <see cref="LuxParser.matchExprArm"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitMatchExprArm([NotNull] LuxParser.MatchExprArmContext context);
+	/// <summary>
+	/// Visit a parse tree produced by the <c>BindingPattern</c>
+	/// labeled alternative in <see cref="LuxParser.matchPattern"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitBindingPattern([NotNull] LuxParser.BindingPatternContext context);
+	/// <summary>
+	/// Visit a parse tree produced by the <c>ValuePattern</c>
+	/// labeled alternative in <see cref="LuxParser.matchPattern"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitValuePattern([NotNull] LuxParser.ValuePatternContext context);
 	/// <summary>
 	/// Visit a parse tree produced by <see cref="LuxParser.declareStat"/>.
 	/// </summary>
@@ -849,6 +894,13 @@ public interface ILuxVisitor<Result> : IParseTreeVisitor<Result> {
 	/// <param name="context">The parse tree.</param>
 	/// <return>The visitor result.</return>
 	Result VisitTableConstructorExpr([NotNull] LuxParser.TableConstructorExprContext context);
+	/// <summary>
+	/// Visit a parse tree produced by the <c>MatchExprExpr</c>
+	/// labeled alternative in <see cref="LuxParser.expr"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitMatchExprExpr([NotNull] LuxParser.MatchExprExprContext context);
 	/// <summary>
 	/// Visit a parse tree produced by the <c>LtOp</c>
 	/// labeled alternative in <see cref="LuxParser.compareOp"/>.

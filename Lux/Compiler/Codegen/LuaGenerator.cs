@@ -175,6 +175,16 @@ public sealed class LuaGenerator(Config config)
     }
 
     #endregion
+    
+    #region Freeze Helpers
+    
+    public string GetFreezeHelper()
+    {
+        return RequireHelper("freeze", name =>
+            $"local function {name}(t) return setmetatable(t, {{__newindex = function() error(\"attempt to modify frozen table\") end}}) end");
+    }
+    
+    #endregion
 
     #region Index Base Helpers
 

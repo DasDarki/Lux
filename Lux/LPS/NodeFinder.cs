@@ -269,6 +269,15 @@ public static class NodeFinder
             case ExportStmt exp:
                 SearchStmt(exp.Declaration, line, col, ref best);
                 break;
+            case MatchStmt ms:
+                SearchExpr(ms.Scrutinee, line, col, ref best);
+                foreach (var arm in ms.Arms)
+                {
+                    if (arm.Pattern.ValueExpr != null) SearchExpr(arm.Pattern.ValueExpr, line, col, ref best);
+                    if (arm.Guard != null) SearchExpr(arm.Guard, line, col, ref best);
+                    SearchStmtList(arm.Body, line, col, ref best);
+                }
+                break;
         }
     }
 
@@ -333,6 +342,15 @@ public static class NodeFinder
                 break;
             case TypeCastExpr tcast:
                 SearchExpr(tcast.Inner, line, col, ref best);
+                break;
+            case MatchExpr me:
+                SearchExpr(me.Scrutinee, line, col, ref best);
+                foreach (var arm in me.Arms)
+                {
+                    if (arm.Pattern.ValueExpr != null) SearchExpr(arm.Pattern.ValueExpr, line, col, ref best);
+                    if (arm.Guard != null) SearchExpr(arm.Guard, line, col, ref best);
+                    SearchExpr(arm.Value, line, col, ref best);
+                }
                 break;
         }
     }

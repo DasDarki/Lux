@@ -416,7 +416,7 @@ public sealed class LuxWorkspace
                 ImportType(dstTypes, tm.KeyType, srcTypes),
                 ImportType(dstTypes, tm.ValueType, srcTypes))),
             StructType st => dstTypes.DeclareType(new StructType(
-                st.Fields.Select(f => new StructType.Field(f.Name, ImportType(dstTypes, f.Type, srcTypes))))),
+                st.Fields.Select(f => new StructType.Field(f.Name, ImportType(dstTypes, f.Type, srcTypes), f.IsMeta)))),
             EnumType et => dstTypes.DeclareType(new EnumType(
                 et.Name, et.Members, ImportType(dstTypes, et.BaseType, srcTypes))),
             _ => dstTypes.DeclareType(new IR.Type(srcType.Kind))

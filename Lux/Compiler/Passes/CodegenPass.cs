@@ -239,6 +239,9 @@ public sealed class CodegenPass() : Pass(PassName, PassScope.PerBuild, true)
                 if (!ed.IsDeclare)
                     EmitEnumDecl(ctx, pkg, gen, ed);
                 break;
+            case MatchStmt ms:
+                EmitMatchStmt(ctx, pkg, gen, ms);
+                break;
         }
     }
 
@@ -316,7 +319,7 @@ public sealed class CodegenPass() : Pass(PassName, PassScope.PerBuild, true)
         var first = true;
         foreach (var stmt in overloads)
         {
-            var actual = stmt is ExportStmt es ? (Decl)es.Declaration : (Decl)stmt;
+            var actual = stmt is ExportStmt es ? es.Declaration : (Decl)stmt;
             List<Parameter> parameters;
             List<Stmt> body;
             ReturnStmt? returnStmt;
@@ -446,6 +449,8 @@ public sealed class CodegenPass() : Pass(PassName, PassScope.PerBuild, true)
 
     private void EmitLocalDecl(PassContext ctx, PackageContext pkg, LuaGenerator gen, LocalDecl ld)
     {
+        var deepFreeze = ctx.Config.Rules.DeepFreeze && !ld.IsMutable;
+
         gen.Write("local ");
         for (var i = 0; i < ld.Variables.Count; i++)
         {
@@ -461,7 +466,28 @@ public sealed class CodegenPass() : Pass(PassName, PassScope.PerBuild, true)
         if (ld.Values.Count > 0)
         {
             gen.Write(" = ");
-            EmitExprList(ctx, pkg, gen, ld.Values);
+            if (deepFreeze && ld.Values.Any(v => v is TableConstructorExpr))
+            {
+                for (var i = 0; i < ld.Values.Count; i++)
+                {
+                    if (i > 0) gen.Write(", ");
+                    if (ld.Values[i] is TableConstructorExpr)
+                    {
+                        gen.Write($"{gen.GetFreezeHelper()}(");
+                        EmitExpr(ctx, pkg, gen, ld.Values[i]);
+                        gen.Write(")");
+                        
+                    }
+                    else
+                    {
+                        EmitExpr(ctx, pkg, gen, ld.Values[i]);
+                    }
+                }
+            }
+            else
+            {
+                EmitExprList(ctx, pkg, gen, ld.Values);
+            }
         }
         gen.NewLine();
         gen.WriteSemicolon();
@@ -763,6 +789,9 @@ public sealed class CodegenPass() : Pass(PassName, PassScope.PerBuild, true)
             case TypeCheckExpr tchk:
                 EmitTypeCheck(ctx, pkg, gen, tchk);
                 break;
+            case MatchExpr me:
+                EmitMatchExpr(ctx, pkg, gen, me);
+                break;
         }
     }
 
@@ -827,6 +856,166 @@ public sealed class CodegenPass() : Pass(PassName, PassScope.PerBuild, true)
         gen.Write(") == \"");
         gen.Write(typeName);
         gen.Write("\")");
+    }
+
+    private void EmitMatchStmt(PassContext ctx, PackageContext pkg, LuaGenerator gen, MatchStmt ms)
+    {
+        var scrutineeTemp = gen.FreshTemp();
+        gen.Write("local " + scrutineeTemp + " = ");
+        EmitExpr(ctx, pkg, gen, ms.Scrutinee);
+        gen.NewLine();
+
+        for (var i = 0; i < ms.Arms.Count; i++)
+        {
+            var arm = ms.Arms[i];
+            if (arm.Pattern.Kind == MatchPatternKind.Wildcard)
+            {
+                if (i == 0)
+                {
+                    gen.Write("do");
+                    gen.NewLine();
+                    gen.Indent();
+                    EmitStmtList(ctx, pkg, gen, arm.Body);
+                    gen.Dedent();
+                    gen.WriteLine("end");
+                    return;
+                }
+
+                gen.WriteLine("else");
+                gen.Indent();
+            }
+            else
+            {
+                gen.Write(i == 0 ? "if " : "elseif ");
+                EmitMatchCondition(ctx, pkg, gen, arm.Pattern, scrutineeTemp);
+                if (arm.Guard != null)
+                {
+                    gen.Write(" and (");
+                    EmitExpr(ctx, pkg, gen, arm.Guard);
+                    gen.Write(")");
+                }
+                gen.Write(" then");
+                gen.NewLine();
+                gen.Indent();
+            }
+
+            if (arm.Pattern.Kind == MatchPatternKind.TypeBinding && arm.Pattern.Binding != null)
+            {
+                gen.Write("local " + ResolveName(ctx, pkg, arm.Pattern.Binding) + " = " + scrutineeTemp);
+                gen.NewLine();
+            }
+
+            EmitStmtList(ctx, pkg, gen, arm.Body);
+            gen.Dedent();
+        }
+        gen.WriteLine("end");
+    }
+
+    private void EmitMatchExpr(PassContext ctx, PackageContext pkg, LuaGenerator gen, MatchExpr me)
+    {
+        var scrutineeTemp = gen.FreshTemp("_ms");
+
+        gen.Write("(function()");
+        gen.NewLine();
+        gen.Indent();
+        gen.Write("local " + scrutineeTemp + " = ");
+        EmitExpr(ctx, pkg, gen, me.Scrutinee);
+        gen.NewLine();
+
+        for (var i = 0; i < me.Arms.Count; i++)
+        {
+            var arm = me.Arms[i];
+            if (arm.Pattern.Kind == MatchPatternKind.Wildcard)
+            {
+                if (i == 0)
+                {
+                    gen.Write("do");
+                    gen.NewLine();
+                    gen.Indent();
+                }
+                else
+                {
+                    gen.WriteLine("else");
+                    gen.Indent();
+                }
+            }
+            else
+            {
+                gen.Write(i == 0 ? "if " : "elseif ");
+                EmitMatchCondition(ctx, pkg, gen, arm.Pattern, scrutineeTemp);
+                if (arm.Guard != null)
+                {
+                    gen.Write(" and (");
+                    EmitExpr(ctx, pkg, gen, arm.Guard);
+                    gen.Write(")");
+                }
+                gen.Write(" then");
+                gen.NewLine();
+                gen.Indent();
+            }
+
+            if (arm.Pattern.Kind == MatchPatternKind.TypeBinding && arm.Pattern.Binding != null)
+            {
+                gen.Write("local " + ResolveName(ctx, pkg, arm.Pattern.Binding) + " = " + scrutineeTemp);
+                gen.NewLine();
+            }
+
+            gen.Write("return ");
+            EmitExpr(ctx, pkg, gen, arm.Value);
+            gen.NewLine();
+            gen.Dedent();
+        }
+
+        gen.WriteLine("end");
+        gen.Dedent();
+        gen.Write("end)()");
+    }
+
+    private void EmitMatchCondition(PassContext ctx, PackageContext pkg, LuaGenerator gen, MatchPattern pattern, string scrutineeTemp)
+    {
+        switch (pattern.Kind)
+        {
+            case MatchPatternKind.Value:
+                gen.Write(scrutineeTemp + " == ");
+                EmitExpr(ctx, pkg, gen, pattern.ValueExpr!);
+                break;
+            case MatchPatternKind.TypeBinding:
+                if (pattern.TypeRef != null)
+                {
+                    var typeId = pattern.TypeRef.ResolvedType;
+                    if (pkg.Types.GetByID(typeId, out var t))
+                    {
+                        var luaType = t.Kind switch
+                        {
+                            TypeKind.PrimitiveString => "string",
+                            TypeKind.PrimitiveNumber => "number",
+                            TypeKind.PrimitiveBool => "boolean",
+                            TypeKind.PrimitiveNil => "nil",
+                            TypeKind.TableArray or TypeKind.TableMap or TypeKind.Struct => "table",
+                            TypeKind.Function => "function",
+                            _ => "any"
+                        };
+                        if (luaType == "nil")
+                            gen.Write(scrutineeTemp + " == nil");
+                        else if (luaType == "any")
+                            gen.Write(scrutineeTemp + " ~= nil");
+                        else
+                            gen.Write("type(" + scrutineeTemp + ") == \"" + luaType + "\"");
+                    }
+                    else
+                    {
+                        gen.Write("true");
+                    }
+                }
+                else
+                {
+                    gen.Write("true");
+                }
+                break;
+            case MatchPatternKind.Wildcard:
+                gen.Write("true");
+                break;
+        }
     }
 
     private void EmitInterpolatedString(PassContext ctx, PackageContext pkg, LuaGenerator gen, InterpolatedStringExpr interp)

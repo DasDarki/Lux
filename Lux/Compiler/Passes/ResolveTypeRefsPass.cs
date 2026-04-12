@@ -177,6 +177,16 @@ public class ResolveTypeRefsPass() : Pass(PassName, PassScope.PerBuild)
             case ExportStmt exportStmt:
                 ResolveDeclTypes(tt, exportStmt.Declaration);
                 break;
+            case MatchStmt matchStmt:
+                ResolveExprTypes(tt, matchStmt.Scrutinee);
+                foreach (var arm in matchStmt.Arms)
+                {
+                    if (arm.Pattern.ValueExpr != null) ResolveExprTypes(tt, arm.Pattern.ValueExpr);
+                    if (arm.Pattern.TypeRef != null) ResolveTypeRef(tt, arm.Pattern.TypeRef);
+                    if (arm.Guard != null) ResolveExprTypes(tt, arm.Guard);
+                    ResolveStmtListTypes(tt, arm.Body);
+                }
+                break;
             default:
                 throw new InvalidOperationException($"Unknown statement kind: {stmt.GetType().Name}");
         }
@@ -381,10 +391,20 @@ public class ResolveTypeRefsPass() : Pass(PassName, PassScope.PerBuild)
                     {
                         ResolveExprTypes(tt, field.Key);
                     }
-                    
+
                     ResolveExprTypes(tt, field.Value);
                 }
-                
+
+                break;
+            case MatchExpr matchExpr:
+                ResolveExprTypes(tt, matchExpr.Scrutinee);
+                foreach (var arm in matchExpr.Arms)
+                {
+                    if (arm.Pattern.ValueExpr != null) ResolveExprTypes(tt, arm.Pattern.ValueExpr);
+                    if (arm.Pattern.TypeRef != null) ResolveTypeRef(tt, arm.Pattern.TypeRef);
+                    if (arm.Guard != null) ResolveExprTypes(tt, arm.Guard);
+                    ResolveExprTypes(tt, arm.Value);
+                }
                 break;
             default:
                 throw new InvalidOperationException($"Unknown expression kind: {expr.GetType().Name}");
@@ -471,7 +491,7 @@ public class ResolveTypeRefsPass() : Pass(PassName, PassScope.PerBuild)
             case TypeKind.Struct:
             {
                 var t = (StructTypeRef) tr;
-                result = tt.DeclareType(new StructType(t.Fields.Select(f => new StructType.Field(f.Name, ResolveTypeRef(tt, f.Type))).ToList()));
+                result = tt.DeclareType(new StructType(t.Fields.Select(f => new StructType.Field(f.Name, ResolveTypeRef(tt, f.Type), f.IsMeta)).ToList()));
                 break;
             }
             case TypeKind.Function:

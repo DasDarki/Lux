@@ -117,6 +117,17 @@ public sealed class DetectUnusedPass() : Pass(PassName, PassScope.PerBuild)
             case ExportStmt exportStmt:
                 MarkDeclUnused(pc, pkg, exportStmt.Declaration);
                 break;
+            case MatchStmt matchStmt:
+                foreach (var arm in matchStmt.Arms)
+                {
+                    if (arm.Pattern.Kind == MatchPatternKind.TypeBinding && arm.Pattern.Binding != null)
+                    {
+                        if (pkg.Syms.GetByID(arm.Pattern.Binding.Sym, out var sym))
+                            sym.Flags |= SymbolFlags.Unused;
+                    }
+                    MarkStmtListUnused(pc, pkg, arm.Body);
+                }
+                break;
         }
     }
 
@@ -258,9 +269,22 @@ public sealed class DetectUnusedPass() : Pass(PassName, PassScope.PerBuild)
             case ExportStmt exportStmt:
                 TrackDeclUsage(pc, pkg, exportStmt.Declaration);
                 break;
+            case MatchStmt matchStmt:
+                TrackExprUsage(pc, pkg, matchStmt.Scrutinee);
+                foreach (var arm in matchStmt.Arms)
+                {
+                    if (arm.Pattern.ValueExpr != null) TrackExprUsage(pc, pkg, arm.Pattern.ValueExpr);
+                    if (arm.Guard != null) TrackExprUsage(pc, pkg, arm.Guard);
+                    TrackStmtListUsage(pc, pkg, arm.Body);
+                }
+                break;
+            case AssignStmt assignStmt:
+                foreach (var target in assignStmt.Targets) TrackExprUsage(pc, pkg, target);
+                foreach (var value in assignStmt.Values) TrackExprUsage(pc, pkg, value);
+                break;
         }
     }
-    
+
     private void TrackDeclUsage(PassContext pc, PackageContext pkg, Decl decl)
     {
         switch (decl)
@@ -422,8 +446,17 @@ public sealed class DetectUnusedPass() : Pass(PassName, PassScope.PerBuild)
                     {
                         TrackExprUsage(pc, pkg, field.Key);
                     }
-                    
+
                     TrackExprUsage(pc, pkg, field.Value);
+                }
+                break;
+            case MatchExpr matchExpr:
+                TrackExprUsage(pc, pkg, matchExpr.Scrutinee);
+                foreach (var arm in matchExpr.Arms)
+                {
+                    if (arm.Pattern.ValueExpr != null) TrackExprUsage(pc, pkg, arm.Pattern.ValueExpr);
+                    if (arm.Guard != null) TrackExprUsage(pc, pkg, arm.Guard);
+                    TrackExprUsage(pc, pkg, arm.Value);
                 }
                 break;
         }

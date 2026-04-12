@@ -170,6 +170,24 @@ public sealed class InferTypesPass() : Pass(PassName, PassScope.PerFile)
             case ExportStmt exportStmt:
                 ResolveDecl(pc, exportStmt.Declaration);
                 break;
+            case MatchStmt matchStmt:
+            {
+                var scrutType = SynthesizeExpr(pc, matchStmt.Scrutinee);
+                foreach (var arm in matchStmt.Arms)
+                {
+                    if (arm.Pattern.ValueExpr != null)
+                    {
+                        var patType = SynthesizeExpr(pc, arm.Pattern.ValueExpr);
+                        CheckMatchPatternType(pc, scrutType, patType, arm.Pattern.ValueExpr.Span);
+                    }
+                    if (arm.Pattern.Kind == MatchPatternKind.TypeBinding && arm.Pattern.TypeRef != null)
+                        CheckMatchPatternTypeBinding(pc, scrutType, arm.Pattern.TypeRef, arm.Pattern.Span);
+                    if (arm.Guard != null) SynthesizeExpr(pc, arm.Guard);
+                    ResolveStmts(pc, arm.Body);
+                }
+                CheckExhaustiveMatch(pc, matchStmt);
+                break;
+            }
             default:
                 throw new InvalidOperationException($"Unknown statement kind: {stmt.GetType().Name}");
         }
@@ -544,6 +562,9 @@ public sealed class InferTypesPass() : Pass(PassName, PassScope.PerFile)
             case TableConstructorExpr tc:
                 result = InferTableConstructor(pc, tc);
                 break;
+            case MatchExpr me:
+                result = InferMatchExpr(pc, me);
+                break;
             default:
                 result = tt.PrimAny.ID;
                 break;
@@ -565,6 +586,13 @@ public sealed class InferTypesPass() : Pass(PassName, PassScope.PerFile)
             EnsureConcatable(pc, bin.Left.Span, l);
             EnsureConcatable(pc, bin.Right.Span, r);
             return tt.PrimString.ID;
+        }
+
+        var metaName = BinaryOpToMetamethod(bin.Op);
+        if (metaName != null)
+        {
+            var metaReturn = TryGetMetamethodReturn(pc, l, metaName) ?? TryGetMetamethodReturn(pc, r, metaName);
+            if (metaReturn != null) return metaReturn.Value;
         }
 
         switch (bin.Op)
@@ -632,6 +660,14 @@ public sealed class InferTypesPass() : Pass(PassName, PassScope.PerFile)
     {
         var tt = pc.Types;
         var t = SynthesizeExpr(pc, un.Operand);
+
+        var metaName = UnaryOpToMetamethod(un.Op);
+        if (metaName != null)
+        {
+            var metaReturn = TryGetMetamethodReturn(pc, t, metaName);
+            if (metaReturn != null) return metaReturn.Value;
+        }
+
         switch (un.Op)
         {
             case UnaryOp.Negate:
@@ -667,6 +703,37 @@ public sealed class InferTypesPass() : Pass(PassName, PassScope.PerFile)
 
         EnsureAssignable(pc, incDec.Target.Span, tt.PrimNumber.ID, t);
         return tt.PrimNumber.ID;
+    }
+
+    private TypID InferMatchExpr(PassContext pc, MatchExpr me)
+    {
+        var tt = pc.Types;
+        var scrutType = SynthesizeExpr(pc, me.Scrutinee);
+
+        TypID? unified = null;
+        foreach (var arm in me.Arms)
+        {
+            if (arm.Pattern.ValueExpr != null)
+            {
+                var patType = SynthesizeExpr(pc, arm.Pattern.ValueExpr);
+                CheckMatchPatternType(pc, scrutType, patType, arm.Pattern.ValueExpr.Span);
+            }
+            if (arm.Pattern.Kind == MatchPatternKind.TypeBinding && arm.Pattern.TypeRef != null)
+                CheckMatchPatternTypeBinding(pc, scrutType, arm.Pattern.TypeRef, arm.Pattern.Span);
+            if (arm.Guard != null) SynthesizeExpr(pc, arm.Guard);
+            var armType = SynthesizeExpr(pc, arm.Value);
+            if (unified == null)
+                unified = armType;
+            else if (unified.Value != armType)
+            {
+                if (unified.Value == tt.PrimAny.ID || armType == tt.PrimAny.ID)
+                    unified = tt.PrimAny.ID;
+                else
+                    unified = pc.Types.UnionOf([GetType(pc, unified.Value), GetType(pc, armType)]);
+            }
+        }
+
+        return unified ?? tt.PrimAny.ID;
     }
 
     private TypID InferFunctionDef(PassContext pc, FunctionDefExpr fde)
@@ -1387,6 +1454,44 @@ public sealed class InferTypesPass() : Pass(PassName, PassScope.PerFile)
         return type.Kind is TypeKind.TableArray or TypeKind.TableMap or TypeKind.Struct;
     }
 
+    private TypID? TryGetMetamethodReturn(PassContext pc, TypID operandType, string metamethodName)
+    {
+        if (!pc.Pkg!.Types.GetByID(operandType, out var t)) return null;
+        if (t is not StructType st) return null;
+        var metaField = st.Fields.FirstOrDefault(f => f.IsMeta && f.Name.Name == metamethodName);
+        if (metaField?.Type is not FunctionType ft) return null;
+        return ft.ReturnType.ID;
+    }
+
+    private static string? BinaryOpToMetamethod(BinaryOp op) => op switch
+    {
+        BinaryOp.Add => "__add",
+        BinaryOp.Sub => "__sub",
+        BinaryOp.Mul => "__mul",
+        BinaryOp.Div => "__div",
+        BinaryOp.FloorDiv => "__idiv",
+        BinaryOp.Mod => "__mod",
+        BinaryOp.Pow => "__pow",
+        BinaryOp.Concat => "__concat",
+        BinaryOp.Eq => "__eq",
+        BinaryOp.Lt => "__lt",
+        BinaryOp.Lte => "__le",
+        BinaryOp.BitwiseAnd => "__band",
+        BinaryOp.BitwiseOr => "__bor",
+        BinaryOp.BitwiseXor => "__bxor",
+        BinaryOp.LShift => "__shl",
+        BinaryOp.RShift => "__shr",
+        _ => null
+    };
+
+    private static string? UnaryOpToMetamethod(UnaryOp op) => op switch
+    {
+        UnaryOp.Negate => "__unm",
+        UnaryOp.Length => "__len",
+        UnaryOp.BitwiseNot => "__bnot",
+        _ => null
+    };
+
     private TypID LookupSymbolType(PassContext pc, SymID sym)
     {
         if (sym == SymID.Invalid) return pc.Types.PrimAny.ID;
@@ -1655,6 +1760,95 @@ public sealed class InferTypesPass() : Pass(PassName, PassScope.PerFile)
             pc.Diag.Report(ifStmt.Span, DiagnosticCode.ErrNonExhaustiveMatch,
                 enumType.Name, missingNames);
         }
+    }
+
+    private void CheckExhaustiveMatch(PassContext pc, MatchStmt matchStmt)
+    {
+        var level = pc.Config.Rules.ExhaustiveMatch;
+        if (level == ExhaustiveMatchLevel.None) return;
+
+        var hasWildcard = matchStmt.Arms.Any(a => a.Pattern.Kind == MatchPatternKind.Wildcard);
+        if (level == ExhaustiveMatchLevel.Relaxed && hasWildcard) return;
+
+        var scrutType = matchStmt.Scrutinee.Type;
+        if (scrutType == TypID.Invalid) return;
+        if (!pc.Pkg!.Types.GetByID(scrutType, out var t)) return;
+
+        if (t is EnumType enumType)
+        {
+            if (level == ExhaustiveMatchLevel.Explicit && hasWildcard)
+            {
+                var allMembers = string.Join(", ", enumType.Members.Select(m => enumType.Name + "." + m.Name));
+                pc.Diag.Report(matchStmt.Span, DiagnosticCode.ErrNonExhaustiveMatch,
+                    enumType.Name, allMembers + " (wildcard not allowed in explicit mode)");
+                return;
+            }
+
+            var covered = new HashSet<string>();
+            foreach (var arm in matchStmt.Arms)
+            {
+                if (arm.Pattern.Kind == MatchPatternKind.Value && arm.Pattern.ValueExpr is DotAccessExpr dot)
+                    covered.Add(dot.FieldName.Name);
+            }
+
+            var missing = enumType.Members.Where(m => !covered.Contains(m.Name)).ToList();
+            if (missing.Count == 0 || hasWildcard) return;
+
+            var missingNames = string.Join(", ", missing.Select(m => enumType.Name + "." + m.Name));
+            pc.Diag.Report(matchStmt.Span, DiagnosticCode.ErrNonExhaustiveMatch,
+                enumType.Name, missingNames);
+            return;
+        }
+
+        if (t is UnionType union)
+        {
+            if (level == ExhaustiveMatchLevel.Explicit && hasWildcard) return;
+
+            var covered = new HashSet<TypID>();
+            foreach (var arm in matchStmt.Arms)
+            {
+                if (arm.Pattern.Kind == MatchPatternKind.TypeBinding && arm.Pattern.TypeRef != null)
+                    covered.Add(arm.Pattern.TypeRef.ResolvedType);
+            }
+
+            var missing = union.Types.Where(m => !covered.Contains(m.ID)).ToList();
+            if (missing.Count == 0 || hasWildcard) return;
+
+            var missingNames = string.Join(", ", missing.Select(m => m.Key.Value));
+            pc.Diag.Report(matchStmt.Span, DiagnosticCode.ErrNonExhaustiveMatch,
+                union.Key.Value, missingNames);
+        }
+    }
+
+    private void CheckMatchPatternType(PassContext pc, TypID scrutType, TypID patternType, TextSpan span)
+    {
+        if (scrutType == TypID.Invalid || patternType == TypID.Invalid) return;
+        if (scrutType == pc.Types.PrimAny.ID || patternType == pc.Types.PrimAny.ID) return;
+        if (IsTypeAssignable(pc, scrutType, patternType)) return;
+        if (IsTypeAssignable(pc, patternType, scrutType)) return;
+
+        pc.Diag.Report(span, DiagnosticCode.ErrTypeMismatch,
+            TypeName(pc, scrutType), TypeName(pc, patternType));
+    }
+
+    private void CheckMatchPatternTypeBinding(PassContext pc, TypID scrutType, TypeRef typeRef, TextSpan span)
+    {
+        if (scrutType == TypID.Invalid || typeRef.ResolvedType == TypID.Invalid) return;
+        if (scrutType == pc.Types.PrimAny.ID) return;
+
+        if (!pc.Pkg!.Types.GetByID(scrutType, out var st)) return;
+        if (st is UnionType union)
+        {
+            if (union.Types.Any(m => IsTypeAssignable(pc, m.ID, typeRef.ResolvedType))) return;
+        }
+        else
+        {
+            if (IsTypeAssignable(pc, scrutType, typeRef.ResolvedType)) return;
+            if (IsTypeAssignable(pc, typeRef.ResolvedType, scrutType)) return;
+        }
+
+        pc.Diag.Report(span, DiagnosticCode.ErrTypeMismatch,
+            TypeName(pc, scrutType), TypeName(pc, typeRef.ResolvedType));
     }
 
     /// <summary>

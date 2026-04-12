@@ -141,6 +141,16 @@ public enum DiagnosticCode
     [Format("Invalid assignment target. Only variables, fields, and index expressions can be assigned to.")]
     ErrInvalidAssignTarget = 0x2008,
 
+    [Level(DiagnosticLevel.Error)]
+    [Category(DiagnosticCategory.Semantic)]
+    [Format("Cannot assign to immutable variable '{0}'")]
+    ErrAssignToImmutable = 0x2009,
+
+    [Level(DiagnosticLevel.Error)]
+    [Category(DiagnosticCategory.Semantic)]
+    [Format("Cannot modify field of frozen table '{0}'")]
+    ErrModifyFrozenTable = 0x200A,
+
     #endregion
 
     #region Module

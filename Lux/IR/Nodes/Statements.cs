@@ -83,6 +83,12 @@ public sealed class ReturnStmt(NodeID id, TextSpan span, List<Expr> values) : St
     public List<Expr> Values { get; } = values;
 }
 
+public sealed class MatchStmt(NodeID id, TextSpan span, Expr scrutinee, List<MatchArm> arms) : Stmt(id, span)
+{
+    public Expr Scrutinee { get; } = scrutinee;
+    public List<MatchArm> Arms { get; } = arms;
+}
+
 public sealed class ImportStmt(NodeID id, TextSpan span, ImportKind kind, NameRef module) : Stmt(id, span)
 {
     public ImportKind Kind { get; } = kind;
