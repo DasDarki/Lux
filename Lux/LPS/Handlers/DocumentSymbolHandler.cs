@@ -62,6 +62,68 @@ public sealed class DocumentSymbolHandler(LuxWorkspace workspace) : DocumentSymb
                         });
                     }
                     break;
+                case ClassDecl cd:
+                {
+                    var children = new List<DocumentSymbol>();
+                    if (cd.Constructor != null)
+                    {
+                        children.Add(new DocumentSymbol
+                        {
+                            Name = "constructor",
+                            Kind = LspSymbolKind.Constructor,
+                            Range = LuxWorkspace.SpanToRange(cd.Constructor.Span),
+                            SelectionRange = LuxWorkspace.SpanToRange(cd.Constructor.Span)
+                        });
+                    }
+                    foreach (var method in cd.Methods)
+                    {
+                        children.Add(new DocumentSymbol
+                        {
+                            Name = method.Name.Name,
+                            Kind = LspSymbolKind.Method,
+                            Range = LuxWorkspace.SpanToRange(method.Span),
+                            SelectionRange = LuxWorkspace.SpanToRange(method.Name.Span)
+                        });
+                    }
+                    foreach (var field in cd.Fields)
+                    {
+                        children.Add(new DocumentSymbol
+                        {
+                            Name = field.Name.Name,
+                            Kind = LspSymbolKind.Field,
+                            Range = LuxWorkspace.SpanToRange(field.Span),
+                            SelectionRange = LuxWorkspace.SpanToRange(field.Name.Span)
+                        });
+                    }
+                    foreach (var accessor in cd.Accessors)
+                    {
+                        children.Add(new DocumentSymbol
+                        {
+                            Name = (accessor.Kind == AccessorKind.Getter ? "get " : "set ") + accessor.Name.Name,
+                            Kind = LspSymbolKind.Property,
+                            Range = LuxWorkspace.SpanToRange(accessor.Span),
+                            SelectionRange = LuxWorkspace.SpanToRange(accessor.Name.Span)
+                        });
+                    }
+                    symbols.Add(new DocumentSymbol
+                    {
+                        Name = cd.Name.Name,
+                        Kind = LspSymbolKind.Class,
+                        Range = LuxWorkspace.SpanToRange(cd.Span),
+                        SelectionRange = LuxWorkspace.SpanToRange(cd.Name.Span),
+                        Children = new Container<DocumentSymbol>(children)
+                    });
+                    break;
+                }
+                case InterfaceDecl id:
+                    symbols.Add(new DocumentSymbol
+                    {
+                        Name = id.Name.Name,
+                        Kind = LspSymbolKind.Interface,
+                        Range = LuxWorkspace.SpanToRange(id.Span),
+                        SelectionRange = LuxWorkspace.SpanToRange(id.Name.Span)
+                    });
+                    break;
                 case ExportStmt exp:
                     CollectSymbols([exp.Declaration], symbols);
                     break;

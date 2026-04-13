@@ -66,6 +66,8 @@ public sealed class ManglePase() : Pass(PassName, PassScope.PerFile, true)
         {
             SymbolKind.Variable => "v",
             SymbolKind.Function => "f",
+            SymbolKind.Class => "cls",
+            SymbolKind.Interface => "ifc",
             _ => "unk"
         };
     }
@@ -143,6 +145,10 @@ public sealed class ManglePase() : Pass(PassName, PassScope.PerFile, true)
                     return "unk";
                 }
                 return "u" + string.Join("", unionType.Types.Select(t => GetTypeName(pc, t)));
+            case TypeKind.Class:
+                return "cls";
+            case TypeKind.Interface:
+                return "ifc";
             default:
                 return "unk";
         }

@@ -177,9 +177,31 @@ public sealed class DetectUnusedPass() : Pass(PassName, PassScope.PerBuild)
                         sym.Flags |= SymbolFlags.Unused;
                     }
                 }
-                
+
                 break;
             }
+            case ClassDecl classDecl:
+                if (classDecl.Constructor != null)
+                {
+                    foreach (var p in classDecl.Constructor.Parameters)
+                        if (pkg.Syms.GetByID(p.Name.Sym, out var ps)) ps.Flags |= SymbolFlags.Unused;
+                    MarkStmtListUnused(pc, pkg, classDecl.Constructor.Body);
+                }
+                foreach (var method in classDecl.Methods)
+                {
+                    foreach (var p in method.Parameters)
+                        if (pkg.Syms.GetByID(p.Name.Sym, out var ps)) ps.Flags |= SymbolFlags.Unused;
+                    MarkStmtListUnused(pc, pkg, method.Body);
+                }
+                foreach (var accessor in classDecl.Accessors)
+                {
+                    foreach (var p in accessor.Parameters)
+                        if (pkg.Syms.GetByID(p.Name.Sym, out var ps)) ps.Flags |= SymbolFlags.Unused;
+                    MarkStmtListUnused(pc, pkg, accessor.Body);
+                }
+                break;
+            case InterfaceDecl:
+                break;
         }
     }
 
@@ -348,6 +370,29 @@ public sealed class DetectUnusedPass() : Pass(PassName, PassScope.PerBuild)
 
                 break;
             }
+            case ClassDecl classDecl:
+                if (classDecl.Constructor != null)
+                {
+                    TrackStmtListUsage(pc, pkg, classDecl.Constructor.Body);
+                    if (classDecl.Constructor.ReturnStmt != null) TrackStmtUsage(pc, pkg, classDecl.Constructor.ReturnStmt);
+                }
+                foreach (var method in classDecl.Methods)
+                {
+                    TrackStmtListUsage(pc, pkg, method.Body);
+                    if (method.ReturnStmt != null) TrackStmtUsage(pc, pkg, method.ReturnStmt);
+                }
+                foreach (var accessor in classDecl.Accessors)
+                {
+                    TrackStmtListUsage(pc, pkg, accessor.Body);
+                    if (accessor.ReturnStmt != null) TrackStmtUsage(pc, pkg, accessor.ReturnStmt);
+                }
+                foreach (var field in classDecl.Fields)
+                {
+                    if (field.DefaultValue != null) TrackExprUsage(pc, pkg, field.DefaultValue);
+                }
+                break;
+            case InterfaceDecl:
+                break;
         }
     }
 
@@ -452,6 +497,14 @@ public sealed class DetectUnusedPass() : Pass(PassName, PassScope.PerBuild)
                 break;
             case AwaitExpr awaitExpr:
                 TrackExprUsage(pc, pkg, awaitExpr.Expression);
+                break;
+            case NewExpr newExpr:
+                if (pkg.Syms.GetByID(newExpr.ClassName.Sym, out var newSym))
+                    newSym.Flags &= ~SymbolFlags.Unused;
+                foreach (var arg in newExpr.Arguments) TrackExprUsage(pc, pkg, arg);
+                break;
+            case SuperCallExpr superCallExpr:
+                foreach (var arg in superCallExpr.Arguments) TrackExprUsage(pc, pkg, arg);
                 break;
             case MatchExpr matchExpr:
                 TrackExprUsage(pc, pkg, matchExpr.Scrutinee);

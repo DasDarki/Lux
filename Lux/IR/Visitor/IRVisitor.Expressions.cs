@@ -372,6 +372,19 @@ internal partial class IRVisitor
         return new AwaitExpr(NewNodeID, SpanFromCtx(context), inner);
     }
 
+    public override Node VisitNewExpr(LuxParser.NewExprContext context)
+    {
+        var className = NameRefFromTerm(context.NAME());
+        var args = context.exprList()?.expr().Select(e => (Expr)Visit(e)).ToList() ?? [];
+        return new NewExpr(NewNodeID, SpanFromCtx(context), className, args);
+    }
+
+    public override Node VisitSuperCallExpr(LuxParser.SuperCallExprContext context)
+    {
+        var args = context.exprList()?.expr().Select(e => (Expr)Visit(e)).ToList() ?? [];
+        return new SuperCallExpr(NewNodeID, SpanFromCtx(context), args);
+    }
+
     #endregion
 
     #region Tables

@@ -426,6 +426,77 @@ public sealed class BindDeclarePass() : Pass(PassName, PassScope.PerFile)
                 }
                 return true;
             }
+            case ClassDecl classDecl:
+            {
+                DeclareSymbol(ctx, scope, classDecl.Name.Name, SymbolKind.Class, classDecl.ID);
+                var classScope = pkg.Scopes.NewScope(scope);
+                pkg.Scopes.BindNode(classDecl.ID, classScope);
+
+                if (classDecl.Constructor != null)
+                {
+                    var ctorScope = pkg.Scopes.NewScope(classScope);
+                    DeclareSymbol(ctx, ctorScope, "self", SymbolKind.Variable, classDecl.ID);
+                    foreach (var param in classDecl.Constructor.Parameters)
+                    {
+                        pkg.Scopes.BindNode(param.ID, ctorScope);
+                        DeclareSymbol(ctx, ctorScope, param.Name.Name, SymbolKind.Variable, param.ID);
+                        if (param.DefaultValue != null && !BindExprScopes(ctx, param.DefaultValue, ctorScope))
+                            return false;
+                    }
+                    if (!BindStmtListScopes(ctx, classDecl.Constructor.Body, ctorScope))
+                        return false;
+                    if (classDecl.Constructor.ReturnStmt != null && !BindStmtScopes(ctx, classDecl.Constructor.ReturnStmt, ctorScope))
+                        return false;
+                }
+
+                foreach (var method in classDecl.Methods)
+                {
+                    if (method.IsLocal) continue;
+                    var methodScope = pkg.Scopes.NewScope(classScope);
+                    if (!method.IsStatic)
+                        DeclareSymbol(ctx, methodScope, "self", SymbolKind.Variable, classDecl.ID);
+                    foreach (var param in method.Parameters)
+                    {
+                        pkg.Scopes.BindNode(param.ID, methodScope);
+                        DeclareSymbol(ctx, methodScope, param.Name.Name, SymbolKind.Variable, param.ID);
+                        if (param.DefaultValue != null && !BindExprScopes(ctx, param.DefaultValue, methodScope))
+                            return false;
+                    }
+                    if (!BindStmtListScopes(ctx, method.Body, methodScope))
+                        return false;
+                    if (method.ReturnStmt != null && !BindStmtScopes(ctx, method.ReturnStmt, methodScope))
+                        return false;
+                }
+
+                foreach (var accessor in classDecl.Accessors)
+                {
+                    var accScope = pkg.Scopes.NewScope(classScope);
+                    DeclareSymbol(ctx, accScope, "self", SymbolKind.Variable, classDecl.ID);
+                    foreach (var param in accessor.Parameters)
+                    {
+                        pkg.Scopes.BindNode(param.ID, accScope);
+                        DeclareSymbol(ctx, accScope, param.Name.Name, SymbolKind.Variable, param.ID);
+                    }
+                    if (!BindStmtListScopes(ctx, accessor.Body, accScope))
+                        return false;
+                    if (accessor.ReturnStmt != null && !BindStmtScopes(ctx, accessor.ReturnStmt, accScope))
+                        return false;
+                }
+
+                foreach (var field in classDecl.Fields)
+                {
+                    if (field.DefaultValue != null && !BindExprScopes(ctx, field.DefaultValue, classScope))
+                        return false;
+                }
+
+                return true;
+            }
+            case InterfaceDecl interfaceDecl:
+            {
+                DeclareSymbol(ctx, scope, interfaceDecl.Name.Name, SymbolKind.Interface, interfaceDecl.ID);
+                pkg.Scopes.BindNode(interfaceDecl.ID, scope);
+                return true;
+            }
 
             default:
                 throw new InvalidOperationException($"Unsupported declaration type: {decl.GetType().Name}");
@@ -585,6 +656,16 @@ public sealed class BindDeclarePass() : Pass(PassName, PassScope.PerFile)
 
             case AwaitExpr awaitExpr:
                 return BindExprScopes(ctx, awaitExpr.Expression, scope);
+
+            case NewExpr newExpr:
+                foreach (var arg in newExpr.Arguments)
+                    if (!BindExprScopes(ctx, arg, scope)) return false;
+                return true;
+
+            case SuperCallExpr superCall:
+                foreach (var arg in superCall.Arguments)
+                    if (!BindExprScopes(ctx, arg, scope)) return false;
+                return true;
 
             default:
                 throw new InvalidOperationException($"Unsupported expression type: {expr.GetType().Name}");

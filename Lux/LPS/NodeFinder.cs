@@ -278,6 +278,29 @@ public static class NodeFinder
                     SearchStmtList(arm.Body, line, col, ref best);
                 }
                 break;
+            case ClassDecl cd:
+                if (cd.Constructor != null)
+                {
+                    SearchStmtList(cd.Constructor.Body, line, col, ref best);
+                    if (cd.Constructor.ReturnStmt != null) SearchStmt(cd.Constructor.ReturnStmt, line, col, ref best);
+                }
+                foreach (var method in cd.Methods)
+                {
+                    SearchStmtList(method.Body, line, col, ref best);
+                    if (method.ReturnStmt != null) SearchStmt(method.ReturnStmt, line, col, ref best);
+                }
+                foreach (var accessor in cd.Accessors)
+                {
+                    SearchStmtList(accessor.Body, line, col, ref best);
+                    if (accessor.ReturnStmt != null) SearchStmt(accessor.ReturnStmt, line, col, ref best);
+                }
+                foreach (var field in cd.Fields)
+                {
+                    if (field.DefaultValue != null) SearchExpr(field.DefaultValue, line, col, ref best);
+                }
+                break;
+            case InterfaceDecl:
+                break;
         }
     }
 
@@ -354,6 +377,12 @@ public static class NodeFinder
                 break;
             case AwaitExpr aw:
                 SearchExpr(aw.Expression, line, col, ref best);
+                break;
+            case NewExpr ne:
+                foreach (var arg in ne.Arguments) SearchExpr(arg, line, col, ref best);
+                break;
+            case SuperCallExpr sc:
+                foreach (var arg in sc.Arguments) SearchExpr(arg, line, col, ref best);
                 break;
         }
     }
@@ -473,6 +502,37 @@ public static class NodeFinder
             case LabelStmt ls:
                 CheckNameRef(ls.Name, line, col, ref best);
                 break;
+            case ClassDecl cd:
+                CheckNameRef(cd.Name, line, col, ref best);
+                if (cd.BaseClass != null) CheckNameRef(cd.BaseClass, line, col, ref best);
+                foreach (var iface in cd.Interfaces) CheckNameRef(iface, line, col, ref best);
+                if (cd.Constructor != null)
+                {
+                    foreach (var p in cd.Constructor.Parameters) CheckNameRef(p.Name, line, col, ref best);
+                    SearchStmtListForNameRef(cd.Constructor.Body, line, col, ref best);
+                    if (cd.Constructor.ReturnStmt != null) SearchStmtForNameRef(cd.Constructor.ReturnStmt, line, col, ref best);
+                }
+                foreach (var method in cd.Methods)
+                {
+                    foreach (var p in method.Parameters) CheckNameRef(p.Name, line, col, ref best);
+                    SearchStmtListForNameRef(method.Body, line, col, ref best);
+                    if (method.ReturnStmt != null) SearchStmtForNameRef(method.ReturnStmt, line, col, ref best);
+                }
+                foreach (var accessor in cd.Accessors)
+                {
+                    foreach (var p in accessor.Parameters) CheckNameRef(p.Name, line, col, ref best);
+                    SearchStmtListForNameRef(accessor.Body, line, col, ref best);
+                    if (accessor.ReturnStmt != null) SearchStmtForNameRef(accessor.ReturnStmt, line, col, ref best);
+                }
+                foreach (var field in cd.Fields)
+                {
+                    if (field.DefaultValue != null) SearchExprForNameRef(field.DefaultValue, line, col, ref best);
+                }
+                break;
+            case InterfaceDecl id:
+                CheckNameRef(id.Name, line, col, ref best);
+                foreach (var iface in id.BaseInterfaces) CheckNameRef(iface, line, col, ref best);
+                break;
         }
     }
 
@@ -542,6 +602,13 @@ public static class NodeFinder
                 break;
             case TypeCastExpr tcast:
                 SearchExprForNameRef(tcast.Inner, line, col, ref best);
+                break;
+            case NewExpr ne:
+                CheckNameRef(ne.ClassName, line, col, ref best);
+                foreach (var a in ne.Arguments) SearchExprForNameRef(a, line, col, ref best);
+                break;
+            case SuperCallExpr sc:
+                foreach (var a in sc.Arguments) SearchExprForNameRef(a, line, col, ref best);
                 break;
         }
     }
@@ -646,6 +713,37 @@ public static class NodeFinder
             case LabelStmt ls:
                 AddRef(ls.Name, refs);
                 break;
+            case ClassDecl cd:
+                AddRef(cd.Name, refs);
+                if (cd.BaseClass != null) AddRef(cd.BaseClass, refs);
+                foreach (var iface in cd.Interfaces) AddRef(iface, refs);
+                if (cd.Constructor != null)
+                {
+                    foreach (var p in cd.Constructor.Parameters) AddRef(p.Name, refs);
+                    CollectFromStmtList(cd.Constructor.Body, refs);
+                    if (cd.Constructor.ReturnStmt != null) CollectFromStmt(cd.Constructor.ReturnStmt, refs);
+                }
+                foreach (var method in cd.Methods)
+                {
+                    foreach (var p in method.Parameters) AddRef(p.Name, refs);
+                    CollectFromStmtList(method.Body, refs);
+                    if (method.ReturnStmt != null) CollectFromStmt(method.ReturnStmt, refs);
+                }
+                foreach (var accessor in cd.Accessors)
+                {
+                    foreach (var p in accessor.Parameters) AddRef(p.Name, refs);
+                    CollectFromStmtList(accessor.Body, refs);
+                    if (accessor.ReturnStmt != null) CollectFromStmt(accessor.ReturnStmt, refs);
+                }
+                foreach (var field in cd.Fields)
+                {
+                    if (field.DefaultValue != null) CollectFromExpr(field.DefaultValue, refs);
+                }
+                break;
+            case InterfaceDecl id:
+                AddRef(id.Name, refs);
+                foreach (var iface in id.BaseInterfaces) AddRef(iface, refs);
+                break;
         }
     }
 
@@ -713,6 +811,13 @@ public static class NodeFinder
                 break;
             case TypeCastExpr tcast:
                 CollectFromExpr(tcast.Inner, refs);
+                break;
+            case NewExpr ne:
+                AddRef(ne.ClassName, refs);
+                foreach (var a in ne.Arguments) CollectFromExpr(a, refs);
+                break;
+            case SuperCallExpr sc:
+                foreach (var a in sc.Arguments) CollectFromExpr(a, refs);
                 break;
         }
     }
@@ -788,6 +893,32 @@ public static class NodeFinder
             case ExportStmt exp:
                 RegisterStmt(exp.Declaration, reg);
                 break;
+            case ClassDecl cd:
+                if (cd.Constructor != null)
+                {
+                    foreach (var p in cd.Constructor.Parameters) reg[p.ID] = p;
+                    RegisterStmtList(cd.Constructor.Body, reg);
+                    if (cd.Constructor.ReturnStmt != null) RegisterStmt(cd.Constructor.ReturnStmt, reg);
+                }
+                foreach (var method in cd.Methods)
+                {
+                    foreach (var p in method.Parameters) reg[p.ID] = p;
+                    RegisterStmtList(method.Body, reg);
+                    if (method.ReturnStmt != null) RegisterStmt(method.ReturnStmt, reg);
+                }
+                foreach (var accessor in cd.Accessors)
+                {
+                    foreach (var p in accessor.Parameters) reg[p.ID] = p;
+                    RegisterStmtList(accessor.Body, reg);
+                    if (accessor.ReturnStmt != null) RegisterStmt(accessor.ReturnStmt, reg);
+                }
+                foreach (var field in cd.Fields)
+                {
+                    if (field.DefaultValue != null) RegisterExpr(field.DefaultValue, reg);
+                }
+                break;
+            case InterfaceDecl:
+                break;
         }
     }
 
@@ -838,6 +969,12 @@ public static class NodeFinder
                 break;
             case TypeCastExpr tcast:
                 RegisterExpr(tcast.Inner, reg);
+                break;
+            case NewExpr ne:
+                foreach (var a in ne.Arguments) RegisterExpr(a, reg);
+                break;
+            case SuperCallExpr sc:
+                foreach (var a in sc.Arguments) RegisterExpr(a, reg);
                 break;
         }
     }

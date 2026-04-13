@@ -80,6 +80,9 @@ stmt
     | exportStat                                                # ExportStat_
     | declareStat                                               # DeclareStat_
     | matchStat                                                 # MatchStat_
+    | classDecl                                                 # ClassDeclStat
+    | interfaceDecl                                             # InterfaceDeclStat
+    | SUPER LPAREN exprList? RPAREN                             # SuperCallStat
     ;
 
 // ─── Block Statements ───
@@ -218,11 +221,41 @@ enumMember
     : NAME (ASSIGN expr)?
     ;
 
+// ─────────────────────────────────────────────────────────────────────────────
+//  Classes & Interfaces
+// ─────────────────────────────────────────────────────────────────────────────
+
+classDecl
+    : CLASS NAME (EXTENDS NAME)? (IMPLEMENTS NAME (COMMA NAME)*)?
+      classMember*
+      END
+    ;
+
+classMember
+    : LOCAL? STATIC? NAME typeAnnotation? (ASSIGN expr)?           # ClassFieldMember
+    | LOCAL? STATIC? ASYNC? FUNCTION NAME funcBody                 # ClassMethodMember
+    | CONSTRUCTOR funcBody                                         # ClassConstructorMember
+    | NAME NAME funcBody                                           # ClassAccessorMember
+    ;
+
+interfaceDecl
+    : INTERFACE NAME (EXTENDS NAME (COMMA NAME)*)?
+      interfaceMember*
+      END
+    ;
+
+interfaceMember
+    : NAME typeAnnotation                                          # InterfaceFieldMember
+    | ASYNC? FUNCTION NAME funcSignature                           # InterfaceMethodMember
+    ;
+
 exportStat
     : EXPORT functionDecl                                        # ExportFunction
     | EXPORT localFunctionDecl                                   # ExportLocalFunction
     | EXPORT localDecl                                           # ExportLocal
     | EXPORT enumDecl                                            # ExportEnum
+    | EXPORT classDecl                                           # ExportClass
+    | EXPORT interfaceDecl                                       # ExportInterface
     ;
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -508,6 +541,8 @@ expr
     | prefixExp                                                 # PrefixExpr
     | tableConstructor                                          # TableConstructorExpr
     | matchExpr                                                 # MatchExprExpr
+    | NEW NAME LPAREN exprList? RPAREN                          # NewExpr
+    | SUPER LPAREN exprList? RPAREN                             # SuperCallExpr
 
     // ─── Power (tightest, right-associative) ───
 
@@ -727,8 +762,16 @@ META     : 'meta';
 MODULE   : 'module';
 MUT      : 'mut';
 WHEN     : 'when';
-ASYNC    : 'async';
-AWAIT    : 'await';
+ASYNC       : 'async';
+AWAIT       : 'await';
+CLASS       : 'class';
+INTERFACE   : 'interface';
+EXTENDS     : 'extends';
+IMPLEMENTS  : 'implements';
+CONSTRUCTOR : 'constructor';
+STATIC      : 'static';
+NEW         : 'new';
+SUPER       : 'super';
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  Operators & Punctuation

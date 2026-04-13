@@ -24,7 +24,9 @@ public enum TypeKind
     Union,
     Struct,
     Function,
-    Enum
+    Enum,
+    Class,
+    Interface
 }
 
 /// <summary>
@@ -301,6 +303,44 @@ public sealed class EnumType(string name, IEnumerable<EnumType.Member> members, 
     }
 }
 
+public sealed class ClassType(
+    string name,
+    ClassType? baseClass,
+    List<InterfaceType> interfaces
+) : Type(TypeKind.Class)
+{
+    public string Name { get; } = name;
+    public ClassType? BaseClass { get; set; } = baseClass;
+    public List<InterfaceType> Interfaces { get; } = interfaces;
+    public Dictionary<string, StructType.Field> InstanceFields { get; } = new();
+    public Dictionary<string, FunctionType> Methods { get; } = new();
+    public Dictionary<string, FunctionType> StaticMethods { get; } = new();
+    public Dictionary<string, FunctionType> Getters { get; } = new();
+    public Dictionary<string, FunctionType> Setters { get; } = new();
+    public FunctionType? ConstructorType { get; set; }
+
+    protected override TypeKey GenerateNewKey()
+    {
+        return $"class<{Name}>";
+    }
+}
+
+public sealed class InterfaceType(
+    string name,
+    List<InterfaceType> baseInterfaces
+) : Type(TypeKind.Interface)
+{
+    public string Name { get; } = name;
+    public List<InterfaceType> BaseInterfaces { get; } = baseInterfaces;
+    public Dictionary<string, StructType.Field> Fields { get; } = new();
+    public Dictionary<string, FunctionType> Methods { get; } = new();
+
+    protected override TypeKey GenerateNewKey()
+    {
+        return $"interface<{Name}>";
+    }
+}
+
 /// <summary>
 /// Represents a type table that maps type keys to their corresponding types. This is used to keep track of the types in
 /// the IR, and to ensure that the types are unique and do not conflict with each other.
@@ -518,6 +558,18 @@ public sealed class TypeTable
     {
         var enumType = new EnumType(name, members, baseType);
         return (EnumType)DeclareType(enumType);
+    }
+
+    public ClassType ClassOf(string name, ClassType? baseClass = null, List<InterfaceType>? interfaces = null)
+    {
+        var classType = new ClassType(name, baseClass, interfaces ?? []);
+        return (ClassType)DeclareType(classType);
+    }
+
+    public InterfaceType InterfaceOf(string name, List<InterfaceType>? baseInterfaces = null)
+    {
+        var interfaceType = new InterfaceType(name, baseInterfaces ?? []);
+        return (InterfaceType)DeclareType(interfaceType);
     }
 }
 

@@ -367,6 +367,40 @@ public sealed class LuaGenerator(Config config)
 
     #endregion
 
+    #region Class Proxy Helper
+
+    public string GetClassProxyHelper()
+    {
+        return RequireHelper("class_proxy", name =>
+            $"local function {name}(cls, parent) " +
+            $"return {{ " +
+            $"__index = function(t, k) " +
+            $"local g = cls[\"__get_\" .. k] " +
+            $"if g then return g(t) end " +
+            $"local v = cls[k] " +
+            $"if v ~= nil then return v end " +
+            $"if parent then " +
+            $"g = parent[\"__get_\" .. k] " +
+            $"if g then return g(t) end " +
+            $"return parent[k] " +
+            $"end " +
+            $"end, " +
+            $"__newindex = function(t, k, v) " +
+            $"local s = cls[\"__set_\" .. k] " +
+            $"if s then s(t, v) return end " +
+            $"if cls[\"__get_\" .. k] then error(\"Cannot set readonly property '\" .. k .. \"'\") end " +
+            $"if parent then " +
+            $"s = parent[\"__set_\" .. k] " +
+            $"if s then s(t, v) return end " +
+            $"if parent[\"__get_\" .. k] then error(\"Cannot set readonly property '\" .. k .. \"'\") end " +
+            $"end " +
+            $"rawset(t, k, v) " +
+            $"end " +
+            $"}} end");
+    }
+
+    #endregion
+
     #region Floor Div Helper
 
     public string GetFloorDivHelper()

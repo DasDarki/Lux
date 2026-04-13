@@ -186,4 +186,68 @@ public enum DiagnosticCode
     ErrSymbolNotFound = 0x3003,
 
     #endregion
+
+    #region Class
+
+    [Level(DiagnosticLevel.Error)]
+    [Category(DiagnosticCategory.Type)]
+    [Format("Class '{0}' does not implement interface member '{1}' from '{2}'")]
+    ErrMissingInterfaceMember = 0x4001,
+
+    [Level(DiagnosticLevel.Error)]
+    [Category(DiagnosticCategory.Semantic)]
+    [Format("'super()' can only be used inside a constructor of a class that extends another class")]
+    ErrSuperOutsideConstructor = 0x4002,
+
+    [Level(DiagnosticLevel.Error)]
+    [Category(DiagnosticCategory.Semantic)]
+    [Format("'new' can only be used with class types, but '{0}' is not a class")]
+    ErrNewNonClass = 0x4003,
+
+    [Level(DiagnosticLevel.Error)]
+    [Category(DiagnosticCategory.Semantic)]
+    [Format("Class '{0}' does not have a constructor")]
+    ErrNoConstructor = 0x4004,
+
+    [Level(DiagnosticLevel.Error)]
+    [Category(DiagnosticCategory.Semantic)]
+    [Format("Cannot extend '{0}': it is not a class")]
+    ErrExtendsNonClass = 0x4005,
+
+    [Level(DiagnosticLevel.Error)]
+    [Category(DiagnosticCategory.Semantic)]
+    [Format("Cannot implement '{0}': it is not an interface")]
+    ErrImplementsNonInterface = 0x4006,
+
+    [Level(DiagnosticLevel.Error)]
+    [Category(DiagnosticCategory.Semantic)]
+    [Format("Accessor must be 'get' or 'set', found '{0}'")]
+    ErrInvalidAccessor = 0x4007,
+
+    [Level(DiagnosticLevel.Error)]
+    [Category(DiagnosticCategory.Semantic)]
+    [Format("Property '{0}' is read-only")]
+    ErrWriteToReadonly = 0x4008,
+
+    [Level(DiagnosticLevel.Error)]
+    [Category(DiagnosticCategory.Semantic)]
+    [Format("Duplicate class member '{0}'")]
+    ErrDuplicateClassMember = 0x4009,
+
+    [Level(DiagnosticLevel.Error)]
+    [Category(DiagnosticCategory.Type)]
+    [Format("Constructor parameter count mismatch for class '{0}': expected {1}, but got {2}")]
+    ErrConstructorParamMismatch = 0x400A,
+
+    [Level(DiagnosticLevel.Error)]
+    [Category(DiagnosticCategory.Semantic)]
+    [Format("'super()' must be the first statement in a derived class constructor")]
+    ErrSuperNotFirst = 0x400B,
+
+    [Level(DiagnosticLevel.Error)]
+    [Category(DiagnosticCategory.Semantic)]
+    [Format("Derived class '{0}' constructor must call 'super()'")]
+    ErrMissingSuperCall = 0x400C,
+
+    #endregion
 }

@@ -287,6 +287,68 @@ public sealed class ResolveNamesPass() : Pass(PassName, PassScope.PerFile)
                 }
                 break;
             }
+            case ClassDecl classDecl:
+            {
+                pkg.Scopes.EnclosingScope(classDecl.ID, out var scope);
+                ResolveNameRef(pc, classDecl.Name, scope, pkg);
+                if (classDecl.BaseClass != null)
+                    ResolveNameRef(pc, classDecl.BaseClass, scope, pkg);
+                foreach (var iface in classDecl.Interfaces)
+                    ResolveNameRef(pc, iface, scope, pkg);
+
+                if (classDecl.Constructor != null)
+                {
+                    foreach (var p in classDecl.Constructor.Parameters)
+                    {
+                        pkg.Scopes.EnclosingScope(p.ID, out var pScope);
+                        ResolveNameRef(pc, p.Name, pScope, pkg);
+                        if (p.DefaultValue != null) ResolveExprNames(pc, p.DefaultValue, pkg);
+                    }
+                    ResolveStmtListNames(pc, classDecl.Constructor.Body, pkg);
+                    if (classDecl.Constructor.ReturnStmt != null)
+                        ResolveStmtNames(pc, classDecl.Constructor.ReturnStmt, pkg);
+                }
+
+                foreach (var method in classDecl.Methods)
+                {
+                    if (method.IsLocal) continue;
+                    foreach (var p in method.Parameters)
+                    {
+                        pkg.Scopes.EnclosingScope(p.ID, out var pScope);
+                        ResolveNameRef(pc, p.Name, pScope, pkg);
+                        if (p.DefaultValue != null) ResolveExprNames(pc, p.DefaultValue, pkg);
+                    }
+                    ResolveStmtListNames(pc, method.Body, pkg);
+                    if (method.ReturnStmt != null)
+                        ResolveStmtNames(pc, method.ReturnStmt, pkg);
+                }
+
+                foreach (var accessor in classDecl.Accessors)
+                {
+                    foreach (var p in accessor.Parameters)
+                    {
+                        pkg.Scopes.EnclosingScope(p.ID, out var pScope);
+                        ResolveNameRef(pc, p.Name, pScope, pkg);
+                    }
+                    ResolveStmtListNames(pc, accessor.Body, pkg);
+                    if (accessor.ReturnStmt != null)
+                        ResolveStmtNames(pc, accessor.ReturnStmt, pkg);
+                }
+
+                foreach (var field in classDecl.Fields)
+                {
+                    if (field.DefaultValue != null) ResolveExprNames(pc, field.DefaultValue, pkg);
+                }
+                break;
+            }
+            case InterfaceDecl interfaceDecl:
+            {
+                pkg.Scopes.EnclosingScope(interfaceDecl.ID, out var scope);
+                ResolveNameRef(pc, interfaceDecl.Name, scope, pkg);
+                foreach (var iface in interfaceDecl.BaseInterfaces)
+                    ResolveNameRef(pc, iface, scope, pkg);
+                break;
+            }
         }
     }
 
@@ -399,6 +461,20 @@ public sealed class ResolveNamesPass() : Pass(PassName, PassScope.PerFile)
             case AwaitExpr awaitExpr:
                 ResolveExprNames(pc, awaitExpr.Expression, pkg);
                 break;
+            case NewExpr newExpr:
+            {
+                pkg.Scopes.EnclosingScope(newExpr.ID, out var scope);
+                ResolveNameRef(pc, newExpr.ClassName, scope, pkg);
+                foreach (var arg in newExpr.Arguments)
+                    ResolveExprNames(pc, arg, pkg);
+                break;
+            }
+            case SuperCallExpr superCallExpr:
+            {
+                foreach (var arg in superCallExpr.Arguments)
+                    ResolveExprNames(pc, arg, pkg);
+                break;
+            }
             case MatchExpr matchExpr:
                 ResolveExprNames(pc, matchExpr.Scrutinee, pkg);
                 foreach (var arm in matchExpr.Arms)

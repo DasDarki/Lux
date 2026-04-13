@@ -109,4 +109,117 @@ internal partial class IRVisitor
         }
         return new EnumDecl(NewNodeID, SpanFromCtx(context), name, members, isDeclare: true);
     }
+
+    public override Node VisitClassDecl(LuxParser.ClassDeclContext context)
+    {
+        var names = context.NAME();
+        var name = NameRefFromTerm(names[0]);
+
+        NameRef? baseClass = null;
+        var interfaces = new List<NameRef>();
+
+        var nameIdx = 1;
+        if (context.EXTENDS() != null)
+        {
+            baseClass = NameRefFromTerm(names[nameIdx]);
+            nameIdx++;
+        }
+
+        if (context.IMPLEMENTS() != null)
+        {
+            for (var i = nameIdx; i < names.Length; i++)
+                interfaces.Add(NameRefFromTerm(names[i]));
+        }
+
+        var fields = new List<ClassFieldNode>();
+        var methods = new List<ClassMethodNode>();
+        ClassConstructorNode? constructor = null;
+        var accessors = new List<ClassAccessorNode>();
+
+        foreach (var member in context.classMember())
+        {
+            switch (member)
+            {
+                case LuxParser.ClassFieldMemberContext field:
+                {
+                    var isLocal = field.LOCAL() != null;
+                    var isStatic = field.STATIC() != null;
+                    var fieldName = NameRefFromTerm(field.NAME());
+                    TypeRef? typeAnn = field.typeAnnotation() != null
+                        ? (TypeRef)Visit(field.typeAnnotation().typeExpr())
+                        : null;
+                    Expr? defaultValue = field.expr() != null ? (Expr)Visit(field.expr()) : null;
+                    fields.Add(new ClassFieldNode(fieldName, typeAnn, defaultValue, isLocal, isStatic, SpanFromCtx(field)));
+                    break;
+                }
+                case LuxParser.ClassMethodMemberContext method:
+                {
+                    var isLocal = method.LOCAL() != null;
+                    var isStatic = method.STATIC() != null;
+                    var isAsync = method.ASYNC() != null;
+                    var methodName = NameRefFromTerm(method.NAME());
+                    var (parameters, returnType, body, ret) = VisitFuncBodyContent(method.funcBody());
+                    methods.Add(new ClassMethodNode(methodName, parameters, returnType, body, ret, isLocal, isStatic, isAsync, SpanFromCtx(method)));
+                    break;
+                }
+                case LuxParser.ClassConstructorMemberContext ctor:
+                {
+                    var (parameters, _, body, ret) = VisitFuncBodyContent(ctor.funcBody());
+                    constructor = new ClassConstructorNode(parameters, body, ret, SpanFromCtx(ctor));
+                    break;
+                }
+                case LuxParser.ClassAccessorMemberContext accessor:
+                {
+                    var kindName = accessor.NAME(0).GetText();
+                    var propName = NameRefFromTerm(accessor.NAME(1));
+                    var kind = kindName == "get" ? AccessorKind.Getter : AccessorKind.Setter;
+                    var (parameters, returnType, body, ret) = VisitFuncBodyContent(accessor.funcBody());
+                    accessors.Add(new ClassAccessorNode(kind, propName, parameters, returnType, body, ret, SpanFromCtx(accessor)));
+                    break;
+                }
+            }
+        }
+
+        return new ClassDecl(NewNodeID, SpanFromCtx(context), name, baseClass, interfaces, fields, methods, constructor, accessors);
+    }
+
+    public override Node VisitInterfaceDecl(LuxParser.InterfaceDeclContext context)
+    {
+        var names = context.NAME();
+        var name = NameRefFromTerm(names[0]);
+
+        var baseInterfaces = new List<NameRef>();
+        if (context.EXTENDS() != null)
+        {
+            for (var i = 1; i < names.Length; i++)
+                baseInterfaces.Add(NameRefFromTerm(names[i]));
+        }
+
+        var fields = new List<InterfaceFieldNode>();
+        var methods = new List<InterfaceMethodNode>();
+
+        foreach (var member in context.interfaceMember())
+        {
+            switch (member)
+            {
+                case LuxParser.InterfaceFieldMemberContext field:
+                {
+                    var fieldName = NameRefFromTerm(field.NAME());
+                    var typeAnn = (TypeRef)Visit(field.typeAnnotation().typeExpr());
+                    fields.Add(new InterfaceFieldNode(fieldName, typeAnn, SpanFromCtx(field)));
+                    break;
+                }
+                case LuxParser.InterfaceMethodMemberContext method:
+                {
+                    var isAsync = method.ASYNC() != null;
+                    var methodName = NameRefFromTerm(method.NAME());
+                    var (parameters, returnType) = VisitFuncSignatureContent(method.funcSignature());
+                    methods.Add(new InterfaceMethodNode(methodName, parameters, returnType, isAsync, SpanFromCtx(method)));
+                    break;
+                }
+            }
+        }
+
+        return new InterfaceDecl(NewNodeID, SpanFromCtx(context), name, baseInterfaces, fields, methods);
+    }
 }

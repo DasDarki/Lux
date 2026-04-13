@@ -265,8 +265,170 @@ public sealed class InferTypesPass() : Pass(PassName, PassScope.PerFile)
                 break;
             case EnumDecl ed:
                 break;
+            case ClassDecl cd:
+                ResolveClassDecl(pc, cd);
+                break;
+            case InterfaceDecl id:
+                ResolveInterfaceDecl(pc, id);
+                break;
             default:
                 throw new InvalidOperationException($"Unknown declaration kind: {decl.GetType().Name}");
+        }
+    }
+
+    private void ResolveClassDecl(PassContext pc, ClassDecl cd)
+    {
+        if (cd.Name.Sym == SymID.Invalid) return;
+        if (!pc.Pkg!.Syms.GetByID(cd.Name.Sym, out var classSym)) return;
+        if (!pc.Types.GetByID(classSym.Type, out var rawType) || rawType is not ClassType classType) return;
+
+        if (cd.BaseClass != null && cd.BaseClass.Sym != SymID.Invalid)
+        {
+            var baseTyp = LookupSymbolType(pc, cd.BaseClass.Sym);
+            if (baseTyp != TypID.Invalid && pc.Types.GetByID(baseTyp, out var bt) && bt is ClassType baseCls)
+                classType.BaseClass = baseCls;
+            else if (baseTyp != TypID.Invalid)
+                pc.Diag.Report(cd.BaseClass.Span, Diagnostics.DiagnosticCode.ErrExtendsNonClass, cd.BaseClass.Name);
+        }
+
+        foreach (var iface in cd.Interfaces)
+        {
+            if (iface.Sym == SymID.Invalid) continue;
+            var ifaceTyp = LookupSymbolType(pc, iface.Sym);
+            if (ifaceTyp != TypID.Invalid && pc.Types.GetByID(ifaceTyp, out var it) && it is InterfaceType ifaceType)
+                classType.Interfaces.Add(ifaceType);
+            else if (ifaceTyp != TypID.Invalid)
+                pc.Diag.Report(iface.Span, Diagnostics.DiagnosticCode.ErrImplementsNonInterface, iface.Name);
+        }
+
+        foreach (var field in cd.Fields)
+        {
+            if (field.DefaultValue != null) SynthesizeExpr(pc, field.DefaultValue);
+            var fieldType = field.TypeAnnotation != null && field.TypeAnnotation.ResolvedType != TypID.Invalid
+                ? GetType(pc, field.TypeAnnotation.ResolvedType)
+                : (field.DefaultValue != null ? GetType(pc, field.DefaultValue.Type) : pc.Types.PrimAny);
+            if (!field.IsLocal)
+                classType.InstanceFields[field.Name.Name] = new StructType.Field(field.Name, fieldType);
+        }
+
+        if (cd.Constructor != null)
+        {
+            var ctorParams = new List<Tuple<string, Type>>();
+            foreach (var p in cd.Constructor.Parameters)
+            {
+                var t = ResolveParamType(pc, p);
+                if (p.Name.Sym != SymID.Invalid) pc.Pkg!.Syms.SetType(p.Name.Sym, t.ID);
+                ctorParams.Add(new Tuple<string, Type>(p.Name.Name, t));
+            }
+            classType.ConstructorType = (FunctionType)GetType(pc, pc.Types.FuncOf(ctorParams, classType));
+
+            ResolveStmts(pc, cd.Constructor.Body);
+            if (cd.Constructor.ReturnStmt != null) ResolveStmt(pc, cd.Constructor.ReturnStmt);
+        }
+
+        foreach (var method in cd.Methods)
+        {
+            if (method.IsLocal) continue;
+            if (method.IsAsync) _asyncDepth++;
+            var methodParams = new List<Tuple<string, Type>>();
+            var isVararg = false;
+            Type? varargType = null;
+            var defaultIndices = new List<int>();
+            for (var i = 0; i < method.Parameters.Count; i++)
+            {
+                var p = method.Parameters[i];
+                var t = ResolveParamType(pc, p);
+                if (p.IsVararg) { isVararg = true; varargType = t.Kind == TypeKind.PrimitiveAny ? null : t; }
+                else { methodParams.Add(new Tuple<string, Type>(p.Name.Name, t)); }
+                if (p.Name.Sym != SymID.Invalid) pc.Pkg!.Syms.SetType(p.Name.Sym, t.ID);
+                if (p.DefaultValue != null) { SynthesizeExpr(pc, p.DefaultValue); defaultIndices.Add(i); }
+            }
+            var retType = method.ReturnType != null && method.ReturnType.ResolvedType != TypID.Invalid
+                ? GetType(pc, method.ReturnType.ResolvedType) : pc.Types.PrimNil;
+            var funcTypId = pc.Types.FuncOf(methodParams, retType, isVararg, varargType, defaultIndices.Count > 0 ? defaultIndices : null, method.IsAsync);
+            if (method.IsStatic)
+                classType.StaticMethods[method.Name.Name] = (FunctionType)GetType(pc, funcTypId);
+            else
+                classType.Methods[method.Name.Name] = (FunctionType)GetType(pc, funcTypId);
+
+            ResolveStmts(pc, method.Body);
+            if (method.ReturnStmt != null) ResolveStmt(pc, method.ReturnStmt);
+            if (method.IsAsync) _asyncDepth--;
+        }
+
+        foreach (var accessor in cd.Accessors)
+        {
+            var accParams = new List<Tuple<string, Type>>();
+            foreach (var p in accessor.Parameters)
+            {
+                var t = ResolveParamType(pc, p);
+                if (p.Name.Sym != SymID.Invalid) pc.Pkg!.Syms.SetType(p.Name.Sym, t.ID);
+                accParams.Add(new Tuple<string, Type>(p.Name.Name, t));
+            }
+            var accRetType = accessor.ReturnType != null && accessor.ReturnType.ResolvedType != TypID.Invalid
+                ? GetType(pc, accessor.ReturnType.ResolvedType) : pc.Types.PrimNil;
+            var accFuncTyp = (FunctionType)GetType(pc, pc.Types.FuncOf(accParams, accRetType));
+            if (accessor.Kind == AccessorKind.Getter)
+                classType.Getters[accessor.Name.Name] = accFuncTyp;
+            else
+                classType.Setters[accessor.Name.Name] = accFuncTyp;
+
+            ResolveStmts(pc, accessor.Body);
+            if (accessor.ReturnStmt != null) ResolveStmt(pc, accessor.ReturnStmt);
+        }
+
+        CheckInterfaceImplementation(pc, cd, classType);
+    }
+
+    private void CheckInterfaceImplementation(PassContext pc, ClassDecl cd, ClassType classType)
+    {
+        foreach (var ifaceType in classType.Interfaces)
+        {
+            foreach (var (name, _) in ifaceType.Methods)
+            {
+                if (!classType.Methods.ContainsKey(name))
+                    pc.Diag.Report(cd.Span, Diagnostics.DiagnosticCode.ErrMissingInterfaceMember, cd.Name.Name, name, ifaceType.Name);
+            }
+            foreach (var (name, _) in ifaceType.Fields)
+            {
+                if (!classType.InstanceFields.ContainsKey(name))
+                    pc.Diag.Report(cd.Span, Diagnostics.DiagnosticCode.ErrMissingInterfaceMember, cd.Name.Name, name, ifaceType.Name);
+            }
+        }
+    }
+
+    private void ResolveInterfaceDecl(PassContext pc, InterfaceDecl id)
+    {
+        if (id.Name.Sym == SymID.Invalid) return;
+        if (!pc.Pkg!.Syms.GetByID(id.Name.Sym, out var ifaceSym)) return;
+        if (!pc.Types.GetByID(ifaceSym.Type, out var rawType) || rawType is not InterfaceType ifaceType) return;
+
+        foreach (var baseIface in id.BaseInterfaces)
+        {
+            if (baseIface.Sym == SymID.Invalid) continue;
+            var bt = LookupSymbolType(pc, baseIface.Sym);
+            if (bt != TypID.Invalid && pc.Types.GetByID(bt, out var bit) && bit is InterfaceType baseIfaceType)
+                ifaceType.BaseInterfaces.Add(baseIfaceType);
+        }
+
+        foreach (var field in id.Fields)
+        {
+            var fType = field.TypeAnnotation.ResolvedType != TypID.Invalid
+                ? GetType(pc, field.TypeAnnotation.ResolvedType) : pc.Types.PrimAny;
+            ifaceType.Fields[field.Name.Name] = new StructType.Field(field.Name, fType);
+        }
+
+        foreach (var method in id.Methods)
+        {
+            var methodParams = new List<Tuple<string, Type>>();
+            foreach (var p in method.Parameters)
+            {
+                var t = ResolveParamType(pc, p);
+                methodParams.Add(new Tuple<string, Type>(p.Name.Name, t));
+            }
+            var retType = method.ReturnType != null && method.ReturnType.ResolvedType != TypID.Invalid
+                ? GetType(pc, method.ReturnType.ResolvedType) : pc.Types.PrimNil;
+            ifaceType.Methods[method.Name.Name] = (FunctionType)GetType(pc, pc.Types.FuncOf(methodParams, retType, isAsync: method.IsAsync));
         }
     }
 
@@ -573,6 +735,13 @@ public sealed class InferTypesPass() : Pass(PassName, PassScope.PerFile)
             case AwaitExpr awaitExpr:
                 result = InferAwaitExpr(pc, awaitExpr);
                 break;
+            case NewExpr newExpr:
+                result = InferNewExpr(pc, newExpr);
+                break;
+            case SuperCallExpr superCall:
+                foreach (var arg in superCall.Arguments) SynthesizeExpr(pc, arg);
+                result = tt.PrimAny.ID;
+                break;
             default:
                 result = tt.PrimAny.ID;
                 break;
@@ -802,6 +971,33 @@ public sealed class InferTypesPass() : Pass(PassName, PassScope.PerFile)
         var calleeName = inner is FunctionCallExpr fc2 && fc2.Callee is NameExpr ne ? ne.Name.Name : "function";
         pc.Diag.Report(awaitExpr.Span, DiagnosticCode.ErrAwaitNonAsync, calleeName);
         return pc.Types.PrimAny.ID;
+    }
+
+    private TypID InferNewExpr(PassContext pc, NewExpr newExpr)
+    {
+        var classTypId = LookupSymbolType(pc, newExpr.ClassName.Sym);
+        foreach (var arg in newExpr.Arguments) SynthesizeExpr(pc, arg);
+
+        if (classTypId == TypID.Invalid || !pc.Types.GetByID(classTypId, out var rawType) || rawType is not ClassType classType)
+        {
+            if (classTypId != TypID.Invalid)
+                pc.Diag.Report(newExpr.Span, DiagnosticCode.ErrNewNonClass, newExpr.ClassName.Name);
+            return pc.Types.PrimAny.ID;
+        }
+
+        if (classType.ConstructorType != null)
+        {
+            var ctorType = classType.ConstructorType;
+            var argCount = newExpr.Arguments.Count;
+            var paramCount = ctorType.ParamTypes.Count;
+            if (argCount < ctorType.MinParamCount || argCount > paramCount)
+            {
+                pc.Diag.Report(newExpr.Span, DiagnosticCode.ErrConstructorParamMismatch,
+                    newExpr.ClassName.Name, paramCount.ToString(), argCount.ToString());
+            }
+        }
+
+        return classTypId;
     }
 
     private TypID InferFunctionDef(PassContext pc, FunctionDefExpr fde)

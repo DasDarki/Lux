@@ -145,3 +145,14 @@ public sealed class MatchExpr(NodeID id, TextSpan span, Expr scrutinee, List<Mat
     public Expr Scrutinee { get; } = scrutinee;
     public List<MatchExprArm> Arms { get; } = arms;
 }
+
+public sealed class NewExpr(NodeID id, TextSpan span, NameRef className, List<Expr> arguments) : Expr(id, span)
+{
+    public NameRef ClassName { get; } = className;
+    public List<Expr> Arguments { get; } = arguments;
+}
+
+public sealed class SuperCallExpr(NodeID id, TextSpan span, List<Expr> arguments) : Expr(id, span)
+{
+    public List<Expr> Arguments { get; } = arguments;
+}

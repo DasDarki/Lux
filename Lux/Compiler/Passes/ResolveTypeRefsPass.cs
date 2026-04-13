@@ -23,6 +23,7 @@ public class ResolveTypeRefsPass() : Pass(PassName, PassScope.PerBuild)
             foreach (var f in pkg.Files)
             {
                 DeclareEnumTypes(pkg, f.Hir.Body);
+                DeclareClassAndInterfaceTypes(pkg, f.Hir.Body);
                 ResolveStmtListTypes(pkg.Types, f.Hir.Body);
 
                 if (f.Hir.Return != null)
@@ -52,6 +53,46 @@ public class ResolveTypeRefsPass() : Pass(PassName, PassScope.PerBuild)
             if (enumDecl == null) continue;
             DeclareEnumType(pkg, enumDecl);
         }
+    }
+
+    private void DeclareClassAndInterfaceTypes(PackageContext pkg, List<Stmt> stmts)
+    {
+        foreach (var stmt in stmts)
+        {
+            switch (stmt)
+            {
+                case ClassDecl cd:
+                    DeclareClassType(pkg, cd);
+                    break;
+                case InterfaceDecl id:
+                    DeclareInterfaceType(pkg, id);
+                    break;
+                case ExportStmt es:
+                    if (es.Declaration is ClassDecl cd2) DeclareClassType(pkg, cd2);
+                    else if (es.Declaration is InterfaceDecl id2) DeclareInterfaceType(pkg, id2);
+                    break;
+            }
+        }
+    }
+
+    private void DeclareClassType(PackageContext pkg, ClassDecl decl)
+    {
+        if (decl.Name.Sym == SymID.Invalid) return;
+        if (!pkg.Syms.GetByID(decl.Name.Sym, out var sym)) return;
+        if (sym.Type != TypID.Invalid) return;
+
+        var classType = pkg.Types.ClassOf(decl.Name.Name);
+        pkg.Syms.SetType(decl.Name.Sym, classType.ID);
+    }
+
+    private void DeclareInterfaceType(PackageContext pkg, InterfaceDecl decl)
+    {
+        if (decl.Name.Sym == SymID.Invalid) return;
+        if (!pkg.Syms.GetByID(decl.Name.Sym, out var sym)) return;
+        if (sym.Type != TypID.Invalid) return;
+
+        var interfaceType = pkg.Types.InterfaceOf(decl.Name.Name);
+        pkg.Syms.SetType(decl.Name.Sym, interfaceType.ID);
     }
 
     private void DeclareEnumType(PackageContext pkg, EnumDecl decl)
@@ -293,6 +334,56 @@ public class ResolveTypeRefsPass() : Pass(PassName, PassScope.PerBuild)
                     }
                 }
                 break;
+            case ClassDecl classDecl:
+                foreach (var field in classDecl.Fields)
+                {
+                    if (field.TypeAnnotation != null) ResolveTypeRef(tt, field.TypeAnnotation);
+                    if (field.DefaultValue != null) ResolveExprTypes(tt, field.DefaultValue);
+                }
+                foreach (var method in classDecl.Methods)
+                {
+                    foreach (var p in method.Parameters)
+                    {
+                        if (p.TypeAnnotation != null) ResolveTypeRef(tt, p.TypeAnnotation);
+                    }
+                    if (method.ReturnType != null) ResolveTypeRef(tt, method.ReturnType);
+                    ResolveStmtListTypes(tt, method.Body);
+                    if (method.ReturnStmt != null) ResolveStmtTypes(tt, method.ReturnStmt);
+                }
+                if (classDecl.Constructor != null)
+                {
+                    foreach (var p in classDecl.Constructor.Parameters)
+                    {
+                        if (p.TypeAnnotation != null) ResolveTypeRef(tt, p.TypeAnnotation);
+                    }
+                    ResolveStmtListTypes(tt, classDecl.Constructor.Body);
+                    if (classDecl.Constructor.ReturnStmt != null) ResolveStmtTypes(tt, classDecl.Constructor.ReturnStmt);
+                }
+                foreach (var accessor in classDecl.Accessors)
+                {
+                    foreach (var p in accessor.Parameters)
+                    {
+                        if (p.TypeAnnotation != null) ResolveTypeRef(tt, p.TypeAnnotation);
+                    }
+                    if (accessor.ReturnType != null) ResolveTypeRef(tt, accessor.ReturnType);
+                    ResolveStmtListTypes(tt, accessor.Body);
+                    if (accessor.ReturnStmt != null) ResolveStmtTypes(tt, accessor.ReturnStmt);
+                }
+                break;
+            case InterfaceDecl interfaceDecl:
+                foreach (var field in interfaceDecl.Fields)
+                {
+                    ResolveTypeRef(tt, field.TypeAnnotation);
+                }
+                foreach (var method in interfaceDecl.Methods)
+                {
+                    foreach (var p in method.Parameters)
+                    {
+                        if (p.TypeAnnotation != null) ResolveTypeRef(tt, p.TypeAnnotation);
+                    }
+                    if (method.ReturnType != null) ResolveTypeRef(tt, method.ReturnType);
+                }
+                break;
             default:
                 throw new InvalidOperationException($"Unknown declaration kind: {decl.GetType().Name}");
         }
@@ -398,6 +489,12 @@ public class ResolveTypeRefsPass() : Pass(PassName, PassScope.PerBuild)
                 break;
             case AwaitExpr awaitExpr:
                 ResolveExprTypes(tt, awaitExpr.Expression);
+                break;
+            case NewExpr newExpr:
+                foreach (var arg in newExpr.Arguments) ResolveExprTypes(tt, arg);
+                break;
+            case SuperCallExpr superCallExpr:
+                foreach (var arg in superCallExpr.Arguments) ResolveExprTypes(tt, arg);
                 break;
             case MatchExpr matchExpr:
                 ResolveExprTypes(tt, matchExpr.Scrutinee);

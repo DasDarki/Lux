@@ -95,6 +95,29 @@ public sealed class CheckImmutabilityPass() : Pass(PassName, PassScope.PerFile)
                 }
 
                 break;
+            case ClassDecl cd:
+                if (cd.Constructor != null)
+                {
+                    CheckStmtList(ctx, pkg, cd.Constructor.Body);
+                    if (cd.Constructor.ReturnStmt != null) CheckStmt(ctx, pkg, cd.Constructor.ReturnStmt);
+                }
+                foreach (var method in cd.Methods)
+                {
+                    CheckStmtList(ctx, pkg, method.Body);
+                    if (method.ReturnStmt != null) CheckStmt(ctx, pkg, method.ReturnStmt);
+                }
+                foreach (var accessor in cd.Accessors)
+                {
+                    CheckStmtList(ctx, pkg, accessor.Body);
+                    if (accessor.ReturnStmt != null) CheckStmt(ctx, pkg, accessor.ReturnStmt);
+                }
+                foreach (var field in cd.Fields)
+                {
+                    if (field.DefaultValue != null) CheckExpr(ctx, pkg, field.DefaultValue);
+                }
+                break;
+            case InterfaceDecl:
+                break;
         }
     }
 
@@ -125,6 +148,12 @@ public sealed class CheckImmutabilityPass() : Pass(PassName, PassScope.PerFile)
                 break;
             case AwaitExpr aw:
                 CheckExpr(ctx, pkg, aw.Expression);
+                break;
+            case NewExpr ne:
+                foreach (var arg in ne.Arguments) CheckExpr(ctx, pkg, arg);
+                break;
+            case SuperCallExpr sc:
+                foreach (var arg in sc.Arguments) CheckExpr(ctx, pkg, arg);
                 break;
             case MatchExpr me:
                 CheckExpr(ctx, pkg, me.Scrutinee);

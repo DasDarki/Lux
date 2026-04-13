@@ -15,7 +15,8 @@ public sealed class CompletionHandler(LuxWorkspace workspace) : CompletionHandle
         "and", "break", "do", "else", "elseif", "end", "enum", "false", "for",
         "function", "goto", "if", "in", "local", "nil", "not", "or",
         "repeat", "return", "then", "true", "until", "while",
-        "as", "async", "await", "case", "declare", "export", "from", "import", "match", "meta", "module", "mut", "when"
+        "as", "async", "await", "case", "class", "constructor", "declare", "export", "extends", "from",
+        "implements", "import", "interface", "match", "meta", "module", "mut", "new", "static", "super", "when"
     ];
 
     public override Task<CompletionList> Handle(CompletionParams request, CancellationToken ct)
@@ -64,6 +65,8 @@ public sealed class CompletionHandler(LuxWorkspace workspace) : CompletionHandle
                 {
                     LuxSymbolKind.Function => CompletionItemKind.Function,
                     LuxSymbolKind.Enum => CompletionItemKind.Enum,
+                    LuxSymbolKind.Class => CompletionItemKind.Class,
+                    LuxSymbolKind.Interface => CompletionItemKind.Interface,
                     _ => CompletionItemKind.Variable
                 };
                 items.Add(new CompletionItem
@@ -204,6 +207,57 @@ public sealed class CompletionHandler(LuxWorkspace workspace) : CompletionHandle
                 });
             }
             return items;
+        }
+
+        if (finalType is ClassType classType)
+        {
+            var classItems = new List<CompletionItem>();
+            foreach (var (name, field) in classType.InstanceFields)
+            {
+                classItems.Add(new CompletionItem
+                {
+                    Label = name,
+                    Kind = CompletionItemKind.Field,
+                    Detail = workspace.FormatType(result.Types, field.Type.ID)
+                });
+            }
+            foreach (var (name, method) in classType.Methods)
+            {
+                classItems.Add(new CompletionItem
+                {
+                    Label = name,
+                    Kind = CompletionItemKind.Method,
+                    Detail = workspace.FormatType(result.Types, method.ID)
+                });
+            }
+            foreach (var (name, method) in classType.StaticMethods)
+            {
+                classItems.Add(new CompletionItem
+                {
+                    Label = name,
+                    Kind = CompletionItemKind.Method,
+                    Detail = workspace.FormatType(result.Types, method.ID)
+                });
+            }
+            foreach (var (name, getter) in classType.Getters)
+            {
+                classItems.Add(new CompletionItem
+                {
+                    Label = name,
+                    Kind = CompletionItemKind.Property,
+                    Detail = workspace.FormatType(result.Types, getter.ReturnType.ID)
+                });
+            }
+            if (classType.ConstructorType != null)
+            {
+                classItems.Add(new CompletionItem
+                {
+                    Label = "new",
+                    Kind = CompletionItemKind.Constructor,
+                    Detail = workspace.FormatType(result.Types, classType.ConstructorType.ID)
+                });
+            }
+            return classItems;
         }
 
         if (finalType is not StructType finalStruct) return new List<CompletionItem>();

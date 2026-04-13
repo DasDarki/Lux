@@ -82,6 +82,9 @@ public sealed class CodegenPass() : Pass(PassName, PassScope.PerBuild, true)
                 case EnumDecl ed:
                     names.Add(ResolveName(ctx, pkg, ed.Name));
                     break;
+                case ClassDecl cd:
+                    names.Add(ResolveName(ctx, pkg, cd.Name));
+                    break;
             }
         }
     }
@@ -239,6 +242,11 @@ public sealed class CodegenPass() : Pass(PassName, PassScope.PerBuild, true)
                 if (!ed.IsDeclare)
                     EmitEnumDecl(ctx, pkg, gen, ed);
                 break;
+            case ClassDecl cd:
+                EmitClassDecl(ctx, pkg, gen, cd);
+                break;
+            case InterfaceDecl:
+                break;
             case MatchStmt ms:
                 EmitMatchStmt(ctx, pkg, gen, ms);
                 break;
@@ -289,6 +297,320 @@ public sealed class CodegenPass() : Pass(PassName, PassScope.PerBuild, true)
         gen.Write(" }");
         gen.NewLine();
         gen.WriteSemicolon();
+    }
+
+    private void EmitClassDecl(PassContext ctx, PackageContext pkg, LuaGenerator gen, ClassDecl cd)
+    {
+        var className = ResolveName(ctx, pkg, cd.Name);
+        var hasAccessors = cd.Accessors.Count > 0;
+        var hasBase = cd.BaseClass != null;
+        var baseName = hasBase ? ResolveName(ctx, pkg, cd.BaseClass!) : null;
+
+        // Emit local fields as regular locals
+        foreach (var field in cd.Fields)
+        {
+            if (!field.IsLocal) continue;
+            gen.Write("local ");
+            gen.Write(field.Name.Name);
+            if (field.DefaultValue != null)
+            {
+                gen.Write(" = ");
+                EmitExpr(ctx, pkg, gen, field.DefaultValue);
+            }
+            gen.NewLine();
+            gen.WriteSemicolon();
+        }
+
+        // Class table
+        gen.Write("local ");
+        gen.Write(className);
+        if (hasBase)
+        {
+            gen.Write(" = setmetatable({}, { __index = ");
+            gen.Write(baseName!);
+            gen.Write(" })");
+        }
+        else
+        {
+            gen.Write(" = {}");
+        }
+        gen.NewLine();
+        gen.WriteSemicolon();
+
+        if (!hasAccessors)
+        {
+            gen.Write(className);
+            gen.Write(".__index = ");
+            gen.Write(className);
+            gen.NewLine();
+            gen.WriteSemicolon();
+        }
+
+        // Getters/setters
+        foreach (var accessor in cd.Accessors)
+        {
+            var prefix = accessor.Kind == AccessorKind.Getter ? "__get_" : "__set_";
+            gen.Write("function ");
+            gen.Write(className);
+            gen.Write(".");
+            gen.Write(prefix);
+            gen.Write(accessor.Name.Name);
+            gen.Write("(self");
+            foreach (var p in accessor.Parameters)
+            {
+                gen.Write(", ");
+                gen.Write(ResolveName(ctx, pkg, p.Name));
+            }
+            gen.Write(")");
+            gen.NewLine();
+            gen.Indent();
+            EmitStmtList(ctx, pkg, gen, accessor.Body);
+            if (accessor.ReturnStmt != null) EmitReturn(ctx, pkg, gen, accessor.ReturnStmt);
+            gen.Dedent();
+            gen.WriteLine("end");
+            gen.WriteSemicolon();
+        }
+
+        // Constructor
+        gen.Write("function ");
+        gen.Write(className);
+        gen.Write(".new(");
+        if (cd.Constructor != null)
+        {
+            for (var i = 0; i < cd.Constructor.Parameters.Count; i++)
+            {
+                if (i > 0) gen.Write(", ");
+                gen.Write(ResolveName(ctx, pkg, cd.Constructor.Parameters[i].Name));
+            }
+        }
+        gen.Write(")");
+        gen.NewLine();
+        gen.Indent();
+
+        // self initialization
+        if (hasBase)
+        {
+            // Emit default: local self = setmetatable({}, ClassName) or proxy
+            // super() calls get replaced inline — we emit a default if there's no super call
+            var hasSuperCall = cd.Constructor != null && HasSuperCall(cd.Constructor.Body);
+            if (!hasSuperCall)
+            {
+                gen.Write("local self = ");
+                gen.Write(baseName!);
+                gen.Write(".new()");
+                gen.NewLine();
+                gen.WriteSemicolon();
+            }
+        }
+        else
+        {
+            if (hasAccessors)
+            {
+                var proxyHelper = gen.GetClassProxyHelper();
+                gen.Write("local self = setmetatable({}, ");
+                gen.Write(proxyHelper);
+                gen.Write("(");
+                gen.Write(className);
+                gen.Write(", nil))");
+            }
+            else
+            {
+                gen.Write("local self = setmetatable({}, ");
+                gen.Write(className);
+                gen.Write(")");
+            }
+            gen.NewLine();
+            gen.WriteSemicolon();
+        }
+
+        // Instance field defaults in constructor
+        foreach (var field in cd.Fields)
+        {
+            if (field.IsLocal || field.IsStatic) continue;
+            if (field.DefaultValue != null)
+            {
+                gen.Write("self.");
+                gen.Write(field.Name.Name);
+                gen.Write(" = ");
+                EmitExpr(ctx, pkg, gen, field.DefaultValue);
+                gen.NewLine();
+                gen.WriteSemicolon();
+            }
+        }
+
+        // Constructor body
+        if (cd.Constructor != null)
+        {
+            EmitClassConstructorBody(ctx, pkg, gen, cd, cd.Constructor);
+        }
+
+        gen.WriteLine("return self");
+        gen.WriteSemicolon();
+        gen.Dedent();
+        gen.WriteLine("end");
+        gen.WriteSemicolon();
+
+        // Instance methods
+        foreach (var method in cd.Methods)
+        {
+            if (method.IsLocal)
+            {
+                EmitLocalClassMethod(ctx, pkg, gen, method);
+                continue;
+            }
+            if (method.IsStatic) continue;
+
+            gen.Write("function ");
+            gen.Write(className);
+            gen.Write(":");
+            gen.Write(method.Name.Name);
+            gen.Write("(");
+            EmitParamList(ctx, pkg, gen, method.Parameters);
+            gen.Write(")");
+            gen.NewLine();
+            gen.Indent();
+            EmitFuncBodyContent(ctx, pkg, gen, method.Parameters, method.Body, method.ReturnStmt, method.IsAsync);
+            gen.Dedent();
+            gen.WriteLine("end");
+            gen.WriteSemicolon();
+        }
+
+        // Static methods
+        foreach (var method in cd.Methods)
+        {
+            if (method.IsLocal || !method.IsStatic) continue;
+
+            gen.Write("function ");
+            gen.Write(className);
+            gen.Write(".");
+            gen.Write(method.Name.Name);
+            gen.Write("(");
+            EmitParamList(ctx, pkg, gen, method.Parameters);
+            gen.Write(")");
+            gen.NewLine();
+            gen.Indent();
+            EmitFuncBodyContent(ctx, pkg, gen, method.Parameters, method.Body, method.ReturnStmt, method.IsAsync);
+            gen.Dedent();
+            gen.WriteLine("end");
+            gen.WriteSemicolon();
+        }
+
+        // Static fields
+        foreach (var field in cd.Fields)
+        {
+            if (!field.IsStatic || field.IsLocal) continue;
+            gen.Write(className);
+            gen.Write(".");
+            gen.Write(field.Name.Name);
+            gen.Write(" = ");
+            if (field.DefaultValue != null)
+                EmitExpr(ctx, pkg, gen, field.DefaultValue);
+            else
+                gen.Write("nil");
+            gen.NewLine();
+            gen.WriteSemicolon();
+        }
+    }
+
+    private void EmitClassConstructorBody(PassContext ctx, PackageContext pkg, LuaGenerator gen, ClassDecl cd, ClassConstructorNode ctor)
+    {
+        var className = ResolveName(ctx, pkg, cd.Name);
+        var hasBase = cd.BaseClass != null;
+        var baseName = hasBase ? ResolveName(ctx, pkg, cd.BaseClass!) : null;
+        var needsProxy = ClassNeedsProxy(ctx, pkg, cd);
+
+        foreach (var stmt in ctor.Body)
+        {
+            if (stmt is ExprStmt { Expression: SuperCallExpr superCall })
+            {
+                if (hasBase)
+                {
+                    gen.Write("local self = ");
+                    gen.Write(baseName!);
+                    gen.Write(".new(");
+                    for (var i = 0; i < superCall.Arguments.Count; i++)
+                    {
+                        if (i > 0) gen.Write(", ");
+                        EmitExpr(ctx, pkg, gen, superCall.Arguments[i]);
+                    }
+                    gen.Write(")");
+                    gen.NewLine();
+                    gen.WriteSemicolon();
+
+                    if (needsProxy)
+                    {
+                        var proxyHelper = gen.GetClassProxyHelper();
+                        gen.Write("setmetatable(self, ");
+                        gen.Write(proxyHelper);
+                        gen.Write("(");
+                        gen.Write(className);
+                        gen.Write(", ");
+                        gen.Write(baseName!);
+                        gen.Write("))");
+                    }
+                    else
+                    {
+                        gen.Write("setmetatable(self, ");
+                        gen.Write(className);
+                        gen.Write(")");
+                    }
+                    gen.NewLine();
+                    gen.WriteSemicolon();
+                }
+                continue;
+            }
+            EmitStmt(ctx, pkg, gen, stmt);
+        }
+        if (ctor.ReturnStmt != null) EmitReturn(ctx, pkg, gen, ctor.ReturnStmt);
+    }
+
+    private bool ClassNeedsProxy(PassContext ctx, PackageContext pkg, ClassDecl cd)
+    {
+        if (cd.Accessors.Count > 0) return true;
+        if (cd.Name.Sym != SymID.Invalid
+            && pkg.Syms.GetByID(cd.Name.Sym, out var sym)
+            && pkg.Types.GetByID(sym.Type, out var t) && t is ClassType ct)
+        {
+            var parent = ct.BaseClass;
+            while (parent != null)
+            {
+                if (parent.Getters.Count > 0 || parent.Setters.Count > 0) return true;
+                parent = parent.BaseClass;
+            }
+        }
+        return false;
+    }
+
+    private bool HasSuperCall(List<Stmt> stmts)
+    {
+        return stmts.Any(s => s is ExprStmt { Expression: SuperCallExpr });
+    }
+
+    private void EmitLocalClassMethod(PassContext ctx, PackageContext pkg, LuaGenerator gen, ClassMethodNode method)
+    {
+        gen.Write("local function ");
+        gen.Write(method.Name.Name);
+        gen.Write("(");
+        EmitParamList(ctx, pkg, gen, method.Parameters);
+        gen.Write(")");
+        gen.NewLine();
+        gen.Indent();
+        EmitFuncBodyContent(ctx, pkg, gen, method.Parameters, method.Body, method.ReturnStmt, method.IsAsync);
+        gen.Dedent();
+        gen.WriteLine("end");
+        gen.WriteSemicolon();
+    }
+
+    private void EmitNewExpr(PassContext ctx, PackageContext pkg, LuaGenerator gen, NewExpr ne)
+    {
+        gen.Write(ResolveName(ctx, pkg, ne.ClassName));
+        gen.Write(".new(");
+        for (var i = 0; i < ne.Arguments.Count; i++)
+        {
+            if (i > 0) gen.Write(", ");
+            EmitExpr(ctx, pkg, gen, ne.Arguments[i]);
+        }
+        gen.Write(")");
     }
 
     #endregion
@@ -836,6 +1158,11 @@ public sealed class CodegenPass() : Pass(PassName, PassScope.PerBuild, true)
                 break;
             case AwaitExpr aw:
                 EmitAwaitExpr(ctx, pkg, gen, aw);
+                break;
+            case NewExpr ne:
+                EmitNewExpr(ctx, pkg, gen, ne);
+                break;
+            case SuperCallExpr:
                 break;
         }
     }
@@ -1422,6 +1749,29 @@ public sealed class CodegenPass() : Pass(PassName, PassScope.PerBuild, true)
             EmitExpr(ctx, pkg, gen, param.DefaultValue);
             gen.WriteLine(" end");
             gen.WriteSemicolon();
+        }
+    }
+
+    private void EmitFuncBodyContent(PassContext ctx, PackageContext pkg, LuaGenerator gen, List<Parameter> parameters, List<Stmt> body, ReturnStmt? returnStmt, bool isAsync)
+    {
+        if (isAsync)
+        {
+            var driverName = gen.GetAsyncDriverHelper();
+            gen.WriteLine("local __co = coroutine.create(function()");
+            gen.Indent();
+            EmitDefaultParamPreamble(ctx, pkg, gen, parameters);
+            EmitNamedVarargPreamble(ctx, pkg, gen, parameters);
+            EmitStmtList(ctx, pkg, gen, body);
+            if (returnStmt != null) EmitReturn(ctx, pkg, gen, returnStmt);
+            gen.EndBlock("end)");
+            gen.WriteLine($"{driverName}(__co, __done)");
+        }
+        else
+        {
+            EmitDefaultParamPreamble(ctx, pkg, gen, parameters);
+            EmitNamedVarargPreamble(ctx, pkg, gen, parameters);
+            EmitStmtList(ctx, pkg, gen, body);
+            if (returnStmt != null) EmitReturn(ctx, pkg, gen, returnStmt);
         }
     }
 

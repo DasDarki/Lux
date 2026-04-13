@@ -9,6 +9,8 @@ public enum SymbolKind
     Variable,
     Function,
     Enum,
+    Class,
+    Interface,
 }
 
 /// <summary>
@@ -48,6 +50,7 @@ public enum SymbolFlags
     /// </summary>
     Unused = 1 << 4,
     Async = 1 << 5,
+    Static = 1 << 6,
 }
 
 /// <summary>

@@ -95,3 +95,35 @@ public sealed class EnumMember(NameRef name, Expr? value, TypeRef? typeAnnotatio
     public TypeRef? TypeAnnotation { get; } = typeAnnotation;
     public TextSpan Span { get; } = span;
 }
+
+public sealed class ClassDecl(
+    NodeID id, TextSpan span,
+    NameRef name, NameRef? baseClass,
+    List<NameRef> interfaces,
+    List<ClassFieldNode> fields,
+    List<ClassMethodNode> methods,
+    ClassConstructorNode? constructor,
+    List<ClassAccessorNode> accessors
+) : Decl(id, span)
+{
+    public NameRef Name { get; } = name;
+    public NameRef? BaseClass { get; } = baseClass;
+    public List<NameRef> Interfaces { get; } = interfaces;
+    public List<ClassFieldNode> Fields { get; } = fields;
+    public List<ClassMethodNode> Methods { get; } = methods;
+    public ClassConstructorNode? Constructor { get; } = constructor;
+    public List<ClassAccessorNode> Accessors { get; } = accessors;
+}
+
+public sealed class InterfaceDecl(
+    NodeID id, TextSpan span,
+    NameRef name, List<NameRef> baseInterfaces,
+    List<InterfaceFieldNode> fields,
+    List<InterfaceMethodNode> methods
+) : Decl(id, span)
+{
+    public NameRef Name { get; } = name;
+    public List<NameRef> BaseInterfaces { get; } = baseInterfaces;
+    public List<InterfaceFieldNode> Fields { get; } = fields;
+    public List<InterfaceMethodNode> Methods { get; } = methods;
+}

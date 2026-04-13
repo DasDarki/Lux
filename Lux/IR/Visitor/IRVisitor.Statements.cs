@@ -52,6 +52,14 @@ internal partial class IRVisitor
     public override Node VisitExportStat_(LuxParser.ExportStat_Context context) => Visit(context.exportStat());
     public override Node VisitDeclareStat_(LuxParser.DeclareStat_Context context) => Visit(context.declareStat());
     public override Node VisitMatchStat_(LuxParser.MatchStat_Context context) => Visit(context.matchStat());
+    public override Node VisitClassDeclStat(LuxParser.ClassDeclStatContext context) => Visit(context.classDecl());
+
+    public override Node VisitSuperCallStat(LuxParser.SuperCallStatContext context)
+    {
+        var args = context.exprList()?.expr().Select(e => (Expr)Visit(e)).ToList() ?? [];
+        return new ExprStmt(NewNodeID, SpanFromCtx(context), new SuperCallExpr(NewNodeID, SpanFromCtx(context), args));
+    }
+    public override Node VisitInterfaceDeclStat(LuxParser.InterfaceDeclStatContext context) => Visit(context.interfaceDecl());
 
     public override Node VisitMatchStat(LuxParser.MatchStatContext context)
     {
@@ -244,6 +252,18 @@ internal partial class IRVisitor
     public override Node VisitExportEnum(LuxParser.ExportEnumContext context)
     {
         var decl = (Decl)Visit(context.enumDecl());
+        return new ExportStmt(NewNodeID, SpanFromCtx(context), decl);
+    }
+
+    public override Node VisitExportClass(LuxParser.ExportClassContext context)
+    {
+        var decl = (Decl)Visit(context.classDecl());
+        return new ExportStmt(NewNodeID, SpanFromCtx(context), decl);
+    }
+
+    public override Node VisitExportInterface(LuxParser.ExportInterfaceContext context)
+    {
+        var decl = (Decl)Visit(context.interfaceDecl());
         return new ExportStmt(NewNodeID, SpanFromCtx(context), decl);
     }
 }
