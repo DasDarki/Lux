@@ -12,6 +12,7 @@ namespace Lux.Compiler.Passes;
 public sealed class InferTypesPass() : Pass(PassName, PassScope.PerFile)
 {
     public const string PassName = "InferTypes";
+    private int _asyncDepth;
 
     /// <summary>
     /// Identifies a value location for flow-narrowing. Either a plain symbol (NameExpr) or a chain of
@@ -198,11 +199,15 @@ public sealed class InferTypesPass() : Pass(PassName, PassScope.PerFile)
         switch (decl)
         {
             case FunctionDecl fd:
+                if (fd.IsAsync) _asyncDepth++;
                 ResolveFunctionLike(pc, fd.Parameters, fd.ReturnType, fd.Body, fd.ReturnStmt,
-                    fd.NamePath.Count == 1 && fd.MethodName == null ? fd.NamePath[0] : null);
+                    fd.NamePath.Count == 1 && fd.MethodName == null ? fd.NamePath[0] : null, fd.IsAsync);
+                if (fd.IsAsync) _asyncDepth--;
                 break;
             case LocalFunctionDecl lfd:
-                ResolveFunctionLike(pc, lfd.Parameters, lfd.ReturnType, lfd.Body, lfd.ReturnStmt, lfd.Name);
+                if (lfd.IsAsync) _asyncDepth++;
+                ResolveFunctionLike(pc, lfd.Parameters, lfd.ReturnType, lfd.Body, lfd.ReturnStmt, lfd.Name, lfd.IsAsync);
+                if (lfd.IsAsync) _asyncDepth--;
                 break;
             case LocalDecl ld:
                 ResolveLocalDecl(pc, ld);
@@ -233,7 +238,7 @@ public sealed class InferTypesPass() : Pass(PassName, PassScope.PerFile)
                 var ret = dfd.ReturnType != null && dfd.ReturnType.ResolvedType != TypID.Invalid
                     ? GetType(pc, dfd.ReturnType.ResolvedType)
                     : pc.Types.PrimNil;
-                var funcTyp = pc.Types.FuncOf(paramTypes, ret, dfdIsVararg, dfdVarargType);
+                var funcTyp = pc.Types.FuncOf(paramTypes, ret, dfdIsVararg, dfdVarargType, isAsync: dfd.IsAsync);
                 if (dfd.NamePath.Count == 1 && dfd.MethodName == null)
                 {
                     pc.Pkg!.Syms.SetType(dfd.NamePath[0].Sym, funcTyp);
@@ -266,7 +271,7 @@ public sealed class InferTypesPass() : Pass(PassName, PassScope.PerFile)
     }
 
     private void ResolveFunctionLike(PassContext pc, List<Parameter> parameters, TypeRef? returnTypeRef,
-        List<Stmt> body, ReturnStmt? returnStmt, NameRef? funcName)
+        List<Stmt> body, ReturnStmt? returnStmt, NameRef? funcName, bool isAsync = false)
     {
         var paramTypes = new List<Tuple<string, Type>>();
         var isVararg = false;
@@ -363,7 +368,7 @@ public sealed class InferTypesPass() : Pass(PassName, PassScope.PerFile)
         }
 
         var funcTyp = pc.Types.FuncOf(paramTypes, returnType, isVararg, varargType,
-            defaultIndices.Count > 0 ? defaultIndices : null);
+            defaultIndices.Count > 0 ? defaultIndices : null, isAsync);
         if (funcName != null && funcName.Sym != SymID.Invalid)
         {
             pc.Pkg!.Syms.SetType(funcName.Sym, funcTyp);
@@ -565,6 +570,9 @@ public sealed class InferTypesPass() : Pass(PassName, PassScope.PerFile)
             case MatchExpr me:
                 result = InferMatchExpr(pc, me);
                 break;
+            case AwaitExpr awaitExpr:
+                result = InferAwaitExpr(pc, awaitExpr);
+                break;
             default:
                 result = tt.PrimAny.ID;
                 break;
@@ -736,8 +744,69 @@ public sealed class InferTypesPass() : Pass(PassName, PassScope.PerFile)
         return unified ?? tt.PrimAny.ID;
     }
 
+    private TypID InferAwaitExpr(PassContext pc, AwaitExpr awaitExpr)
+    {
+        if (_asyncDepth <= 0)
+        {
+            pc.Diag.Report(awaitExpr.Span, DiagnosticCode.ErrAwaitOutsideAsync);
+        }
+
+        var inner = awaitExpr.Expression;
+        if (inner is not FunctionCallExpr call && inner is not MethodCallExpr)
+        {
+            SynthesizeExpr(pc, inner);
+            pc.Diag.Report(awaitExpr.Span, DiagnosticCode.ErrAwaitNonCallable);
+            return pc.Types.PrimAny.ID;
+        }
+
+        FunctionType? fnType = null;
+        List<TypID> argTypes;
+
+        if (inner is FunctionCallExpr fc)
+        {
+            var calleeTyp = SynthesizeExpr(pc, fc.Callee);
+            argTypes = fc.Arguments.Select(a => SynthesizeExpr(pc, a)).ToList();
+            calleeTyp = StripNil(pc, calleeTyp);
+            if (pc.Pkg!.Types.GetByID(calleeTyp, out var t) && t is FunctionType ft)
+                fnType = ft;
+        }
+        else
+        {
+            var mc = (MethodCallExpr)inner;
+            SynthesizeExpr(pc, mc.Object);
+            argTypes = mc.Arguments.Select(a => SynthesizeExpr(pc, a)).ToList();
+            var methodType = InferMethodCall(pc, mc);
+            if (pc.Pkg!.Types.GetByID(methodType, out var t) && t is FunctionType ft)
+                fnType = ft;
+        }
+
+        if (fnType == null)
+        {
+            pc.Diag.Report(awaitExpr.Span, DiagnosticCode.ErrAwaitNonCallable);
+            return pc.Types.PrimAny.ID;
+        }
+
+        if (fnType.IsAsync)
+            return fnType.ReturnType.ID;
+
+        var lastIdx = fnType.ParamTypes.Count - 1;
+        if (lastIdx >= 0 && fnType.ParamTypes[lastIdx] is FunctionType cbType)
+        {
+            if (cbType.ParamTypes.Count == 0)
+                return pc.Types.PrimNil.ID;
+            if (cbType.ParamTypes.Count == 1)
+                return cbType.ParamTypes[0].ID;
+            return pc.Types.PrimAny.ID;
+        }
+
+        var calleeName = inner is FunctionCallExpr fc2 && fc2.Callee is NameExpr ne ? ne.Name.Name : "function";
+        pc.Diag.Report(awaitExpr.Span, DiagnosticCode.ErrAwaitNonAsync, calleeName);
+        return pc.Types.PrimAny.ID;
+    }
+
     private TypID InferFunctionDef(PassContext pc, FunctionDefExpr fde)
     {
+        if (fde.IsAsync) _asyncDepth++;
         var paramTypes = new List<Tuple<string, Type>>();
         var fdeIsVararg = false;
         Type? fdeVarargType = null;
@@ -821,8 +890,9 @@ public sealed class InferTypesPass() : Pass(PassName, PassScope.PerFile)
             }
         }
 
+        if (fde.IsAsync) _asyncDepth--;
         return pc.Types.FuncOf(paramTypes, returnType, fdeIsVararg, fdeVarargType,
-            fdeDefaults.Count > 0 ? fdeDefaults : null);
+            fdeDefaults.Count > 0 ? fdeDefaults : null, fde.IsAsync);
     }
 
     private TypID InferDotAccess(PassContext pc, DotAccessExpr dot)
@@ -1037,9 +1107,15 @@ public sealed class InferTypesPass() : Pass(PassName, PassScope.PerFile)
         if (argCount < minParams) return -1;
         if (argCount > paramCount && !ft.IsVararg)
         {
-            var lastParam = paramCount > 0 ? ft.ParamTypes[paramCount - 1] : null;
-            if (lastParam is not { Kind: TypeKind.PrimitiveAny })
-                return -1;
+            if (ft.IsAsync && argCount == paramCount + 1)
+            {
+            }
+            else
+            {
+                var lastParam = paramCount > 0 ? ft.ParamTypes[paramCount - 1] : null;
+                if (lastParam is not { Kind: TypeKind.PrimitiveAny })
+                    return -1;
+            }
         }
 
         var score = 0;
@@ -1186,11 +1262,17 @@ public sealed class InferTypesPass() : Pass(PassName, PassScope.PerFile)
 
         if (argCount > paramCount && !fnType.IsVararg)
         {
-            var lastParam = paramCount > 0 ? fnType.ParamTypes[paramCount - 1] : null;
-            if (lastParam is not { Kind: TypeKind.PrimitiveAny })
+            if (fnType.IsAsync && argCount == paramCount + 1)
             {
-                pc.Diag.Report(span, DiagnosticCode.ErrFuncParamMismatch, paramCount, argCount);
-                return;
+            }
+            else
+            {
+                var lastParam = paramCount > 0 ? fnType.ParamTypes[paramCount - 1] : null;
+                if (lastParam is not { Kind: TypeKind.PrimitiveAny })
+                {
+                    pc.Diag.Report(span, DiagnosticCode.ErrFuncParamMismatch, paramCount, argCount);
+                    return;
+                }
             }
         }
 

@@ -123,6 +123,9 @@ public sealed class CheckImmutabilityPass() : Pass(PassName, PassScope.PerFile)
             case ParenExpr pe:
                 CheckExpr(ctx, pkg, pe.Inner);
                 break;
+            case AwaitExpr aw:
+                CheckExpr(ctx, pkg, aw.Expression);
+                break;
             case MatchExpr me:
                 CheckExpr(ctx, pkg, me.Scrutinee);
                 foreach (var arm in me.Arms)

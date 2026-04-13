@@ -362,7 +362,14 @@ internal partial class IRVisitor
     public override Node VisitFunctionDef(LuxParser.FunctionDefContext context)
     {
         var (parameters, returnType, body, ret) = VisitFuncBodyContent(context.funcBody());
-        return new FunctionDefExpr(NewNodeID, SpanFromCtx(context), parameters, returnType, body, ret);
+        var isAsync = context.ASYNC() != null;
+        return new FunctionDefExpr(NewNodeID, SpanFromCtx(context), parameters, returnType, body, ret, isAsync);
+    }
+
+    public override Node VisitAwaitExpr(LuxParser.AwaitExprContext context)
+    {
+        var inner = (Expr)Visit(context.expr());
+        return new AwaitExpr(NewNodeID, SpanFromCtx(context), inner);
     }
 
     #endregion

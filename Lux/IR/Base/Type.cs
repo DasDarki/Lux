@@ -220,10 +220,12 @@ public sealed class FunctionType : Type
     public bool IsVararg { get; }
     public Type? VarargType { get; }
     public List<int> DefaultParams { get; }
+    public bool IsAsync { get; }
+    public int CallbackParamIndex { get; set; } = -1;
 
     public int MinParamCount => ParamTypes.Count - DefaultParams.Count;
-    
-    public FunctionType(IEnumerable<Tuple<string, Type>> paramTypes, Type returnType, bool isVararg = false, Type? varargType = null, List<int>? defaultParams = null) : base(TypeKind.Function)
+
+    public FunctionType(IEnumerable<Tuple<string, Type>> paramTypes, Type returnType, bool isVararg = false, Type? varargType = null, List<int>? defaultParams = null, bool isAsync = false) : base(TypeKind.Function)
     {
         var @params = paramTypes.ToList();
         ParamTypes = @params.Select(p => p.Item2).ToList();
@@ -232,9 +234,10 @@ public sealed class FunctionType : Type
         IsVararg = isVararg;
         VarargType = varargType;
         DefaultParams = defaultParams ?? [];
+        IsAsync = isAsync;
     }
-    
-    public FunctionType(IEnumerable<Type> paramTypes, Type returnType, bool isVararg = false, Type? varargType = null, List<int>? defaultParams = null) : base(TypeKind.Function)
+
+    public FunctionType(IEnumerable<Type> paramTypes, Type returnType, bool isVararg = false, Type? varargType = null, List<int>? defaultParams = null, bool isAsync = false) : base(TypeKind.Function)
     {
         ParamTypes = paramTypes.ToList();
         ParamNames = [];
@@ -246,9 +249,10 @@ public sealed class FunctionType : Type
         IsVararg = isVararg;
         VarargType = varargType;
         DefaultParams = defaultParams ?? [];
+        IsAsync = isAsync;
     }
-    
-    public FunctionType(IEnumerable<Type> paramTypes, List<string> paramNames, Type returnType, bool isVarargs, Type? varargType, List<int>? defaultParams) : base(TypeKind.Function)
+
+    public FunctionType(IEnumerable<Type> paramTypes, List<string> paramNames, Type returnType, bool isVarargs, Type? varargType, List<int>? defaultParams, bool isAsync = false) : base(TypeKind.Function)
     {
         ParamTypes = paramTypes.ToList();
         ParamNames = paramNames;
@@ -256,10 +260,12 @@ public sealed class FunctionType : Type
         IsVararg = isVarargs;
         VarargType = varargType;
         DefaultParams = defaultParams ?? [];
+        IsAsync = isAsync;
     }
 
     protected override TypeKey GenerateNewKey()
     {
+        var prefix = IsAsync ? "async " : "";
         var parameters = new List<string>();
         for (var i = 0; i < ParamTypes.Count; i++)
         {
@@ -272,8 +278,8 @@ public sealed class FunctionType : Type
                 pPrefix = "...";
             parameters.Add($"{pPrefix}{pName}: {pType}");
         }
-        
-        return $"({string.Join(", ", parameters)}) -> {ReturnType.Key}";
+
+        return $"{prefix}({string.Join(", ", parameters)}) -> {ReturnType.Key}";
     }
 }
 
@@ -472,21 +478,15 @@ public sealed class TypeTable
     /// Creates a new function type with the specified parameter types and return type, declares the new type in the
     /// type table, and returns the type ID of the new type.
     /// </summary>
-    public TypID FuncOf(IEnumerable<Type> paramTypes, Type returnType, bool isVararg = false, Type? varargType = null, List<int>? defaultParams = null)
+    public TypID FuncOf(IEnumerable<Type> paramTypes, Type returnType, bool isVararg = false, Type? varargType = null, List<int>? defaultParams = null, bool isAsync = false)
     {
-        var funcType = new FunctionType(paramTypes, returnType, isVararg, varargType, defaultParams);
+        var funcType = new FunctionType(paramTypes, returnType, isVararg, varargType, defaultParams, isAsync);
         return DeclareType(funcType);
     }
-    
-    /// <summary>
-    /// Creates a new function type with the specified parameter types and return type, declares the new type in the
-    /// type table, and returns the type ID of the new type. The parameters are named, which means that each parameter
-    /// has a name and a type. This is an overload of the <see cref="FuncOf(IEnumerable{Type}, Type, bool, Type?, List{int}?)"/>
-    /// method that allows passing the parameters as a params array of tuples for convenience.
-    /// </summary>
-    public TypID FuncOf(IEnumerable<Tuple<string, Type>> paramTypes, Type returnType, bool isVararg = false, Type? varargType = null, List<int>? defaultParams = null)
+
+    public TypID FuncOf(IEnumerable<Tuple<string, Type>> paramTypes, Type returnType, bool isVararg = false, Type? varargType = null, List<int>? defaultParams = null, bool isAsync = false)
     {
-        var funcType = new FunctionType(paramTypes, returnType, isVararg, varargType, defaultParams);
+        var funcType = new FunctionType(paramTypes, returnType, isVararg, varargType, defaultParams, isAsync);
         return DeclareType(funcType);
     }
 

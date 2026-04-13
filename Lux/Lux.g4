@@ -152,11 +152,11 @@ returnStat
 // ─── Function Declarations ───
 
 functionDecl
-    : FUNCTION funcName funcBody
+    : ASYNC? FUNCTION funcName funcBody
     ;
 
 localFunctionDecl
-    : LOCAL FUNCTION NAME funcBody
+    : LOCAL ASYNC? FUNCTION NAME funcBody
     ;
 
 // ─── Local Declaration ───
@@ -274,7 +274,7 @@ declareStat
     ;
 
 declareBody
-    : FUNCTION funcName funcSignature                            # DeclareFunction
+    : ASYNC? FUNCTION funcName funcSignature                     # DeclareFunction
     | NAME typeAnnotation                                        # DeclareVariable
     | MODULE str declareModuleBlock END                           # DeclareModule
     | ENUM NAME declareEnumMember+ END                           # DeclareEnum
@@ -313,7 +313,7 @@ declareEnumMember
     ;
 
 declareModuleMember
-    : FUNCTION funcName funcSignature                            # ModuleDeclareFunction
+    : ASYNC? FUNCTION funcName funcSignature                     # ModuleDeclareFunction
     | NAME typeAnnotation                                        # ModuleDeclareVariable
     | ENUM NAME declareEnumMember+ END                           # ModuleDeclareEnum
     ;
@@ -517,6 +517,7 @@ expr
 
     | unaryOp expr                                              # UnaryExpr
     | BANG expr                                                 # AltLogicalNotExpr
+    | AWAIT expr                                                # AwaitExpr
     | INC expr                                                  # PreIncExpr
     | DEC expr                                                  # PreDecExpr
 
@@ -635,7 +636,7 @@ args
 // ─────────────────────────────────────────────────────────────────────────────
 
 functionDef
-    : FUNCTION funcBody
+    : ASYNC? FUNCTION funcBody
     ;
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -726,6 +727,8 @@ META     : 'meta';
 MODULE   : 'module';
 MUT      : 'mut';
 WHEN     : 'when';
+ASYNC    : 'async';
+AWAIT    : 'await';
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  Operators & Punctuation

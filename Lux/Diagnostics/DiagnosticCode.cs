@@ -151,6 +151,21 @@ public enum DiagnosticCode
     [Format("Cannot modify field of frozen table '{0}'")]
     ErrModifyFrozenTable = 0x200A,
 
+    [Level(DiagnosticLevel.Error)]
+    [Category(DiagnosticCategory.Type)]
+    [Format("'await' can only be used on function calls")]
+    ErrAwaitNonCallable = 0x200B,
+
+    [Level(DiagnosticLevel.Error)]
+    [Category(DiagnosticCategory.Type)]
+    [Format("'await' used on function '{0}' which has no callback parameter and is not async")]
+    ErrAwaitNonAsync = 0x200C,
+
+    [Level(DiagnosticLevel.Error)]
+    [Category(DiagnosticCategory.Semantic)]
+    [Format("'await' can only be used inside an 'async' function")]
+    ErrAwaitOutsideAsync = 0x200D,
+
     #endregion
 
     #region Module

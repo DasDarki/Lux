@@ -75,7 +75,7 @@
         },
         {
           "name": "keyword.other.lux",
-          "match": "\\b(local|function|and|or|not|as|declare|export|from|import|module|enum)\\b"
+          "match": "\\b(local|function|and|or|not|as|declare|export|from|import|module|enum|async|await|mut)\\b"
         },
         {
           "name": "constant.language.lux",
@@ -87,7 +87,7 @@
       "patterns": [
         {
           "name": "keyword.operator.lux",
-          "match": "\\+|-|\\*|/|%|\\^|#|==|~=|<=|>=|<|>|=|\\.\\.|\\.\\.\\."
+          "match": "\\+|-|\\*|/|%|\\^|#|==|~=|!=|\\|\\||&&|!|<=|>=|<|>|=|\\.\\.|\\.\\.\\."
         }
       ]
     },

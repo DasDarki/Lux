@@ -1326,6 +1326,17 @@ public partial class LuxBaseVisitor<Result> : AbstractParseTreeVisitor<Result>, 
 	/// <return>The visitor result.</return>
 	public virtual Result VisitLogicalOrExpr([NotNull] LuxParser.LogicalOrExprContext context) { return VisitChildren(context); }
 	/// <summary>
+	/// Visit a parse tree produced by the <c>AwaitExpr</c>
+	/// labeled alternative in <see cref="LuxParser.expr"/>.
+	/// <para>
+	/// The default implementation returns the result of calling <see cref="AbstractParseTreeVisitor{Result}.VisitChildren(IRuleNode)"/>
+	/// on <paramref name="context"/>.
+	/// </para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	public virtual Result VisitAwaitExpr([NotNull] LuxParser.AwaitExprContext context) { return VisitChildren(context); }
+	/// <summary>
 	/// Visit a parse tree produced by the <c>StringLiteral</c>
 	/// labeled alternative in <see cref="LuxParser.expr"/>.
 	/// <para>

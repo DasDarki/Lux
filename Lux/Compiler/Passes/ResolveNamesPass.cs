@@ -396,6 +396,9 @@ public sealed class ResolveNamesPass() : Pass(PassName, PassScope.PerFile)
             }
                 break;
 
+            case AwaitExpr awaitExpr:
+                ResolveExprNames(pc, awaitExpr.Expression, pkg);
+                break;
             case MatchExpr matchExpr:
                 ResolveExprNames(pc, matchExpr.Scrutinee, pkg);
                 foreach (var arm in matchExpr.Arms)

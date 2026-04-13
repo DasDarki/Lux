@@ -419,14 +419,35 @@ public sealed class CodegenPass() : Pass(PassName, PassScope.PerBuild, true)
         }
         gen.Write("(");
         EmitParamList(ctx, pkg, gen, fd.Parameters);
+        if (fd.IsAsync)
+        {
+            if (fd.Parameters.Count > 0) gen.Write(", ");
+            gen.Write("__done");
+        }
         gen.Write(")");
         gen.NewLine();
         gen.Indent();
-        EmitDefaultParamPreamble(ctx, pkg, gen, fd.Parameters);
-        EmitNamedVarargPreamble(ctx, pkg, gen, fd.Parameters);
-        EmitStmtList(ctx, pkg, gen, fd.Body);
-        if (fd.ReturnStmt != null)
-            EmitReturn(ctx, pkg, gen, fd.ReturnStmt);
+        if (fd.IsAsync)
+        {
+            var driverName = gen.GetAsyncDriverHelper();
+            gen.WriteLine("local __co = coroutine.create(function()");
+            gen.Indent();
+            EmitDefaultParamPreamble(ctx, pkg, gen, fd.Parameters);
+            EmitNamedVarargPreamble(ctx, pkg, gen, fd.Parameters);
+            EmitStmtList(ctx, pkg, gen, fd.Body);
+            if (fd.ReturnStmt != null)
+                EmitReturn(ctx, pkg, gen, fd.ReturnStmt);
+            gen.EndBlock("end)");
+            gen.WriteLine($"{driverName}(__co, __done)");
+        }
+        else
+        {
+            EmitDefaultParamPreamble(ctx, pkg, gen, fd.Parameters);
+            EmitNamedVarargPreamble(ctx, pkg, gen, fd.Parameters);
+            EmitStmtList(ctx, pkg, gen, fd.Body);
+            if (fd.ReturnStmt != null)
+                EmitReturn(ctx, pkg, gen, fd.ReturnStmt);
+        }
         gen.EndBlock();
     }
 
@@ -436,14 +457,35 @@ public sealed class CodegenPass() : Pass(PassName, PassScope.PerBuild, true)
         gen.Write(ResolveName(ctx, pkg, lfd.Name));
         gen.Write("(");
         EmitParamList(ctx, pkg, gen, lfd.Parameters);
+        if (lfd.IsAsync)
+        {
+            if (lfd.Parameters.Count > 0) gen.Write(", ");
+            gen.Write("__done");
+        }
         gen.Write(")");
         gen.NewLine();
         gen.Indent();
-        EmitDefaultParamPreamble(ctx, pkg, gen, lfd.Parameters);
-        EmitNamedVarargPreamble(ctx, pkg, gen, lfd.Parameters);
-        EmitStmtList(ctx, pkg, gen, lfd.Body);
-        if (lfd.ReturnStmt != null)
-            EmitReturn(ctx, pkg, gen, lfd.ReturnStmt);
+        if (lfd.IsAsync)
+        {
+            var driverName = gen.GetAsyncDriverHelper();
+            gen.WriteLine("local __co = coroutine.create(function()");
+            gen.Indent();
+            EmitDefaultParamPreamble(ctx, pkg, gen, lfd.Parameters);
+            EmitNamedVarargPreamble(ctx, pkg, gen, lfd.Parameters);
+            EmitStmtList(ctx, pkg, gen, lfd.Body);
+            if (lfd.ReturnStmt != null)
+                EmitReturn(ctx, pkg, gen, lfd.ReturnStmt);
+            gen.EndBlock("end)");
+            gen.WriteLine($"{driverName}(__co, __done)");
+        }
+        else
+        {
+            EmitDefaultParamPreamble(ctx, pkg, gen, lfd.Parameters);
+            EmitNamedVarargPreamble(ctx, pkg, gen, lfd.Parameters);
+            EmitStmtList(ctx, pkg, gen, lfd.Body);
+            if (lfd.ReturnStmt != null)
+                EmitReturn(ctx, pkg, gen, lfd.ReturnStmt);
+        }
         gen.EndBlock();
     }
 
@@ -791,6 +833,9 @@ public sealed class CodegenPass() : Pass(PassName, PassScope.PerBuild, true)
                 break;
             case MatchExpr me:
                 EmitMatchExpr(ctx, pkg, gen, me);
+                break;
+            case AwaitExpr aw:
+                EmitAwaitExpr(ctx, pkg, gen, aw);
                 break;
         }
     }
@@ -1184,16 +1229,74 @@ public sealed class CodegenPass() : Pass(PassName, PassScope.PerBuild, true)
     {
         gen.Write("function(");
         EmitParamList(ctx, pkg, gen, fd.Parameters);
+        if (fd.IsAsync)
+        {
+            if (fd.Parameters.Count > 0) gen.Write(", ");
+            gen.Write("__done");
+        }
         gen.Write(")");
         gen.NewLine();
         gen.Indent();
-        EmitDefaultParamPreamble(ctx, pkg, gen, fd.Parameters);
-        EmitNamedVarargPreamble(ctx, pkg, gen, fd.Parameters);
-        EmitStmtList(ctx, pkg, gen, fd.Body);
-        if (fd.ReturnStmt != null)
-            EmitReturn(ctx, pkg, gen, fd.ReturnStmt);
+        if (fd.IsAsync)
+        {
+            var driverName = gen.GetAsyncDriverHelper();
+            gen.WriteLine("local __co = coroutine.create(function()");
+            gen.Indent();
+            EmitDefaultParamPreamble(ctx, pkg, gen, fd.Parameters);
+            EmitNamedVarargPreamble(ctx, pkg, gen, fd.Parameters);
+            EmitStmtList(ctx, pkg, gen, fd.Body);
+            if (fd.ReturnStmt != null)
+                EmitReturn(ctx, pkg, gen, fd.ReturnStmt);
+            gen.EndBlock("end)");
+            gen.WriteLine($"{driverName}(__co, __done)");
+        }
+        else
+        {
+            EmitDefaultParamPreamble(ctx, pkg, gen, fd.Parameters);
+            EmitNamedVarargPreamble(ctx, pkg, gen, fd.Parameters);
+            EmitStmtList(ctx, pkg, gen, fd.Body);
+            if (fd.ReturnStmt != null)
+                EmitReturn(ctx, pkg, gen, fd.ReturnStmt);
+        }
         gen.Dedent();
         gen.Write("end");
+    }
+
+    private void EmitAwaitExpr(PassContext ctx, PackageContext pkg, LuaGenerator gen, AwaitExpr aw)
+    {
+        var inner = aw.Expression;
+        if (inner is FunctionCallExpr fc)
+        {
+            gen.Write("coroutine.yield({");
+            EmitExpr(ctx, pkg, gen, fc.Callee);
+            foreach (var arg in fc.Arguments)
+            {
+                gen.Write(", ");
+                EmitExpr(ctx, pkg, gen, arg);
+            }
+            gen.Write($", n = {fc.Arguments.Count + 1}");
+            gen.Write("})");
+        }
+        else if (inner is MethodCallExpr mc)
+        {
+            var tmp = gen.FreshTemp("_t");
+            gen.Write($"(function() local {tmp} = ");
+            EmitExpr(ctx, pkg, gen, mc.Object);
+            gen.Write($"; return coroutine.yield({{{tmp}.{mc.MethodName.Name}, {tmp}");
+            foreach (var arg in mc.Arguments)
+            {
+                gen.Write(", ");
+                EmitExpr(ctx, pkg, gen, arg);
+            }
+            gen.Write($", n = {mc.Arguments.Count + 2}");
+            gen.Write("}) end)()");
+        }
+        else
+        {
+            gen.Write("coroutine.yield({");
+            EmitExpr(ctx, pkg, gen, inner);
+            gen.Write(", n = 1})");
+        }
     }
 
     private void EmitIndexAccess(PassContext ctx, PackageContext pkg, LuaGenerator gen, IndexAccessExpr idx)

@@ -6,7 +6,8 @@ public sealed class FunctionDecl(
     NodeID id, TextSpan span,
     List<NameRef> namePath, NameRef? methodName,
     List<Parameter> parameters, TypeRef? returnType,
-    List<Stmt> body, ReturnStmt? returnStmt
+    List<Stmt> body, ReturnStmt? returnStmt,
+    bool isAsync = false
 ) : Decl(id, span)
 {
     public List<NameRef> NamePath { get; } = namePath;
@@ -15,13 +16,15 @@ public sealed class FunctionDecl(
     public TypeRef? ReturnType { get; } = returnType;
     public List<Stmt> Body { get; } = body;
     public ReturnStmt? ReturnStmt { get; } = returnStmt;
+    public bool IsAsync { get; } = isAsync;
 }
 
 public sealed class LocalFunctionDecl(
     NodeID id, TextSpan span,
     NameRef name,
     List<Parameter> parameters, TypeRef? returnType,
-    List<Stmt> body, ReturnStmt? returnStmt
+    List<Stmt> body, ReturnStmt? returnStmt,
+    bool isAsync = false
 ) : Decl(id, span)
 {
     public NameRef Name { get; } = name;
@@ -29,6 +32,7 @@ public sealed class LocalFunctionDecl(
     public TypeRef? ReturnType { get; } = returnType;
     public List<Stmt> Body { get; } = body;
     public ReturnStmt? ReturnStmt { get; } = returnStmt;
+    public bool IsAsync { get; } = isAsync;
 }
 
 public sealed class LocalDecl(
@@ -45,13 +49,15 @@ public sealed class LocalDecl(
 public sealed class DeclareFunctionDecl(
     NodeID id, TextSpan span,
     List<NameRef> namePath, NameRef? methodName,
-    List<Parameter> parameters, TypeRef? returnType
+    List<Parameter> parameters, TypeRef? returnType,
+    bool isAsync = false
 ) : Decl(id, span)
 {
     public List<NameRef> NamePath { get; } = namePath;
     public NameRef? MethodName { get; } = methodName;
     public List<Parameter> Parameters { get; } = parameters;
     public TypeRef? ReturnType { get; } = returnType;
+    public bool IsAsync { get; } = isAsync;
 }
 
 public sealed class DeclareVariableDecl(

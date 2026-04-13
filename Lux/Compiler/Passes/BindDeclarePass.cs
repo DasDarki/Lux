@@ -257,7 +257,10 @@ public sealed class BindDeclarePass() : Pass(PassName, PassScope.PerFile)
             {
                 if (funcDecl.NamePath.Count == 1 && funcDecl.MethodName == null)
                 {
-                    DeclareSymbol(ctx, scope, funcDecl.NamePath[0].Name, SymbolKind.Function, funcDecl.ID);
+                    if (funcDecl.IsAsync)
+                        DeclareSymbol(ctx, scope, funcDecl.NamePath[0].Name, SymbolKind.Function, funcDecl.ID, SymbolFlags.Async);
+                    else
+                        DeclareSymbol(ctx, scope, funcDecl.NamePath[0].Name, SymbolKind.Function, funcDecl.ID);
                 }
 
                 var funcScope = pkg.Scopes.NewScope(scope);
@@ -292,7 +295,10 @@ public sealed class BindDeclarePass() : Pass(PassName, PassScope.PerFile)
             }
             case LocalFunctionDecl localFuncDecl:
             {
-                DeclareSymbol(ctx, scope, localFuncDecl.Name.Name, SymbolKind.Function, localFuncDecl.ID);
+                if (localFuncDecl.IsAsync)
+                    DeclareSymbol(ctx, scope, localFuncDecl.Name.Name, SymbolKind.Function, localFuncDecl.ID, SymbolFlags.Async);
+                else
+                    DeclareSymbol(ctx, scope, localFuncDecl.Name.Name, SymbolKind.Function, localFuncDecl.ID);
 
                 var localFuncScope = pkg.Scopes.NewScope(scope);
                 pkg.Scopes.BindNode(localFuncDecl.ID, localFuncScope);
@@ -364,7 +370,10 @@ public sealed class BindDeclarePass() : Pass(PassName, PassScope.PerFile)
             {
                 if (declareFuncDecl.NamePath.Count == 1 && declareFuncDecl.MethodName == null)
                 {
-                    DeclareSymbol(ctx, scope, declareFuncDecl.NamePath[0].Name, SymbolKind.Function, declareFuncDecl.ID);
+                    if (declareFuncDecl.IsAsync)
+                        DeclareSymbol(ctx, scope, declareFuncDecl.NamePath[0].Name, SymbolKind.Function, declareFuncDecl.ID, SymbolFlags.Async);
+                    else
+                        DeclareSymbol(ctx, scope, declareFuncDecl.NamePath[0].Name, SymbolKind.Function, declareFuncDecl.ID);
                 }
 
                 var declareFuncScope = pkg.Scopes.NewScope(scope);
@@ -573,6 +582,9 @@ public sealed class BindDeclarePass() : Pass(PassName, PassScope.PerFile)
                 }
                 return true;
             }
+
+            case AwaitExpr awaitExpr:
+                return BindExprScopes(ctx, awaitExpr.Expression, scope);
 
             default:
                 throw new InvalidOperationException($"Unsupported expression type: {expr.GetType().Name}");

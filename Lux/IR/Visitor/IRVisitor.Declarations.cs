@@ -6,13 +6,15 @@ internal partial class IRVisitor
     {
         var (namePath, methodName) = VisitFuncNameContent(context.funcName());
         var (parameters, returnType, body, ret) = VisitFuncBodyContent(context.funcBody());
-        return new FunctionDecl(NewNodeID, SpanFromCtx(context), namePath, methodName, parameters, returnType, body, ret);
+        var isAsync = context.ASYNC() != null;
+        return new FunctionDecl(NewNodeID, SpanFromCtx(context), namePath, methodName, parameters, returnType, body, ret, isAsync);
     }
 
     public override Node VisitLocalFunctionDecl(LuxParser.LocalFunctionDeclContext context)
     {
         var (parameters, returnType, body, ret) = VisitFuncBodyContent(context.funcBody());
-        return new LocalFunctionDecl(NewNodeID, SpanFromCtx(context), NameRefFromTerm(context.NAME()), parameters, returnType, body, ret);
+        var isAsync = context.ASYNC() != null;
+        return new LocalFunctionDecl(NewNodeID, SpanFromCtx(context), NameRefFromTerm(context.NAME()), parameters, returnType, body, ret, isAsync);
     }
 
     public override Node VisitLocalDecl(LuxParser.LocalDeclContext context)
@@ -30,7 +32,8 @@ internal partial class IRVisitor
     {
         var (namePath, methodName) = VisitFuncNameContent(context.funcName());
         var (parameters, returnType) = VisitFuncSignatureContent(context.funcSignature());
-        return new DeclareFunctionDecl(NewNodeID, SpanFromCtx(context), namePath, methodName, parameters, returnType);
+        var isAsync = context.ASYNC() != null;
+        return new DeclareFunctionDecl(NewNodeID, SpanFromCtx(context), namePath, methodName, parameters, returnType, isAsync);
     }
 
     public override Node VisitDeclareVariable(LuxParser.DeclareVariableContext context)
@@ -54,7 +57,8 @@ internal partial class IRVisitor
     {
         var (namePath, methodName) = VisitFuncNameContent(context.funcName());
         var (parameters, returnType) = VisitFuncSignatureContent(context.funcSignature());
-        return new DeclareFunctionDecl(NewNodeID, SpanFromCtx(context), namePath, methodName, parameters, returnType);
+        var isAsync = context.ASYNC() != null;
+        return new DeclareFunctionDecl(NewNodeID, SpanFromCtx(context), namePath, methodName, parameters, returnType, isAsync);
     }
 
     public override Node VisitModuleDeclareVariable(LuxParser.ModuleDeclareVariableContext context)

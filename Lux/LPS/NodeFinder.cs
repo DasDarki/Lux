@@ -352,6 +352,9 @@ public static class NodeFinder
                     SearchExpr(arm.Value, line, col, ref best);
                 }
                 break;
+            case AwaitExpr aw:
+                SearchExpr(aw.Expression, line, col, ref best);
+                break;
         }
     }
 

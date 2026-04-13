@@ -347,6 +347,26 @@ public sealed class LuaGenerator(Config config)
 
     #endregion
 
+    #region Async Driver Helper
+
+    public string GetAsyncDriverHelper()
+    {
+        var unpackFn = Features.HasTableUnpack ? "table.unpack" : "unpack";
+        return RequireHelper("async_drive", name =>
+            $"local function {name}(co, done) " +
+            $"local function step(...) " +
+            $"local ok, payload = coroutine.resume(co, ...) " +
+            $"if not ok then error(payload) end " +
+            $"if coroutine.status(co) == \"dead\" then if done then done(payload) end return end " +
+            $"local fn = payload[1] local n = payload.n " +
+            $"local args = {{{unpackFn}(payload, 2, n)}} " +
+            $"args[#args + 1] = step " +
+            $"fn({unpackFn}(args)) " +
+            $"end step() end");
+    }
+
+    #endregion
+
     #region Floor Div Helper
 
     public string GetFloorDivHelper()

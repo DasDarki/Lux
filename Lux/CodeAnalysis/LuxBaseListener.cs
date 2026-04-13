@@ -1650,6 +1650,20 @@ public partial class LuxBaseListener : ILuxListener {
 	/// <param name="context">The parse tree.</param>
 	public virtual void ExitLogicalOrExpr([NotNull] LuxParser.LogicalOrExprContext context) { }
 	/// <summary>
+	/// Enter a parse tree produced by the <c>AwaitExpr</c>
+	/// labeled alternative in <see cref="LuxParser.expr"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void EnterAwaitExpr([NotNull] LuxParser.AwaitExprContext context) { }
+	/// <summary>
+	/// Exit a parse tree produced by the <c>AwaitExpr</c>
+	/// labeled alternative in <see cref="LuxParser.expr"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void ExitAwaitExpr([NotNull] LuxParser.AwaitExprContext context) { }
+	/// <summary>
 	/// Enter a parse tree produced by the <c>StringLiteral</c>
 	/// labeled alternative in <see cref="LuxParser.expr"/>.
 	/// <para>The default implementation does nothing.</para>

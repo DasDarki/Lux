@@ -450,6 +450,9 @@ public sealed class DetectUnusedPass() : Pass(PassName, PassScope.PerBuild)
                     TrackExprUsage(pc, pkg, field.Value);
                 }
                 break;
+            case AwaitExpr awaitExpr:
+                TrackExprUsage(pc, pkg, awaitExpr.Expression);
+                break;
             case MatchExpr matchExpr:
                 TrackExprUsage(pc, pkg, matchExpr.Scrutinee);
                 foreach (var arm in matchExpr.Arms)

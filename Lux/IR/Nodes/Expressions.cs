@@ -45,13 +45,15 @@ public sealed class VarargExpr(NodeID id, TextSpan span) : Expr(id, span);
 public sealed class FunctionDefExpr(
     NodeID id, TextSpan span,
     List<Parameter> parameters, TypeRef? returnType,
-    List<Stmt> body, ReturnStmt? returnStmt
+    List<Stmt> body, ReturnStmt? returnStmt,
+    bool isAsync = false
 ) : Expr(id, span)
 {
     public List<Parameter> Parameters { get; } = parameters;
     public TypeRef? ReturnType { get; } = returnType;
     public List<Stmt> Body { get; } = body;
     public ReturnStmt? ReturnStmt { get; } = returnStmt;
+    public bool IsAsync { get; } = isAsync;
 }
 
 public sealed class BinaryExpr(NodeID id, TextSpan span, BinaryOp op, Expr left, Expr right) : Expr(id, span)
@@ -126,6 +128,11 @@ public sealed class TypeCastExpr(NodeID id, TextSpan span, Expr inner, TypeRef t
 {
     public Expr Inner { get; } = inner;
     public TypeRef TargetType { get; } = targetType;
+}
+
+public sealed class AwaitExpr(NodeID id, TextSpan span, Expr expression) : Expr(id, span)
+{
+    public Expr Expression { get; } = expression;
 }
 
 public sealed class TableConstructorExpr(NodeID id, TextSpan span, List<TableField> fields) : Expr(id, span)

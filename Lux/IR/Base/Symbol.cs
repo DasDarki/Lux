@@ -47,6 +47,7 @@ public enum SymbolFlags
     /// can also be optimized away during code generation to reduce the size of the generated code.
     /// </summary>
     Unused = 1 << 4,
+    Async = 1 << 5,
 }
 
 /// <summary>

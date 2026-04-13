@@ -839,6 +839,13 @@ public interface ILuxVisitor<Result> : IParseTreeVisitor<Result> {
 	/// <return>The visitor result.</return>
 	Result VisitLogicalOrExpr([NotNull] LuxParser.LogicalOrExprContext context);
 	/// <summary>
+	/// Visit a parse tree produced by the <c>AwaitExpr</c>
+	/// labeled alternative in <see cref="LuxParser.expr"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitAwaitExpr([NotNull] LuxParser.AwaitExprContext context);
+	/// <summary>
 	/// Visit a parse tree produced by the <c>StringLiteral</c>
 	/// labeled alternative in <see cref="LuxParser.expr"/>.
 	/// </summary>

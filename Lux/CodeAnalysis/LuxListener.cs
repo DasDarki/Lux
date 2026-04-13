@@ -1403,6 +1403,18 @@ public interface ILuxListener : IParseTreeListener {
 	/// <param name="context">The parse tree.</param>
 	void ExitLogicalOrExpr([NotNull] LuxParser.LogicalOrExprContext context);
 	/// <summary>
+	/// Enter a parse tree produced by the <c>AwaitExpr</c>
+	/// labeled alternative in <see cref="LuxParser.expr"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void EnterAwaitExpr([NotNull] LuxParser.AwaitExprContext context);
+	/// <summary>
+	/// Exit a parse tree produced by the <c>AwaitExpr</c>
+	/// labeled alternative in <see cref="LuxParser.expr"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void ExitAwaitExpr([NotNull] LuxParser.AwaitExprContext context);
+	/// <summary>
 	/// Enter a parse tree produced by the <c>StringLiteral</c>
 	/// labeled alternative in <see cref="LuxParser.expr"/>.
 	/// </summary>

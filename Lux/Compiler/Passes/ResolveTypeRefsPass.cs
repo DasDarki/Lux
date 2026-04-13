@@ -396,6 +396,9 @@ public class ResolveTypeRefsPass() : Pass(PassName, PassScope.PerBuild)
                 }
 
                 break;
+            case AwaitExpr awaitExpr:
+                ResolveExprTypes(tt, awaitExpr.Expression);
+                break;
             case MatchExpr matchExpr:
                 ResolveExprTypes(tt, matchExpr.Scrutinee);
                 foreach (var arm in matchExpr.Arms)

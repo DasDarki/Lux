@@ -19,6 +19,7 @@ public sealed class LuaFeatureSet
     public bool HasContinue { get; init; }
     public bool HasConstLocal { get; init; }
     public bool HasCloseLocal { get; init; }
+    public bool HasTableUnpack { get; init; }
 
     public static LuaFeatureSet For(LuaVersion version)
     {
@@ -34,6 +35,7 @@ public sealed class LuaFeatureSet
                 HasContinue = false,
                 HasConstLocal = false,
                 HasCloseLocal = false,
+                HasTableUnpack = false,
             },
             LuaVersion.Lua52 => new LuaFeatureSet
             {
@@ -45,6 +47,7 @@ public sealed class LuaFeatureSet
                 HasContinue = false,
                 HasConstLocal = false,
                 HasCloseLocal = false,
+                HasTableUnpack = true,
             },
             LuaVersion.Lua53 => new LuaFeatureSet
             {
@@ -56,6 +59,7 @@ public sealed class LuaFeatureSet
                 HasContinue = false,
                 HasConstLocal = false,
                 HasCloseLocal = false,
+                HasTableUnpack = true,
             },
             LuaVersion.Lua54 => new LuaFeatureSet
             {
@@ -67,6 +71,7 @@ public sealed class LuaFeatureSet
                 HasContinue = false,
                 HasConstLocal = true,
                 HasCloseLocal = true,
+                HasTableUnpack = true,
             },
             LuaVersion.LuaJIT => new LuaFeatureSet
             {
@@ -78,6 +83,7 @@ public sealed class LuaFeatureSet
                 HasContinue = false,
                 HasConstLocal = false,
                 HasCloseLocal = false,
+                HasTableUnpack = false,
             },
             _ => For(LuaVersion.Lua54)
         };
