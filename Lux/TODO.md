@@ -12,6 +12,9 @@
   - [x] Currently enums are auto filled with keys, but it would be nicer to auto increment the value using ordinal numbers (e.g. `enum Colors { Red, Green, Blue }` would automatically assign `Red = 0`, `Green = 1`, `Blue = 2`)
 - [ ] Generics
 - [x] Classes with inheritance and interfaces
+  - [x] Abstract classes
+  - [x] Override members
+  - [x] Protected local access modifier: maybe just `protected` which will me transformed into like local or something?
 - [ ] Annotations
 - [x] Pattern matching
 - [x] Pre/post increment and decrement operators (`++` and `~~`; `~~` instead of `--` to avoid conflict with Lua comments)
@@ -28,6 +31,7 @@
 - [ ] Extend LSP:
   - [ ] Auto import
   - [ ] Code actions (rename, compile, etc.)
+  - [ ] Auto implement interface and class members
   - [x] Find usages
   - [x] Go to definition
   - [x] CTRL+click on import path opens file

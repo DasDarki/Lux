@@ -226,16 +226,17 @@ enumMember
 // ─────────────────────────────────────────────────────────────────────────────
 
 classDecl
-    : CLASS NAME (EXTENDS NAME)? (IMPLEMENTS NAME (COMMA NAME)*)?
+    : ABSTRACT? CLASS NAME (EXTENDS NAME)? (IMPLEMENTS NAME (COMMA NAME)*)?
       classMember*
       END
     ;
 
 classMember
-    : LOCAL? STATIC? NAME typeAnnotation? (ASSIGN expr)?           # ClassFieldMember
-    | LOCAL? STATIC? ASYNC? FUNCTION NAME funcBody                 # ClassMethodMember
-    | CONSTRUCTOR funcBody                                         # ClassConstructorMember
-    | NAME NAME funcBody                                           # ClassAccessorMember
+    : (LOCAL | PROTECTED)? STATIC? NAME typeAnnotation? (ASSIGN expr)?               # ClassFieldMember
+    | (LOCAL | PROTECTED)? STATIC? OVERRIDE? ASYNC? FUNCTION NAME funcBody           # ClassMethodMember
+    | PROTECTED? ABSTRACT ASYNC? FUNCTION NAME funcSignature                         # ClassAbstractMethodMember
+    | CONSTRUCTOR funcBody                                                            # ClassConstructorMember
+    | OVERRIDE? NAME NAME funcBody                                                    # ClassAccessorMember
     ;
 
 interfaceDecl
@@ -311,7 +312,7 @@ declareBody
     | NAME typeAnnotation                                        # DeclareVariable
     | MODULE str declareModuleBlock END                           # DeclareModule
     | ENUM NAME declareEnumMember+ END                           # DeclareEnum
-    | CLASS NAME (EXTENDS NAME)? (IMPLEMENTS NAME (COMMA NAME)*)?
+    | ABSTRACT? CLASS NAME (EXTENDS NAME)? (IMPLEMENTS NAME (COMMA NAME)*)?
       declareClassMember*
       END                                                        # DeclareClass
     | INTERFACE NAME (EXTENDS NAME (COMMA NAME)*)?
@@ -320,10 +321,10 @@ declareBody
     ;
 
 declareClassMember
-    : LOCAL? STATIC? NAME typeAnnotation?                          # DeclareClassFieldMember
-    | LOCAL? STATIC? ASYNC? FUNCTION NAME funcSignature            # DeclareClassMethodMember
-    | CONSTRUCTOR funcSignature                                     # DeclareClassConstructorMember
-    | NAME NAME funcSignature                                       # DeclareClassAccessorMember
+    : (LOCAL | PROTECTED)? STATIC? NAME typeAnnotation?                              # DeclareClassFieldMember
+    | (LOCAL | PROTECTED)? STATIC? OVERRIDE? ABSTRACT? ASYNC? FUNCTION NAME funcSignature  # DeclareClassMethodMember
+    | CONSTRUCTOR funcSignature                                                       # DeclareClassConstructorMember
+    | NAME NAME funcSignature                                                         # DeclareClassAccessorMember
     ;
 
 // Function signature: params + optional return type. No body.
@@ -362,7 +363,7 @@ declareModuleMember
     : ASYNC? FUNCTION funcName funcSignature                     # ModuleDeclareFunction
     | NAME typeAnnotation                                        # ModuleDeclareVariable
     | ENUM NAME declareEnumMember+ END                           # ModuleDeclareEnum
-    | CLASS NAME (EXTENDS NAME)? (IMPLEMENTS NAME (COMMA NAME)*)?
+    | ABSTRACT? CLASS NAME (EXTENDS NAME)? (IMPLEMENTS NAME (COMMA NAME)*)?
       declareClassMember*
       END                                                        # ModuleDeclareClass
     | INTERFACE NAME (EXTENDS NAME (COMMA NAME)*)?
@@ -783,6 +784,7 @@ MUT      : 'mut';
 WHEN     : 'when';
 ASYNC       : 'async';
 AWAIT       : 'await';
+ABSTRACT    : 'abstract';
 CLASS       : 'class';
 INTERFACE   : 'interface';
 EXTENDS     : 'extends';
@@ -791,6 +793,8 @@ CONSTRUCTOR : 'constructor';
 STATIC      : 'static';
 NEW         : 'new';
 SUPER       : 'super';
+OVERRIDE    : 'override';
+PROTECTED   : 'protected';
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  Operators & Punctuation

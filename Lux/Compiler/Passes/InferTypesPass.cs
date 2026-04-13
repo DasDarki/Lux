@@ -309,6 +309,8 @@ public sealed class InferTypesPass() : Pass(PassName, PassScope.PerFile)
                 : (field.DefaultValue != null ? GetType(pc, field.DefaultValue.Type) : pc.Types.PrimAny);
             if (!field.IsLocal)
                 classType.InstanceFields[field.Name.Name] = new StructType.Field(field.Name, fieldType);
+            if (field.IsProtected)
+                classType.ProtectedMembers.Add(field.Name.Name);
         }
 
         if (cd.Constructor != null)
@@ -329,6 +331,10 @@ public sealed class InferTypesPass() : Pass(PassName, PassScope.PerFile)
         foreach (var method in cd.Methods)
         {
             if (method.IsLocal) continue;
+
+            if (method.IsAbstract && !cd.IsAbstract)
+                pc.Diag.Report(method.Span, Diagnostics.DiagnosticCode.ErrAbstractInNonAbstractClass, method.Name.Name);
+
             if (method.IsAsync) _asyncDepth++;
             var methodParams = new List<Tuple<string, Type>>();
             var isVararg = false;
@@ -351,8 +357,33 @@ public sealed class InferTypesPass() : Pass(PassName, PassScope.PerFile)
             else
                 classType.Methods[method.Name.Name] = (FunctionType)GetType(pc, funcTypId);
 
-            ResolveStmts(pc, method.Body);
-            if (method.ReturnStmt != null) ResolveStmt(pc, method.ReturnStmt);
+            if (method.IsAbstract)
+                classType.AbstractMethods.Add(method.Name.Name);
+
+            if (method.IsProtected)
+                classType.ProtectedMembers.Add(method.Name.Name);
+
+            if (method.IsOverride && classType.BaseClass != null)
+            {
+                if (!ParentHasMethod(classType.BaseClass, method.Name.Name))
+                    pc.Diag.Report(method.Span, Diagnostics.DiagnosticCode.ErrOverrideNoParent, method.Name.Name);
+            }
+            else if (method.IsOverride && classType.BaseClass == null)
+            {
+                pc.Diag.Report(method.Span, Diagnostics.DiagnosticCode.ErrOverrideNoParent, method.Name.Name);
+            }
+
+            if (!method.IsOverride && !method.IsAbstract && classType.BaseClass != null
+                && ParentHasMethod(classType.BaseClass, method.Name.Name))
+            {
+                pc.Diag.Report(method.Span, Diagnostics.DiagnosticCode.WarnMissingShadowOverride, method.Name.Name, classType.BaseClass.Name);
+            }
+
+            if (!method.IsAbstract)
+            {
+                ResolveStmts(pc, method.Body);
+                if (method.ReturnStmt != null) ResolveStmt(pc, method.ReturnStmt);
+            }
             if (method.IsAsync) _asyncDepth--;
         }
 
@@ -373,11 +404,58 @@ public sealed class InferTypesPass() : Pass(PassName, PassScope.PerFile)
             else
                 classType.Setters[accessor.Name.Name] = accFuncTyp;
 
+            if (accessor.IsOverride && classType.BaseClass != null)
+            {
+                var hasParent = accessor.Kind == AccessorKind.Getter
+                    ? ParentHasGetter(classType.BaseClass, accessor.Name.Name)
+                    : ParentHasSetter(classType.BaseClass, accessor.Name.Name);
+                if (!hasParent)
+                    pc.Diag.Report(accessor.Span, Diagnostics.DiagnosticCode.ErrOverrideNoParent, accessor.Name.Name);
+            }
+            else if (accessor.IsOverride && classType.BaseClass == null)
+            {
+                pc.Diag.Report(accessor.Span, Diagnostics.DiagnosticCode.ErrOverrideNoParent, accessor.Name.Name);
+            }
+
             ResolveStmts(pc, accessor.Body);
             if (accessor.ReturnStmt != null) ResolveStmt(pc, accessor.ReturnStmt);
         }
 
         CheckInterfaceImplementation(pc, cd, classType);
+        CheckAbstractImplementation(pc, cd, classType);
+    }
+
+    private static bool ParentHasMethod(ClassType cls, string name)
+    {
+        var cur = cls;
+        while (cur != null)
+        {
+            if (cur.Methods.ContainsKey(name) || cur.AbstractMethods.Contains(name)) return true;
+            cur = cur.BaseClass;
+        }
+        return false;
+    }
+
+    private static bool ParentHasGetter(ClassType cls, string name)
+    {
+        var cur = cls;
+        while (cur != null)
+        {
+            if (cur.Getters.ContainsKey(name)) return true;
+            cur = cur.BaseClass;
+        }
+        return false;
+    }
+
+    private static bool ParentHasSetter(ClassType cls, string name)
+    {
+        var cur = cls;
+        while (cur != null)
+        {
+            if (cur.Setters.ContainsKey(name)) return true;
+            cur = cur.BaseClass;
+        }
+        return false;
     }
 
     private void CheckInterfaceImplementation(PassContext pc, ClassDecl cd, ClassType classType)
@@ -394,6 +472,22 @@ public sealed class InferTypesPass() : Pass(PassName, PassScope.PerFile)
                 if (!classType.InstanceFields.ContainsKey(name))
                     pc.Diag.Report(cd.Span, Diagnostics.DiagnosticCode.ErrMissingInterfaceMember, cd.Name.Name, name, ifaceType.Name);
             }
+        }
+    }
+
+    private void CheckAbstractImplementation(PassContext pc, ClassDecl cd, ClassType classType)
+    {
+        if (cd.IsAbstract || classType.BaseClass == null) return;
+
+        var cur = classType.BaseClass;
+        while (cur != null)
+        {
+            foreach (var abstractMethod in cur.AbstractMethods)
+            {
+                if (!classType.Methods.ContainsKey(abstractMethod))
+                    pc.Diag.Report(cd.Span, Diagnostics.DiagnosticCode.ErrMissingAbstractMember, cd.Name.Name, abstractMethod, cur.Name);
+            }
+            cur = cur.BaseClass;
         }
     }
 
@@ -985,6 +1079,12 @@ public sealed class InferTypesPass() : Pass(PassName, PassScope.PerFile)
             return pc.Types.PrimAny.ID;
         }
 
+        if (classType.IsAbstract)
+        {
+            pc.Diag.Report(newExpr.Span, DiagnosticCode.ErrInstantiateAbstract, newExpr.ClassName.Name);
+            return classTypId;
+        }
+
         if (classType.ConstructorType != null)
         {
             var ctorType = classType.ConstructorType;
@@ -1122,7 +1222,7 @@ public sealed class InferTypesPass() : Pass(PassName, PassScope.PerFile)
             return dot.IsOptional ? MakeNullable(pc, pc.Types.PrimAny.ID) : pc.Types.PrimAny.ID;
         }
 
-        TypID resultType;
+        var resultType = pc.Types.PrimAny.ID;
         switch (baseType)
         {
             case StructType st:
@@ -1154,6 +1254,42 @@ public sealed class InferTypesPass() : Pass(PassName, PassScope.PerFile)
                 resultType = baseTyp;
                 break;
             }
+            case ClassType ct:
+            {
+                var fname = dot.FieldName.Name;
+                if (ct.InstanceFields.TryGetValue(fname, out var field))
+                {
+                    CheckProtectedAccess(pc, dot.FieldName.Span, ct, fname);
+                    resultType = field.Type.ID;
+                }
+                else if (ct.Methods.TryGetValue(fname, out var method))
+                {
+                    CheckProtectedAccess(pc, dot.FieldName.Span, ct, fname);
+                    resultType = method.ID;
+                }
+                else if (ct.Getters.TryGetValue(fname, out var getter))
+                {
+                    resultType = getter.ReturnType.ID;
+                }
+                else if (ct.StaticMethods.TryGetValue(fname, out var staticMethod))
+                {
+                    resultType = staticMethod.ID;
+                }
+                else
+                {
+                    var found = false;
+                    var cur = ct.BaseClass;
+                    while (cur != null && !found)
+                    {
+                        if (cur.InstanceFields.TryGetValue(fname, out var pf)) { resultType = pf.Type.ID; found = true; }
+                        else if (cur.Methods.TryGetValue(fname, out var pm)) { resultType = pm.ID; found = true; }
+                        else if (cur.Getters.TryGetValue(fname, out var pg)) { resultType = pg.ReturnType.ID; found = true; }
+                        cur = cur.BaseClass;
+                    }
+                    if (!found) resultType = pc.Types.PrimAny.ID;
+                }
+                break;
+            }
             case { Kind: TypeKind.PrimitiveAny }:
                 resultType = pc.Types.PrimAny.ID;
                 break;
@@ -1163,6 +1299,18 @@ public sealed class InferTypesPass() : Pass(PassName, PassScope.PerFile)
         }
 
         return dot.IsOptional ? MakeNullable(pc, resultType) : resultType;
+    }
+
+    private void CheckProtectedAccess(PassContext pc, TextSpan span, ClassType classType, string memberName)
+    {
+        if (!classType.ProtectedMembers.Contains(memberName)) return;
+
+        var cur = classType.BaseClass;
+        while (cur != null)
+        {
+            if (cur.ProtectedMembers.Contains(memberName)) break;
+            cur = cur.BaseClass;
+        }
     }
 
     private TypID InferIndexAccess(PassContext pc, IndexAccessExpr idx)

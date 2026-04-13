@@ -104,7 +104,8 @@ public sealed class ClassDecl(
     List<ClassMethodNode> methods,
     ClassConstructorNode? constructor,
     List<ClassAccessorNode> accessors,
-    bool isDeclare = false
+    bool isDeclare = false,
+    bool isAbstract = false
 ) : Decl(id, span)
 {
     public NameRef Name { get; } = name;
@@ -115,6 +116,7 @@ public sealed class ClassDecl(
     public ClassConstructorNode? Constructor { get; } = constructor;
     public List<ClassAccessorNode> Accessors { get; } = accessors;
     public bool IsDeclare { get; } = isDeclare;
+    public bool IsAbstract { get; } = isAbstract;
 }
 
 public sealed class InterfaceDecl(

@@ -183,7 +183,9 @@ public sealed class DeclGenPass() : Pass(PassName, PassScope.PerBuild, true)
 
     private void EmitClassDeclaration(StringBuilder sb, PassContext ctx, PackageContext pkg, ClassDecl cd)
     {
-        sb.Append("    class ");
+        sb.Append("    ");
+        if (cd.IsAbstract) sb.Append("abstract ");
+        sb.Append("class ");
         sb.Append(cd.Name.Name);
         if (cd.BaseClass != null)
         {
@@ -201,6 +203,7 @@ public sealed class DeclGenPass() : Pass(PassName, PassScope.PerBuild, true)
         {
             if (field.IsLocal) continue;
             sb.Append("        ");
+            if (field.IsProtected) sb.Append("protected ");
             if (field.IsStatic) sb.Append("static ");
             sb.Append(field.Name.Name);
             if (field.TypeAnnotation != null)
@@ -222,7 +225,10 @@ public sealed class DeclGenPass() : Pass(PassName, PassScope.PerBuild, true)
         {
             if (method.IsLocal) continue;
             sb.Append("        ");
+            if (method.IsProtected) sb.Append("protected ");
             if (method.IsStatic) sb.Append("static ");
+            if (method.IsOverride) sb.Append("override ");
+            if (method.IsAbstract) sb.Append("abstract ");
             if (method.IsAsync) sb.Append("async ");
             sb.Append("function ");
             sb.Append(method.Name.Name);

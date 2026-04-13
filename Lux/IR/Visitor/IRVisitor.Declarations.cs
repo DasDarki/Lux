@@ -144,11 +144,12 @@ internal partial class IRVisitor
                 {
                     var isLocal = field.LOCAL() != null;
                     var isStatic = field.STATIC() != null;
+                    var isProtected = field.PROTECTED() != null;
                     var fieldName = NameRefFromTerm(field.NAME());
                     TypeRef? typeAnn = field.typeAnnotation() != null
                         ? (TypeRef)Visit(field.typeAnnotation().typeExpr())
                         : null;
-                    fields.Add(new ClassFieldNode(fieldName, typeAnn, null, isLocal, isStatic, SpanFromCtx(field)));
+                    fields.Add(new ClassFieldNode(fieldName, typeAnn, null, isLocal, isStatic, isProtected, SpanFromCtx(field)));
                     break;
                 }
                 case LuxParser.DeclareClassMethodMemberContext method:
@@ -156,9 +157,12 @@ internal partial class IRVisitor
                     var isLocal = method.LOCAL() != null;
                     var isStatic = method.STATIC() != null;
                     var isAsync = method.ASYNC() != null;
+                    var isProtected = method.PROTECTED() != null;
+                    var isOverride = method.OVERRIDE() != null;
+                    var isAbstract = method.ABSTRACT() != null;
                     var methodName = NameRefFromTerm(method.NAME());
                     var (parameters, returnType) = VisitFuncSignatureContent(method.funcSignature());
-                    methods.Add(new ClassMethodNode(methodName, parameters, returnType, [], null, isLocal, isStatic, isAsync, SpanFromCtx(method)));
+                    methods.Add(new ClassMethodNode(methodName, parameters, returnType, [], null, isLocal, isStatic, isAsync, isProtected, isOverride, isAbstract, SpanFromCtx(method)));
                     break;
                 }
                 case LuxParser.DeclareClassConstructorMemberContext ctor:
@@ -173,13 +177,14 @@ internal partial class IRVisitor
                     var propName = NameRefFromTerm(accessor.NAME(1));
                     var kind = kindName == "get" ? AccessorKind.Getter : AccessorKind.Setter;
                     var (parameters, returnType) = VisitFuncSignatureContent(accessor.funcSignature());
-                    accessors.Add(new ClassAccessorNode(kind, propName, parameters, returnType, [], null, SpanFromCtx(accessor)));
+                    accessors.Add(new ClassAccessorNode(kind, propName, parameters, returnType, [], null, false, SpanFromCtx(accessor)));
                     break;
                 }
             }
         }
 
-        return new ClassDecl(NewNodeID, SpanFromCtx(context), name, baseClass, interfaces, fields, methods, constructor, accessors, isDeclare: true);
+        var isClassAbstract = context.ABSTRACT() != null;
+        return new ClassDecl(NewNodeID, SpanFromCtx(context), name, baseClass, interfaces, fields, methods, constructor, accessors, isDeclare: true, isAbstract: isClassAbstract);
     }
 
     public override Node VisitDeclareInterface(LuxParser.DeclareInterfaceContext context)
@@ -256,11 +261,12 @@ internal partial class IRVisitor
                 {
                     var isLocal = field.LOCAL() != null;
                     var isStatic = field.STATIC() != null;
+                    var isProtected = field.PROTECTED() != null;
                     var fieldName = NameRefFromTerm(field.NAME());
                     TypeRef? typeAnn = field.typeAnnotation() != null
                         ? (TypeRef)Visit(field.typeAnnotation().typeExpr())
                         : null;
-                    fields.Add(new ClassFieldNode(fieldName, typeAnn, null, isLocal, isStatic, SpanFromCtx(field)));
+                    fields.Add(new ClassFieldNode(fieldName, typeAnn, null, isLocal, isStatic, isProtected, SpanFromCtx(field)));
                     break;
                 }
                 case LuxParser.DeclareClassMethodMemberContext method:
@@ -268,9 +274,12 @@ internal partial class IRVisitor
                     var isLocal = method.LOCAL() != null;
                     var isStatic = method.STATIC() != null;
                     var isAsync = method.ASYNC() != null;
+                    var isProtected = method.PROTECTED() != null;
+                    var isOverride = method.OVERRIDE() != null;
+                    var isAbstract = method.ABSTRACT() != null;
                     var methodName = NameRefFromTerm(method.NAME());
                     var (parameters, returnType) = VisitFuncSignatureContent(method.funcSignature());
-                    methods.Add(new ClassMethodNode(methodName, parameters, returnType, [], null, isLocal, isStatic, isAsync, SpanFromCtx(method)));
+                    methods.Add(new ClassMethodNode(methodName, parameters, returnType, [], null, isLocal, isStatic, isAsync, isProtected, isOverride, isAbstract, SpanFromCtx(method)));
                     break;
                 }
                 case LuxParser.DeclareClassConstructorMemberContext ctor:
@@ -285,13 +294,14 @@ internal partial class IRVisitor
                     var propName = NameRefFromTerm(accessor.NAME(1));
                     var kind = kindName == "get" ? AccessorKind.Getter : AccessorKind.Setter;
                     var (parameters, returnType) = VisitFuncSignatureContent(accessor.funcSignature());
-                    accessors.Add(new ClassAccessorNode(kind, propName, parameters, returnType, [], null, SpanFromCtx(accessor)));
+                    accessors.Add(new ClassAccessorNode(kind, propName, parameters, returnType, [], null, false, SpanFromCtx(accessor)));
                     break;
                 }
             }
         }
 
-        return new ClassDecl(NewNodeID, SpanFromCtx(context), name, baseClass, interfaces, fields, methods, constructor, accessors, isDeclare: true);
+        var isClassAbstract = context.ABSTRACT() != null;
+        return new ClassDecl(NewNodeID, SpanFromCtx(context), name, baseClass, interfaces, fields, methods, constructor, accessors, isDeclare: true, isAbstract: isClassAbstract);
     }
 
     public override Node VisitModuleDeclareInterface(LuxParser.ModuleDeclareInterfaceContext context)
@@ -368,12 +378,13 @@ internal partial class IRVisitor
                 {
                     var isLocal = field.LOCAL() != null;
                     var isStatic = field.STATIC() != null;
+                    var isProtected = field.PROTECTED() != null;
                     var fieldName = NameRefFromTerm(field.NAME());
                     TypeRef? typeAnn = field.typeAnnotation() != null
                         ? (TypeRef)Visit(field.typeAnnotation().typeExpr())
                         : null;
                     Expr? defaultValue = field.expr() != null ? (Expr)Visit(field.expr()) : null;
-                    fields.Add(new ClassFieldNode(fieldName, typeAnn, defaultValue, isLocal, isStatic, SpanFromCtx(field)));
+                    fields.Add(new ClassFieldNode(fieldName, typeAnn, defaultValue, isLocal, isStatic, isProtected, SpanFromCtx(field)));
                     break;
                 }
                 case LuxParser.ClassMethodMemberContext method:
@@ -381,9 +392,20 @@ internal partial class IRVisitor
                     var isLocal = method.LOCAL() != null;
                     var isStatic = method.STATIC() != null;
                     var isAsync = method.ASYNC() != null;
+                    var isProtected = method.PROTECTED() != null;
+                    var isOverride = method.OVERRIDE() != null;
                     var methodName = NameRefFromTerm(method.NAME());
                     var (parameters, returnType, body, ret) = VisitFuncBodyContent(method.funcBody());
-                    methods.Add(new ClassMethodNode(methodName, parameters, returnType, body, ret, isLocal, isStatic, isAsync, SpanFromCtx(method)));
+                    methods.Add(new ClassMethodNode(methodName, parameters, returnType, body, ret, isLocal, isStatic, isAsync, isProtected, isOverride, false, SpanFromCtx(method)));
+                    break;
+                }
+                case LuxParser.ClassAbstractMethodMemberContext absMethod:
+                {
+                    var isProtected = absMethod.PROTECTED() != null;
+                    var isAsync = absMethod.ASYNC() != null;
+                    var methodName = NameRefFromTerm(absMethod.NAME());
+                    var (parameters, returnType) = VisitFuncSignatureContent(absMethod.funcSignature());
+                    methods.Add(new ClassMethodNode(methodName, parameters, returnType, [], null, false, false, isAsync, isProtected, false, true, SpanFromCtx(absMethod)));
                     break;
                 }
                 case LuxParser.ClassConstructorMemberContext ctor:
@@ -394,17 +416,19 @@ internal partial class IRVisitor
                 }
                 case LuxParser.ClassAccessorMemberContext accessor:
                 {
+                    var isOverride = accessor.OVERRIDE() != null;
                     var kindName = accessor.NAME(0).GetText();
                     var propName = NameRefFromTerm(accessor.NAME(1));
                     var kind = kindName == "get" ? AccessorKind.Getter : AccessorKind.Setter;
                     var (parameters, returnType, body, ret) = VisitFuncBodyContent(accessor.funcBody());
-                    accessors.Add(new ClassAccessorNode(kind, propName, parameters, returnType, body, ret, SpanFromCtx(accessor)));
+                    accessors.Add(new ClassAccessorNode(kind, propName, parameters, returnType, body, ret, isOverride, SpanFromCtx(accessor)));
                     break;
                 }
             }
         }
 
-        return new ClassDecl(NewNodeID, SpanFromCtx(context), name, baseClass, interfaces, fields, methods, constructor, accessors);
+        var isClassAbstract = context.ABSTRACT() != null;
+        return new ClassDecl(NewNodeID, SpanFromCtx(context), name, baseClass, interfaces, fields, methods, constructor, accessors, isAbstract: isClassAbstract);
     }
 
     public override Node VisitInterfaceDecl(LuxParser.InterfaceDeclContext context)

@@ -306,18 +306,22 @@ public sealed class EnumType(string name, IEnumerable<EnumType.Member> members, 
 public sealed class ClassType(
     string name,
     ClassType? baseClass,
-    List<InterfaceType> interfaces
+    List<InterfaceType> interfaces,
+    bool isAbstract = false
 ) : Type(TypeKind.Class)
 {
     public string Name { get; } = name;
     public ClassType? BaseClass { get; set; } = baseClass;
     public List<InterfaceType> Interfaces { get; } = interfaces;
+    public bool IsAbstract { get; } = isAbstract;
     public Dictionary<string, StructType.Field> InstanceFields { get; } = new();
     public Dictionary<string, FunctionType> Methods { get; } = new();
     public Dictionary<string, FunctionType> StaticMethods { get; } = new();
     public Dictionary<string, FunctionType> Getters { get; } = new();
     public Dictionary<string, FunctionType> Setters { get; } = new();
     public FunctionType? ConstructorType { get; set; }
+    public HashSet<string> AbstractMethods { get; } = new();
+    public HashSet<string> ProtectedMembers { get; } = new();
 
     protected override TypeKey GenerateNewKey()
     {
@@ -560,9 +564,9 @@ public sealed class TypeTable
         return (EnumType)DeclareType(enumType);
     }
 
-    public ClassType ClassOf(string name, ClassType? baseClass = null, List<InterfaceType>? interfaces = null)
+    public ClassType ClassOf(string name, ClassType? baseClass = null, List<InterfaceType>? interfaces = null, bool isAbstract = false)
     {
-        var classType = new ClassType(name, baseClass, interfaces ?? []);
+        var classType = new ClassType(name, baseClass, interfaces ?? [], isAbstract);
         return (ClassType)DeclareType(classType);
     }
 

@@ -249,5 +249,35 @@ public enum DiagnosticCode
     [Format("Derived class '{0}' constructor must call 'super()'")]
     ErrMissingSuperCall = 0x400C,
 
+    [Level(DiagnosticLevel.Error)]
+    [Category(DiagnosticCategory.Semantic)]
+    [Format("Cannot instantiate abstract class '{0}'")]
+    ErrInstantiateAbstract = 0x400D,
+
+    [Level(DiagnosticLevel.Error)]
+    [Category(DiagnosticCategory.Semantic)]
+    [Format("Non-abstract class '{0}' must implement abstract method '{1}' from '{2}'")]
+    ErrMissingAbstractMember = 0x400E,
+
+    [Level(DiagnosticLevel.Error)]
+    [Category(DiagnosticCategory.Semantic)]
+    [Format("Abstract method '{0}' can only be declared in an abstract class")]
+    ErrAbstractInNonAbstractClass = 0x400F,
+
+    [Level(DiagnosticLevel.Error)]
+    [Category(DiagnosticCategory.Semantic)]
+    [Format("Method '{0}' is marked 'override' but no matching method exists in parent class")]
+    ErrOverrideNoParent = 0x4010,
+
+    [Level(DiagnosticLevel.Error)]
+    [Category(DiagnosticCategory.Semantic)]
+    [Format("Cannot access protected member '{0}' of class '{1}' from outside the class hierarchy")]
+    ErrProtectedAccess = 0x4011,
+
+    [Level(DiagnosticLevel.Warning)]
+    [Category(DiagnosticCategory.Semantic)]
+    [Format("Method '{0}' shadows a method in parent class '{1}'; use 'override' to indicate this is intentional")]
+    WarnMissingShadowOverride = 0x4012,
+
     #endregion
 }

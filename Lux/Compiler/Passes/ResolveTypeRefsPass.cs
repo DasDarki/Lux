@@ -88,7 +88,7 @@ public class ResolveTypeRefsPass() : Pass(PassName, PassScope.PerBuild)
         if (!pkg.Syms.GetByID(decl.Name.Sym, out var sym)) return;
         if (sym.Type != TypID.Invalid) return;
 
-        var classType = pkg.Types.ClassOf(decl.Name.Name);
+        var classType = pkg.Types.ClassOf(decl.Name.Name, isAbstract: decl.IsAbstract);
         pkg.Syms.SetType(decl.Name.Sym, classType.ID);
     }
 

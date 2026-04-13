@@ -470,7 +470,18 @@ public sealed class CodegenPass() : Pass(PassName, PassScope.PerBuild, true)
             gen.Write(")");
             gen.NewLine();
             gen.Indent();
-            EmitFuncBodyContent(ctx, pkg, gen, method.Parameters, method.Body, method.ReturnStmt, method.IsAsync);
+            if (method.IsAbstract)
+            {
+                gen.Write("error(\"Abstract method '");
+                gen.Write(method.Name.Name);
+                gen.Write("' must be implemented\")");
+                gen.NewLine();
+                gen.WriteSemicolon();
+            }
+            else
+            {
+                EmitFuncBodyContent(ctx, pkg, gen, method.Parameters, method.Body, method.ReturnStmt, method.IsAsync);
+            }
             gen.Dedent();
             gen.WriteLine("end");
             gen.WriteSemicolon();
