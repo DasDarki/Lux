@@ -311,6 +311,19 @@ declareBody
     | NAME typeAnnotation                                        # DeclareVariable
     | MODULE str declareModuleBlock END                           # DeclareModule
     | ENUM NAME declareEnumMember+ END                           # DeclareEnum
+    | CLASS NAME (EXTENDS NAME)? (IMPLEMENTS NAME (COMMA NAME)*)?
+      declareClassMember*
+      END                                                        # DeclareClass
+    | INTERFACE NAME (EXTENDS NAME (COMMA NAME)*)?
+      interfaceMember*
+      END                                                        # DeclareInterface
+    ;
+
+declareClassMember
+    : LOCAL? STATIC? NAME typeAnnotation?                          # DeclareClassFieldMember
+    | LOCAL? STATIC? ASYNC? FUNCTION NAME funcSignature            # DeclareClassMethodMember
+    | CONSTRUCTOR funcSignature                                     # DeclareClassConstructorMember
+    | NAME NAME funcSignature                                       # DeclareClassAccessorMember
     ;
 
 // Function signature: params + optional return type. No body.
@@ -349,6 +362,12 @@ declareModuleMember
     : ASYNC? FUNCTION funcName funcSignature                     # ModuleDeclareFunction
     | NAME typeAnnotation                                        # ModuleDeclareVariable
     | ENUM NAME declareEnumMember+ END                           # ModuleDeclareEnum
+    | CLASS NAME (EXTENDS NAME)? (IMPLEMENTS NAME (COMMA NAME)*)?
+      declareClassMember*
+      END                                                        # ModuleDeclareClass
+    | INTERFACE NAME (EXTENDS NAME (COMMA NAME)*)?
+      interfaceMember*
+      END                                                        # ModuleDeclareInterface
     ;
 
 // ─────────────────────────────────────────────────────────────────────────────

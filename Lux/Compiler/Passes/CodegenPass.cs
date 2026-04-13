@@ -243,7 +243,8 @@ public sealed class CodegenPass() : Pass(PassName, PassScope.PerBuild, true)
                     EmitEnumDecl(ctx, pkg, gen, ed);
                 break;
             case ClassDecl cd:
-                EmitClassDecl(ctx, pkg, gen, cd);
+                if (!cd.IsDeclare)
+                    EmitClassDecl(ctx, pkg, gen, cd);
                 break;
             case InterfaceDecl:
                 break;

@@ -539,6 +539,48 @@ public interface ILuxVisitor<Result> : IParseTreeVisitor<Result> {
 	/// <return>The visitor result.</return>
 	Result VisitDeclareEnum([NotNull] LuxParser.DeclareEnumContext context);
 	/// <summary>
+	/// Visit a parse tree produced by the <c>DeclareClass</c>
+	/// labeled alternative in <see cref="LuxParser.declareBody"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitDeclareClass([NotNull] LuxParser.DeclareClassContext context);
+	/// <summary>
+	/// Visit a parse tree produced by the <c>DeclareInterface</c>
+	/// labeled alternative in <see cref="LuxParser.declareBody"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitDeclareInterface([NotNull] LuxParser.DeclareInterfaceContext context);
+	/// <summary>
+	/// Visit a parse tree produced by the <c>DeclareClassFieldMember</c>
+	/// labeled alternative in <see cref="LuxParser.declareClassMember"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitDeclareClassFieldMember([NotNull] LuxParser.DeclareClassFieldMemberContext context);
+	/// <summary>
+	/// Visit a parse tree produced by the <c>DeclareClassMethodMember</c>
+	/// labeled alternative in <see cref="LuxParser.declareClassMember"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitDeclareClassMethodMember([NotNull] LuxParser.DeclareClassMethodMemberContext context);
+	/// <summary>
+	/// Visit a parse tree produced by the <c>DeclareClassConstructorMember</c>
+	/// labeled alternative in <see cref="LuxParser.declareClassMember"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitDeclareClassConstructorMember([NotNull] LuxParser.DeclareClassConstructorMemberContext context);
+	/// <summary>
+	/// Visit a parse tree produced by the <c>DeclareClassAccessorMember</c>
+	/// labeled alternative in <see cref="LuxParser.declareClassMember"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitDeclareClassAccessorMember([NotNull] LuxParser.DeclareClassAccessorMemberContext context);
+	/// <summary>
 	/// Visit a parse tree produced by <see cref="LuxParser.funcSignature"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
@@ -577,6 +619,20 @@ public interface ILuxVisitor<Result> : IParseTreeVisitor<Result> {
 	/// <param name="context">The parse tree.</param>
 	/// <return>The visitor result.</return>
 	Result VisitModuleDeclareEnum([NotNull] LuxParser.ModuleDeclareEnumContext context);
+	/// <summary>
+	/// Visit a parse tree produced by the <c>ModuleDeclareClass</c>
+	/// labeled alternative in <see cref="LuxParser.declareModuleMember"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitModuleDeclareClass([NotNull] LuxParser.ModuleDeclareClassContext context);
+	/// <summary>
+	/// Visit a parse tree produced by the <c>ModuleDeclareInterface</c>
+	/// labeled alternative in <see cref="LuxParser.declareModuleMember"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitModuleDeclareInterface([NotNull] LuxParser.ModuleDeclareInterfaceContext context);
 	/// <summary>
 	/// Visit a parse tree produced by <see cref="LuxParser.funcName"/>.
 	/// </summary>

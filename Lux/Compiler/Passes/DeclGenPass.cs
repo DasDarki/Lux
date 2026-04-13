@@ -84,6 +84,12 @@ public sealed class DeclGenPass() : Pass(PassName, PassScope.PerBuild, true)
                 case EnumDecl ed:
                     exports.Add(new ExportedSymbol(ed.Name.Name, ed.Name, ed));
                     break;
+                case ClassDecl cd:
+                    exports.Add(new ExportedSymbol(cd.Name.Name, cd.Name, cd));
+                    break;
+                case InterfaceDecl ifd:
+                    exports.Add(new ExportedSymbol(ifd.Name.Name, ifd.Name, ifd));
+                    break;
             }
         }
 
@@ -110,6 +116,12 @@ public sealed class DeclGenPass() : Pass(PassName, PassScope.PerBuild, true)
                     break;
                 case EnumDecl ed:
                     EmitEnumDeclaration(sb, ctx, pkg, ed);
+                    break;
+                case ClassDecl cd:
+                    EmitClassDeclaration(sb, ctx, pkg, cd);
+                    break;
+                case InterfaceDecl ifd:
+                    EmitInterfaceDeclaration(sb, ctx, pkg, ifd);
                     break;
             }
         }
@@ -169,6 +181,111 @@ public sealed class DeclGenPass() : Pass(PassName, PassScope.PerBuild, true)
         sb.AppendLine(FormatSymType(ctx, pkg, nameRef));
     }
 
+    private void EmitClassDeclaration(StringBuilder sb, PassContext ctx, PackageContext pkg, ClassDecl cd)
+    {
+        sb.Append("    class ");
+        sb.Append(cd.Name.Name);
+        if (cd.BaseClass != null)
+        {
+            sb.Append(" extends ");
+            sb.Append(cd.BaseClass.Name);
+        }
+        if (cd.Interfaces.Count > 0)
+        {
+            sb.Append(" implements ");
+            sb.Append(string.Join(", ", cd.Interfaces.Select(i => i.Name)));
+        }
+        sb.AppendLine();
+
+        foreach (var field in cd.Fields)
+        {
+            if (field.IsLocal) continue;
+            sb.Append("        ");
+            if (field.IsStatic) sb.Append("static ");
+            sb.Append(field.Name.Name);
+            if (field.TypeAnnotation != null)
+            {
+                sb.Append(": ");
+                sb.Append(FormatSymType(ctx, pkg, field.Name));
+            }
+            sb.AppendLine();
+        }
+
+        if (cd.Constructor != null)
+        {
+            sb.Append("        constructor(");
+            EmitParams(sb, ctx, pkg, cd.Constructor.Parameters);
+            sb.AppendLine(")");
+        }
+
+        foreach (var method in cd.Methods)
+        {
+            if (method.IsLocal) continue;
+            sb.Append("        ");
+            if (method.IsStatic) sb.Append("static ");
+            if (method.IsAsync) sb.Append("async ");
+            sb.Append("function ");
+            sb.Append(method.Name.Name);
+            sb.Append('(');
+            EmitParams(sb, ctx, pkg, method.Parameters);
+            sb.Append(')');
+            EmitReturnType(sb, ctx, pkg, method.Name);
+            sb.AppendLine();
+        }
+
+        foreach (var accessor in cd.Accessors)
+        {
+            sb.Append("        ");
+            sb.Append(accessor.Kind == AccessorKind.Getter ? "get" : "set");
+            sb.Append(' ');
+            sb.Append(accessor.Name.Name);
+            sb.Append('(');
+            EmitParams(sb, ctx, pkg, accessor.Parameters);
+            sb.Append(')');
+            if (accessor.ReturnType != null)
+                EmitReturnType(sb, ctx, pkg, accessor.Name);
+            sb.AppendLine();
+        }
+
+        sb.AppendLine("    end");
+    }
+
+    private void EmitInterfaceDeclaration(StringBuilder sb, PassContext ctx, PackageContext pkg, InterfaceDecl ifd)
+    {
+        sb.Append("    interface ");
+        sb.Append(ifd.Name.Name);
+        if (ifd.BaseInterfaces.Count > 0)
+        {
+            sb.Append(" extends ");
+            sb.Append(string.Join(", ", ifd.BaseInterfaces.Select(i => i.Name)));
+        }
+        sb.AppendLine();
+
+        foreach (var field in ifd.Fields)
+        {
+            sb.Append("        ");
+            sb.Append(field.Name.Name);
+            sb.Append(": ");
+            sb.Append(FormatSymType(ctx, pkg, field.Name));
+            sb.AppendLine();
+        }
+
+        foreach (var method in ifd.Methods)
+        {
+            sb.Append("        ");
+            if (method.IsAsync) sb.Append("async ");
+            sb.Append("function ");
+            sb.Append(method.Name.Name);
+            sb.Append('(');
+            EmitParams(sb, ctx, pkg, method.Parameters);
+            sb.Append(')');
+            EmitReturnType(sb, ctx, pkg, method.Name);
+            sb.AppendLine();
+        }
+
+        sb.AppendLine("    end");
+    }
+
     private void EmitParams(StringBuilder sb, PassContext ctx, PackageContext pkg, List<Parameter> parameters)
     {
         for (var i = 0; i < parameters.Count; i++)
@@ -226,6 +343,9 @@ public sealed class DeclGenPass() : Pass(PassName, PassScope.PerBuild, true)
             UnionType union => string.Join(" | ", union.Types.Select(t => FormatType(ctx, t))),
             StructType st => $"{{ {string.Join(", ", st.Fields.Select(f => $"{f.Name.Name}: {FormatType(ctx, f.Type)}"))} }}",
             TupleType tuple => $"({string.Join(", ", tuple.Fields.Select(f => FormatType(ctx, f.Type)))})",
+            ClassType ct => ct.Name,
+            InterfaceType it => it.Name,
+            EnumType et => et.Name,
             _ => typ.Kind switch
             {
                 TypeKind.PrimitiveNil => "nil",

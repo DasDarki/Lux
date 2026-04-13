@@ -71,6 +71,13 @@ public class ResolveTypeRefsPass() : Pass(PassName, PassScope.PerBuild)
                     if (es.Declaration is ClassDecl cd2) DeclareClassType(pkg, cd2);
                     else if (es.Declaration is InterfaceDecl id2) DeclareInterfaceType(pkg, id2);
                     break;
+                case DeclareModuleDecl dmd:
+                    foreach (var member in dmd.Members)
+                    {
+                        if (member is ClassDecl cd3) DeclareClassType(pkg, cd3);
+                        else if (member is InterfaceDecl id3) DeclareInterfaceType(pkg, id3);
+                    }
+                    break;
             }
         }
     }

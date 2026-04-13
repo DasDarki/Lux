@@ -103,7 +103,8 @@ public sealed class ClassDecl(
     List<ClassFieldNode> fields,
     List<ClassMethodNode> methods,
     ClassConstructorNode? constructor,
-    List<ClassAccessorNode> accessors
+    List<ClassAccessorNode> accessors,
+    bool isDeclare = false
 ) : Decl(id, span)
 {
     public NameRef Name { get; } = name;
@@ -113,17 +114,20 @@ public sealed class ClassDecl(
     public List<ClassMethodNode> Methods { get; } = methods;
     public ClassConstructorNode? Constructor { get; } = constructor;
     public List<ClassAccessorNode> Accessors { get; } = accessors;
+    public bool IsDeclare { get; } = isDeclare;
 }
 
 public sealed class InterfaceDecl(
     NodeID id, TextSpan span,
     NameRef name, List<NameRef> baseInterfaces,
     List<InterfaceFieldNode> fields,
-    List<InterfaceMethodNode> methods
+    List<InterfaceMethodNode> methods,
+    bool isDeclare = false
 ) : Decl(id, span)
 {
     public NameRef Name { get; } = name;
     public List<NameRef> BaseInterfaces { get; } = baseInterfaces;
     public List<InterfaceFieldNode> Fields { get; } = fields;
     public List<InterfaceMethodNode> Methods { get; } = methods;
+    public bool IsDeclare { get; } = isDeclare;
 }

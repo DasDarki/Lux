@@ -8,10 +8,10 @@
 - [x] Expression Type checking and operator overloading (meta table functions; declarations in .d.lux files) to allow non string and non number types to be used with operators (e.g. `+` for string concatenation, `*` for array repetition, etc.)
 - [x] Type check expression and type casting
 - [x] Function overloading and default parameters
-- [x] Enums
+- [x] Enumss
   - [x] Currently enums are auto filled with keys, but it would be nicer to auto increment the value using ordinal numbers (e.g. `enum Colors { Red, Green, Blue }` would automatically assign `Red = 0`, `Green = 1`, `Blue = 2`)
 - [ ] Generics
-- [ ] Classes with inheritance and interfaces
+- [x] Classes with inheritance and interfaces
 - [ ] Annotations
 - [x] Pattern matching
 - [x] Pre/post increment and decrement operators (`++` and `~~`; `~~` instead of `--` to avoid conflict with Lua comments)
