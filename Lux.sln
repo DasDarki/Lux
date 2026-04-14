@@ -1,6 +1,6 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Lux", "Lux\Lux.csproj", "{3BD622A7-B886-482C-A74E-ACBE5FAB11CE}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Lux", "compiler\Lux.csproj", "{3BD622A7-B886-482C-A74E-ACBE5FAB11CE}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
