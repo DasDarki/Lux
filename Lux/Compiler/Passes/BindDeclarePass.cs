@@ -265,6 +265,7 @@ public sealed class BindDeclarePass() : Pass(PassName, PassScope.PerFile)
 
                 var funcScope = pkg.Scopes.NewScope(scope);
                 pkg.Scopes.BindNode(funcDecl.ID, funcScope);
+                DeclareTypeParams(ctx, funcScope, funcDecl.TypeParams);
                 foreach (var param in funcDecl.Parameters)
                 {
                     pkg.Scopes.BindNode(param.ID, funcScope);
@@ -302,6 +303,7 @@ public sealed class BindDeclarePass() : Pass(PassName, PassScope.PerFile)
 
                 var localFuncScope = pkg.Scopes.NewScope(scope);
                 pkg.Scopes.BindNode(localFuncDecl.ID, localFuncScope);
+                DeclareTypeParams(ctx, localFuncScope, localFuncDecl.TypeParams);
                 foreach (var param in localFuncDecl.Parameters)
                 {
                     pkg.Scopes.BindNode(param.ID, localFuncScope);
@@ -378,6 +380,7 @@ public sealed class BindDeclarePass() : Pass(PassName, PassScope.PerFile)
 
                 var declareFuncScope = pkg.Scopes.NewScope(scope);
                 pkg.Scopes.BindNode(declareFuncDecl.ID, declareFuncScope);
+                DeclareTypeParams(ctx, declareFuncScope, declareFuncDecl.TypeParams);
                 foreach (var param in declareFuncDecl.Parameters)
                 {
                     pkg.Scopes.BindNode(param.ID, declareFuncScope);
@@ -431,6 +434,7 @@ public sealed class BindDeclarePass() : Pass(PassName, PassScope.PerFile)
                 DeclareSymbol(ctx, scope, classDecl.Name.Name, SymbolKind.Class, classDecl.ID);
                 var classScope = pkg.Scopes.NewScope(scope);
                 pkg.Scopes.BindNode(classDecl.ID, classScope);
+                DeclareTypeParams(ctx, classScope, classDecl.TypeParams);
 
                 if (classDecl.Constructor != null)
                 {
@@ -453,6 +457,7 @@ public sealed class BindDeclarePass() : Pass(PassName, PassScope.PerFile)
                 {
                     if (method.IsLocal) continue;
                     var methodScope = pkg.Scopes.NewScope(classScope);
+                    DeclareTypeParams(ctx, methodScope, method.TypeParams);
                     if (!method.IsStatic)
                         DeclareSymbol(ctx, methodScope, "self", SymbolKind.Variable, classDecl.ID);
                     foreach (var param in method.Parameters)
@@ -494,7 +499,9 @@ public sealed class BindDeclarePass() : Pass(PassName, PassScope.PerFile)
             case InterfaceDecl interfaceDecl:
             {
                 DeclareSymbol(ctx, scope, interfaceDecl.Name.Name, SymbolKind.Interface, interfaceDecl.ID);
-                pkg.Scopes.BindNode(interfaceDecl.ID, scope);
+                var ifaceScope = pkg.Scopes.NewScope(scope);
+                pkg.Scopes.BindNode(interfaceDecl.ID, ifaceScope);
+                DeclareTypeParams(ctx, ifaceScope, interfaceDecl.TypeParams);
                 return true;
             }
 
@@ -681,5 +688,20 @@ public sealed class BindDeclarePass() : Pass(PassName, PassScope.PerFile)
         var pkg = ctx.Pkg!;
         var symId = pkg.Syms.NewSymbol(kind, name, scope, TypID.Invalid, decl, flags);
         pkg.Scopes.DeclareSymbol(scope, name, symId, pkg.Syms);
+    }
+
+    private static void DeclareTypeParams(PassContext ctx, ScopeID scope, List<TypeParamDef> typeParams)
+    {
+        if (typeParams.Count == 0) return;
+        var seen = new HashSet<string>();
+        foreach (var tp in typeParams)
+        {
+            if (!seen.Add(tp.Name.Name))
+            {
+                ctx.Diag.Report(tp.Span, Lux.Diagnostics.DiagnosticCode.ErrDuplicateTypeParam, tp.Name.Name);
+                continue;
+            }
+            DeclareSymbol(ctx, scope, tp.Name.Name, SymbolKind.TypeParam, tp.ID);
+        }
     }
 }

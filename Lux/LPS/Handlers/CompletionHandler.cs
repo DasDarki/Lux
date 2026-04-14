@@ -68,6 +68,7 @@ public sealed class CompletionHandler(LuxWorkspace workspace) : CompletionHandle
                     LuxSymbolKind.Enum => CompletionItemKind.Enum,
                     LuxSymbolKind.Class => CompletionItemKind.Class,
                     LuxSymbolKind.Interface => CompletionItemKind.Interface,
+                    LuxSymbolKind.TypeParam => CompletionItemKind.TypeParameter,
                     _ => CompletionItemKind.Variable
                 };
                 items.Add(new CompletionItem

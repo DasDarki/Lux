@@ -182,8 +182,27 @@ internal partial class IRVisitor
         => new TypeOfExpr(NewNodeID, SpanFromCtx(context), (Expr)Visit(context.expr()));
 
     public override Node VisitInstanceOfExpr(LuxParser.InstanceOfExprContext context)
-        => new InstanceOfExpr(NewNodeID, SpanFromCtx(context),
-            (Expr)Visit(context.expr()), NameRefFromTerm(context.NAME()));
+    {
+        var typeRef = (TypeRef)Visit(context.typeAtom());
+        NameRef className;
+        switch (typeRef)
+        {
+            case NamedTypeRef nt:
+                className = nt.Name;
+                break;
+            case GenericTypeRef gt:
+                className = gt.Name;
+                break;
+            default:
+                diag.Report(SpanFromCtx(context.typeAtom()), DiagnosticCode.ErrInstanceOfNonClass, typeRef.GetType().Name);
+                className = NameRefFromText("<error>", SpanFromCtx(context.typeAtom()));
+                break;
+        }
+        var inner = (Expr)Visit(context.expr());
+        var expr = new InstanceOfExpr(NewNodeID, SpanFromCtx(context), inner, className);
+        expr.TargetType = typeRef;
+        return expr;
+    }
 
     #endregion
 
@@ -370,7 +389,10 @@ internal partial class IRVisitor
     {
         var (parameters, returnType, body, ret) = VisitFuncBodyContent(context.funcBody());
         var isAsync = context.ASYNC() != null;
-        return new FunctionDefExpr(NewNodeID, SpanFromCtx(context), parameters, returnType, body, ret, isAsync);
+        var typeParams = VisitTypeParamListContent(context.funcBody().typeParamList());
+        var expr = new FunctionDefExpr(NewNodeID, SpanFromCtx(context), parameters, returnType, body, ret, isAsync);
+        expr.TypeParams = typeParams;
+        return expr;
     }
 
     public override Node VisitAwaitExpr(LuxParser.AwaitExprContext context)

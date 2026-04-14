@@ -279,5 +279,52 @@ public enum DiagnosticCode
     [Format("Method '{0}' shadows a method in parent class '{1}'; use 'override' to indicate this is intentional")]
     WarnMissingShadowOverride = 0x4012,
 
+    // ─── Generics ───
+
+    [Level(DiagnosticLevel.Error)]
+    [Category(DiagnosticCategory.Type)]
+    [Format("Primitive type '{0}' cannot take generic type arguments")]
+    ErrGenericOnPrimitive = 0x4020,
+
+    [Level(DiagnosticLevel.Error)]
+    [Category(DiagnosticCategory.Type)]
+    [Format("Type '{0}' expects {1} type argument(s), but got {2}")]
+    ErrTypeParamArityMismatch = 0x4021,
+
+    [Level(DiagnosticLevel.Error)]
+    [Category(DiagnosticCategory.Type)]
+    [Format("Type argument '{0}' does not satisfy the constraint '{1}' of type parameter '{2}'")]
+    ErrTypeParamBoundViolation = 0x4022,
+
+    [Level(DiagnosticLevel.Error)]
+    [Category(DiagnosticCategory.Semantic)]
+    [Format("Type parameter '{0}' is not in scope")]
+    ErrTypeParamOutOfScope = 0x4023,
+
+    [Level(DiagnosticLevel.Error)]
+    [Category(DiagnosticCategory.Type)]
+    [Format("Wildcard type arguments are only allowed inside generic type references")]
+    ErrWildcardNotAllowedHere = 0x4024,
+
+    [Level(DiagnosticLevel.Warning)]
+    [Category(DiagnosticCategory.Type)]
+    [Format("Generic type arguments on 'instanceof' are erased at runtime; only the raw type '{0}' is checked")]
+    WarnGenericInstanceOfErased = 0x4025,
+
+    [Level(DiagnosticLevel.Error)]
+    [Category(DiagnosticCategory.Type)]
+    [Format("'instanceof' requires a class or interface type, but got '{0}'")]
+    ErrInstanceOfNonClass = 0x4026,
+
+    [Level(DiagnosticLevel.Error)]
+    [Category(DiagnosticCategory.Type)]
+    [Format("Type '{0}' is not generic and cannot take type arguments")]
+    ErrNonGenericTypeArgs = 0x4027,
+
+    [Level(DiagnosticLevel.Error)]
+    [Category(DiagnosticCategory.Semantic)]
+    [Format("Duplicate type parameter '{0}'")]
+    ErrDuplicateTypeParam = 0x4028,
+
     #endregion
 }

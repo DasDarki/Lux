@@ -210,4 +210,82 @@ internal partial class IRVisitor
     {
         return new NameRef(name, span ?? TextSpan.Empty);
     }
+
+    /// <summary>
+    /// Visits a <c>typeParamList</c> grammar node and produces a list of <see cref="TypeParamDef"/> IR nodes.
+    /// Returns an empty list if the context is null.
+    /// </summary>
+    private List<TypeParamDef> VisitTypeParamListContent(LuxParser.TypeParamListContext? ctx)
+    {
+        if (ctx == null) return [];
+        var result = new List<TypeParamDef>();
+        foreach (var tp in ctx.typeParam())
+        {
+            var name = NameRefFromTerm(tp.NAME());
+            TypeRef? extendsBound = null;
+            var implementsBounds = new List<TypeRef>();
+            var typeExprs = tp.typeExpr();
+            var idx = 0;
+            if (tp.EXTENDS() != null && typeExprs.Length > idx)
+            {
+                extendsBound = (TypeRef)Visit(typeExprs[idx]);
+                idx++;
+            }
+            if (tp.IMPLEMENTS() != null)
+            {
+                for (; idx < typeExprs.Length; idx++)
+                    implementsBounds.Add((TypeRef)Visit(typeExprs[idx]));
+            }
+            result.Add(new TypeParamDef(NewNodeID, SpanFromCtx(tp), name, extendsBound, implementsBounds));
+        }
+        return result;
+    }
+
+    /// <summary>
+    /// Visits a <c>typeArgList</c> grammar node and produces a list of <see cref="TypeArgRef"/> IR nodes.
+    /// Returns an empty list if the context is null.
+    /// </summary>
+    private List<TypeArgRef> VisitTypeArgListContent(LuxParser.TypeArgListContext? ctx)
+    {
+        if (ctx == null) return [];
+        var result = new List<TypeArgRef>();
+        foreach (var arg in ctx.typeArg())
+        {
+            switch (arg)
+            {
+                case LuxParser.ConcreteTypeArgContext cta:
+                    result.Add(new ConcreteTypeArgRef(NewNodeID, SpanFromCtx(cta), (TypeRef)Visit(cta.typeExpr())));
+                    break;
+                case LuxParser.WildcardTypeArgContext wta:
+                {
+                    var kind = WildcardKind.Unbounded;
+                    TypeRef? bound = null;
+                    if (wta.EXTENDS() != null)
+                    {
+                        kind = WildcardKind.Extends;
+                        bound = (TypeRef)Visit(wta.typeExpr());
+                    }
+                    else if (wta.SUPER() != null)
+                    {
+                        kind = WildcardKind.Super;
+                        bound = (TypeRef)Visit(wta.typeExpr());
+                    }
+                    result.Add(new WildcardTypeArgRef(NewNodeID, SpanFromCtx(wta), kind, bound));
+                    break;
+                }
+            }
+        }
+        return result;
+    }
+
+    /// <summary>
+    /// Extracts the head <see cref="NameRef"/> from a <c>classRef</c> grammar node and returns the
+    /// accompanying type arguments (empty list if none).
+    /// </summary>
+    private (NameRef name, List<TypeArgRef> typeArgs) VisitClassRefContent(LuxParser.ClassRefContext ctx)
+    {
+        var name = NameRefFromTerm(ctx.NAME());
+        var typeArgs = VisitTypeArgListContent(ctx.typeArgList());
+        return (name, typeArgs);
+    }
 }

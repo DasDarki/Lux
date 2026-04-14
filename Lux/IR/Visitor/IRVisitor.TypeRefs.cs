@@ -40,7 +40,23 @@ internal partial class IRVisitor
 
     public override Node VisitNamedType(LuxParser.NamedTypeContext context)
     {
-        if (PrimitiveTypes.TryGetValue(context.NAME().GetText(), out var kind))
+        var nameText = context.NAME().GetText();
+        var typeArgList = context.typeArgList();
+
+        if (typeArgList != null)
+        {
+            // Generic instantiation, e.g. List<number>. Primitives cannot take type arguments.
+            if (PrimitiveTypes.ContainsKey(nameText))
+            {
+                diag.Report(SpanFromCtx(context), DiagnosticCode.ErrGenericOnPrimitive, nameText);
+                return new PrimitiveTypeRef(NewNodeID, SpanFromCtx(context), PrimitiveTypes[nameText]);
+            }
+
+            var args = VisitTypeArgListContent(typeArgList);
+            return new GenericTypeRef(NewNodeID, SpanFromCtx(context), NameRefFromTerm(context.NAME()), args);
+        }
+
+        if (PrimitiveTypes.TryGetValue(nameText, out var kind))
         {
             return new PrimitiveTypeRef(NewNodeID, SpanFromCtx(context), kind);
         }

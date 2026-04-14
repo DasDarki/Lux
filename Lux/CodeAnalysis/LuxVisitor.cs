@@ -418,6 +418,24 @@ public interface ILuxVisitor<Result> : IParseTreeVisitor<Result> {
 	/// <return>The visitor result.</return>
 	Result VisitInterfaceDecl([NotNull] LuxParser.InterfaceDeclContext context);
 	/// <summary>
+	/// Visit a parse tree produced by <see cref="LuxParser.typeParamList"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitTypeParamList([NotNull] LuxParser.TypeParamListContext context);
+	/// <summary>
+	/// Visit a parse tree produced by <see cref="LuxParser.typeParam"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitTypeParam([NotNull] LuxParser.TypeParamContext context);
+	/// <summary>
+	/// Visit a parse tree produced by <see cref="LuxParser.classRef"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitClassRef([NotNull] LuxParser.ClassRefContext context);
+	/// <summary>
 	/// Visit a parse tree produced by the <c>InterfaceFieldMember</c>
 	/// labeled alternative in <see cref="LuxParser.interfaceMember"/>.
 	/// </summary>
@@ -783,6 +801,26 @@ public interface ILuxVisitor<Result> : IParseTreeVisitor<Result> {
 	/// <param name="context">The parse tree.</param>
 	/// <return>The visitor result.</return>
 	Result VisitGroupedOrTupleType([NotNull] LuxParser.GroupedOrTupleTypeContext context);
+	/// <summary>
+	/// Visit a parse tree produced by <see cref="LuxParser.typeArgList"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitTypeArgList([NotNull] LuxParser.TypeArgListContext context);
+	/// <summary>
+	/// Visit a parse tree produced by the <c>ConcreteTypeArg</c>
+	/// labeled alternative in <see cref="LuxParser.typeArg"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitConcreteTypeArg([NotNull] LuxParser.ConcreteTypeArgContext context);
+	/// <summary>
+	/// Visit a parse tree produced by the <c>WildcardTypeArg</c>
+	/// labeled alternative in <see cref="LuxParser.typeArg"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitWildcardTypeArg([NotNull] LuxParser.WildcardTypeArgContext context);
 	/// <summary>
 	/// Visit a parse tree produced by <see cref="LuxParser.functionType"/>.
 	/// </summary>

@@ -17,6 +17,7 @@ public sealed class FunctionDecl(
     public List<Stmt> Body { get; } = body;
     public ReturnStmt? ReturnStmt { get; } = returnStmt;
     public bool IsAsync { get; } = isAsync;
+    public List<TypeParamDef> TypeParams { get; set; } = [];
 }
 
 public sealed class LocalFunctionDecl(
@@ -33,6 +34,7 @@ public sealed class LocalFunctionDecl(
     public List<Stmt> Body { get; } = body;
     public ReturnStmt? ReturnStmt { get; } = returnStmt;
     public bool IsAsync { get; } = isAsync;
+    public List<TypeParamDef> TypeParams { get; set; } = [];
 }
 
 public sealed class LocalDecl(
@@ -58,6 +60,7 @@ public sealed class DeclareFunctionDecl(
     public List<Parameter> Parameters { get; } = parameters;
     public TypeRef? ReturnType { get; } = returnType;
     public bool IsAsync { get; } = isAsync;
+    public List<TypeParamDef> TypeParams { get; set; } = [];
 }
 
 public sealed class DeclareVariableDecl(
@@ -117,6 +120,11 @@ public sealed class ClassDecl(
     public List<ClassAccessorNode> Accessors { get; } = accessors;
     public bool IsDeclare { get; } = isDeclare;
     public bool IsAbstract { get; } = isAbstract;
+    public List<TypeParamDef> TypeParams { get; set; } = [];
+    /// <summary>Type arguments passed to the base class, if any (e.g. <c>extends Foo&lt;number&gt;</c>).</summary>
+    public List<TypeArgRef> BaseClassTypeArgs { get; set; } = [];
+    /// <summary>Parallel to <see cref="Interfaces"/>: type arguments for each implemented interface.</summary>
+    public List<List<TypeArgRef>> InterfaceTypeArgs { get; set; } = [];
 }
 
 public sealed class InterfaceDecl(
@@ -132,4 +140,7 @@ public sealed class InterfaceDecl(
     public List<InterfaceFieldNode> Fields { get; } = fields;
     public List<InterfaceMethodNode> Methods { get; } = methods;
     public bool IsDeclare { get; } = isDeclare;
+    public List<TypeParamDef> TypeParams { get; set; } = [];
+    /// <summary>Parallel to <see cref="BaseInterfaces"/>: type arguments for each extended interface.</summary>
+    public List<List<TypeArgRef>> BaseInterfaceTypeArgs { get; set; } = [];
 }

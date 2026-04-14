@@ -108,6 +108,7 @@ public sealed class ClassMethodNode(
     public bool IsOverride { get; } = isOverride;
     public bool IsAbstract { get; } = isAbstract;
     public TextSpan Span { get; } = span;
+    public List<TypeParamDef> TypeParams { get; set; } = [];
 }
 
 public sealed class ClassConstructorNode(
@@ -153,4 +154,5 @@ public sealed class InterfaceMethodNode(
     public TypeRef? ReturnType { get; } = returnType;
     public bool IsAsync { get; } = isAsync;
     public TextSpan Span { get; } = span;
+    public List<TypeParamDef> TypeParams { get; set; } = [];
 }

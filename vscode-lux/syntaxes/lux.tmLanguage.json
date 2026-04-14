@@ -75,7 +75,7 @@
         },
         {
           "name": "keyword.other.lux",
-          "match": "\\b(local|function|and|or|not|as|declare|export|from|import|module|enum|async|await|mut)\\b"
+          "match": "\\b(local|function|and|or|not|as|declare|export|from|import|module|enum|async|await|mut|class|new|interface|extends|implements)\\b"
         },
         {
           "name": "constant.language.lux",

@@ -11,6 +11,7 @@ public enum SymbolKind
     Enum,
     Class,
     Interface,
+    TypeParam,
 }
 
 /// <summary>

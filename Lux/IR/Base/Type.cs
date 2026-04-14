@@ -26,7 +26,9 @@ public enum TypeKind
     Function,
     Enum,
     Class,
-    Interface
+    Interface,
+    TypeParameter,
+    Parameterized,
 }
 
 /// <summary>
@@ -322,6 +324,7 @@ public sealed class ClassType(
     public FunctionType? ConstructorType { get; set; }
     public HashSet<string> AbstractMethods { get; } = new();
     public HashSet<string> ProtectedMembers { get; } = new();
+    public List<TypeParameterType> TypeParams { get; } = new();
 
     protected override TypeKey GenerateNewKey()
     {
@@ -338,10 +341,86 @@ public sealed class InterfaceType(
     public List<InterfaceType> BaseInterfaces { get; } = baseInterfaces;
     public Dictionary<string, StructType.Field> Fields { get; } = new();
     public Dictionary<string, FunctionType> Methods { get; } = new();
+    public List<TypeParameterType> TypeParams { get; } = new();
 
     protected override TypeKey GenerateNewKey()
     {
         return $"interface<{Name}>";
+    }
+}
+
+/// <summary>
+/// Represents a type parameter in a generic declaration (e.g. <c>T</c> in <c>class List&lt;T&gt;</c>).
+/// The owner key disambiguates <c>T</c> declared in different scopes so two unrelated generic
+/// definitions do not collide in the type table.
+/// </summary>
+public sealed class TypeParameterType(
+    string name,
+    string ownerKey,
+    int index,
+    TypID? extendsBound = null,
+    List<TypID>? implementsBounds = null
+) : Type(TypeKind.TypeParameter)
+{
+    public string Name { get; } = name;
+    public string OwnerKey { get; } = ownerKey;
+    public int Index { get; } = index;
+    public TypID? ExtendsBound { get; set; } = extendsBound;
+    public List<TypID> ImplementsBounds { get; } = implementsBounds ?? new List<TypID>();
+
+    protected override TypeKey GenerateNewKey()
+    {
+        return $"T#{OwnerKey}#{Index}#{Name}";
+    }
+}
+
+/// <summary>
+/// A concrete / wildcard argument supplied to a <see cref="ParameterizedType"/>.
+/// </summary>
+public sealed class TypeArg
+{
+    public enum ArgKind { Concrete, WildcardUnbounded, WildcardExtends, WildcardSuper }
+
+    public ArgKind Kind { get; }
+    public TypID? TypeID { get; }
+
+    private TypeArg(ArgKind kind, TypID? typeID)
+    {
+        Kind = kind;
+        TypeID = typeID;
+    }
+
+    public static TypeArg Concrete(TypID id) => new(ArgKind.Concrete, id);
+    public static TypeArg Unbounded() => new(ArgKind.WildcardUnbounded, null);
+    public static TypeArg Extends(TypID id) => new(ArgKind.WildcardExtends, id);
+    public static TypeArg Super(TypID id) => new(ArgKind.WildcardSuper, id);
+
+    public override string ToString()
+    {
+        return Kind switch
+        {
+            ArgKind.Concrete => TypeID?.ToString() ?? "?",
+            ArgKind.WildcardUnbounded => "?",
+            ArgKind.WildcardExtends => $"? extends {TypeID}",
+            ArgKind.WildcardSuper => $"? super {TypeID}",
+            _ => "?"
+        };
+    }
+}
+
+/// <summary>
+/// Represents a generic type instantiation such as <c>List&lt;number&gt;</c>. The <see cref="Definition"/>
+/// is the raw generic <see cref="ClassType"/> or <see cref="InterfaceType"/>; <see cref="Args"/> holds the
+/// concrete or wildcard arguments. At codegen time this type is erased to <see cref="Definition"/>.
+/// </summary>
+public sealed class ParameterizedType(Type definition, List<TypeArg> args) : Type(TypeKind.Parameterized)
+{
+    public Type Definition { get; } = definition;
+    public List<TypeArg> Args { get; } = args;
+
+    protected override TypeKey GenerateNewKey()
+    {
+        return $"{Definition.Key}<{string.Join(",", Args.Select(a => a.ToString()))}>";
     }
 }
 
@@ -574,6 +653,82 @@ public sealed class TypeTable
     {
         var interfaceType = new InterfaceType(name, baseInterfaces ?? []);
         return (InterfaceType)DeclareType(interfaceType);
+    }
+
+    /// <summary>
+    /// Creates (or returns cached) a <see cref="TypeParameterType"/> for a generic declaration.
+    /// </summary>
+    public TypeParameterType TypeParamOf(string name, string ownerKey, int index, TypID? extendsBound = null, List<TypID>? implementsBounds = null)
+    {
+        var tp = new TypeParameterType(name, ownerKey, index, extendsBound, implementsBounds);
+        return (TypeParameterType)DeclareType(tp);
+    }
+
+    /// <summary>
+    /// Creates (or returns cached) a <see cref="ParameterizedType"/> representing a generic
+    /// instantiation like <c>List&lt;number&gt;</c>.
+    /// </summary>
+    public ParameterizedType ParameterizedOf(Type definition, List<TypeArg> args)
+    {
+        var pt = new ParameterizedType(definition, args);
+        return (ParameterizedType)DeclareType(pt);
+    }
+
+    /// <summary>
+    /// Substitutes type parameter types referenced in <paramref name="t"/> using the supplied
+    /// mapping. Types that contain no type parameters are returned unchanged. This is a best-effort
+    /// structural substitution used when resolving member accesses on a parameterized receiver.
+    /// </summary>
+    public Type Substitute(Type t, Dictionary<TypID, Type> subst)
+    {
+        if (subst.Count == 0) return t;
+        switch (t)
+        {
+            case TypeParameterType tp:
+                return subst.TryGetValue(tp.ID, out var mapped) ? mapped : t;
+            case TableArrayType arr:
+            {
+                var inner = Substitute(arr.ElementType, subst);
+                return ReferenceEquals(inner, arr.ElementType) ? t : DeclareType(new TableArrayType(inner));
+            }
+            case TableMapType map:
+            {
+                var k = Substitute(map.KeyType, subst);
+                var v = Substitute(map.ValueType, subst);
+                return (ReferenceEquals(k, map.KeyType) && ReferenceEquals(v, map.ValueType))
+                    ? t : DeclareType(new TableMapType(k, v));
+            }
+            case UnionType u:
+            {
+                var changed = false;
+                var newTypes = new List<Type>();
+                foreach (var mt in u.Types)
+                {
+                    var nt = Substitute(mt, subst);
+                    if (!ReferenceEquals(nt, mt)) changed = true;
+                    newTypes.Add(nt);
+                }
+                return changed ? DeclareType(new UnionType(newTypes)) : t;
+            }
+            case FunctionType fn:
+            {
+                var changed = false;
+                var newParams = new List<Type>();
+                foreach (var pt2 in fn.ParamTypes)
+                {
+                    var np = Substitute(pt2, subst);
+                    if (!ReferenceEquals(np, pt2)) changed = true;
+                    newParams.Add(np);
+                }
+                var newRet = Substitute(fn.ReturnType, subst);
+                if (!ReferenceEquals(newRet, fn.ReturnType)) changed = true;
+                return changed
+                    ? DeclareType(new FunctionType(newParams, fn.ParamNames, newRet, fn.IsVararg, fn.VarargType, fn.DefaultParams, fn.IsAsync))
+                    : t;
+            }
+            default:
+                return t;
+        }
     }
 }
 

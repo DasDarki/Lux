@@ -808,6 +808,42 @@ public partial class LuxBaseListener : ILuxListener {
 	/// <param name="context">The parse tree.</param>
 	public virtual void ExitInterfaceDecl([NotNull] LuxParser.InterfaceDeclContext context) { }
 	/// <summary>
+	/// Enter a parse tree produced by <see cref="LuxParser.typeParamList"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void EnterTypeParamList([NotNull] LuxParser.TypeParamListContext context) { }
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="LuxParser.typeParamList"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void ExitTypeParamList([NotNull] LuxParser.TypeParamListContext context) { }
+	/// <summary>
+	/// Enter a parse tree produced by <see cref="LuxParser.typeParam"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void EnterTypeParam([NotNull] LuxParser.TypeParamContext context) { }
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="LuxParser.typeParam"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void ExitTypeParam([NotNull] LuxParser.TypeParamContext context) { }
+	/// <summary>
+	/// Enter a parse tree produced by <see cref="LuxParser.classRef"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void EnterClassRef([NotNull] LuxParser.ClassRefContext context) { }
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="LuxParser.classRef"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void ExitClassRef([NotNull] LuxParser.ClassRefContext context) { }
+	/// <summary>
 	/// Enter a parse tree produced by the <c>InterfaceFieldMember</c>
 	/// labeled alternative in <see cref="LuxParser.interfaceMember"/>.
 	/// <para>The default implementation does nothing.</para>
@@ -1539,6 +1575,46 @@ public partial class LuxBaseListener : ILuxListener {
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	public virtual void ExitGroupedOrTupleType([NotNull] LuxParser.GroupedOrTupleTypeContext context) { }
+	/// <summary>
+	/// Enter a parse tree produced by <see cref="LuxParser.typeArgList"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void EnterTypeArgList([NotNull] LuxParser.TypeArgListContext context) { }
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="LuxParser.typeArgList"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void ExitTypeArgList([NotNull] LuxParser.TypeArgListContext context) { }
+	/// <summary>
+	/// Enter a parse tree produced by the <c>ConcreteTypeArg</c>
+	/// labeled alternative in <see cref="LuxParser.typeArg"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void EnterConcreteTypeArg([NotNull] LuxParser.ConcreteTypeArgContext context) { }
+	/// <summary>
+	/// Exit a parse tree produced by the <c>ConcreteTypeArg</c>
+	/// labeled alternative in <see cref="LuxParser.typeArg"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void ExitConcreteTypeArg([NotNull] LuxParser.ConcreteTypeArgContext context) { }
+	/// <summary>
+	/// Enter a parse tree produced by the <c>WildcardTypeArg</c>
+	/// labeled alternative in <see cref="LuxParser.typeArg"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void EnterWildcardTypeArg([NotNull] LuxParser.WildcardTypeArgContext context) { }
+	/// <summary>
+	/// Exit a parse tree produced by the <c>WildcardTypeArg</c>
+	/// labeled alternative in <see cref="LuxParser.typeArg"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void ExitWildcardTypeArg([NotNull] LuxParser.WildcardTypeArgContext context) { }
 	/// <summary>
 	/// Enter a parse tree produced by <see cref="LuxParser.functionType"/>.
 	/// <para>The default implementation does nothing.</para>

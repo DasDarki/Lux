@@ -10,7 +10,7 @@
 - [x] Function overloading and default parameters
 - [x] Enumss
   - [x] Currently enums are auto filled with keys, but it would be nicer to auto increment the value using ordinal numbers (e.g. `enum Colors { Red, Green, Blue }` would automatically assign `Red = 0`, `Green = 1`, `Blue = 2`)
-- [ ] Generics
+- [x] Generics
 - [x] Classes with inheritance and interfaces
   - [x] Abstract classes
   - [x] Override members
@@ -33,6 +33,8 @@
   - [ ] Auto import
   - [ ] Code actions (rename, compile, etc.)
   - [ ] Auto implement interface and class members
+  - [ ] Better contextual auto complete/suggestion (e.g. suggesting class members in class functions)
+  - [ ] Better generic handling for errors (not allowing to use a specific type as a specific generic if it violates the generic constraints)
   - [x] Find usages
   - [x] Go to definition
   - [x] CTRL+click on import path opens file

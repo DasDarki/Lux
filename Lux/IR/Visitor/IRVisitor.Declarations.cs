@@ -7,14 +7,20 @@ internal partial class IRVisitor
         var (namePath, methodName) = VisitFuncNameContent(context.funcName());
         var (parameters, returnType, body, ret) = VisitFuncBodyContent(context.funcBody());
         var isAsync = context.ASYNC() != null;
-        return new FunctionDecl(NewNodeID, SpanFromCtx(context), namePath, methodName, parameters, returnType, body, ret, isAsync);
+        var typeParams = VisitTypeParamListContent(context.funcBody().typeParamList());
+        var decl = new FunctionDecl(NewNodeID, SpanFromCtx(context), namePath, methodName, parameters, returnType, body, ret, isAsync);
+        decl.TypeParams = typeParams;
+        return decl;
     }
 
     public override Node VisitLocalFunctionDecl(LuxParser.LocalFunctionDeclContext context)
     {
         var (parameters, returnType, body, ret) = VisitFuncBodyContent(context.funcBody());
         var isAsync = context.ASYNC() != null;
-        return new LocalFunctionDecl(NewNodeID, SpanFromCtx(context), NameRefFromTerm(context.NAME()), parameters, returnType, body, ret, isAsync);
+        var typeParams = VisitTypeParamListContent(context.funcBody().typeParamList());
+        var decl = new LocalFunctionDecl(NewNodeID, SpanFromCtx(context), NameRefFromTerm(context.NAME()), parameters, returnType, body, ret, isAsync);
+        decl.TypeParams = typeParams;
+        return decl;
     }
 
     public override Node VisitLocalDecl(LuxParser.LocalDeclContext context)
@@ -33,7 +39,10 @@ internal partial class IRVisitor
         var (namePath, methodName) = VisitFuncNameContent(context.funcName());
         var (parameters, returnType) = VisitFuncSignatureContent(context.funcSignature());
         var isAsync = context.ASYNC() != null;
-        return new DeclareFunctionDecl(NewNodeID, SpanFromCtx(context), namePath, methodName, parameters, returnType, isAsync);
+        var typeParams = VisitTypeParamListContent(context.funcSignature().typeParamList());
+        var decl = new DeclareFunctionDecl(NewNodeID, SpanFromCtx(context), namePath, methodName, parameters, returnType, isAsync);
+        decl.TypeParams = typeParams;
+        return decl;
     }
 
     public override Node VisitDeclareVariable(LuxParser.DeclareVariableContext context)
@@ -58,7 +67,10 @@ internal partial class IRVisitor
         var (namePath, methodName) = VisitFuncNameContent(context.funcName());
         var (parameters, returnType) = VisitFuncSignatureContent(context.funcSignature());
         var isAsync = context.ASYNC() != null;
-        return new DeclareFunctionDecl(NewNodeID, SpanFromCtx(context), namePath, methodName, parameters, returnType, isAsync);
+        var typeParams = VisitTypeParamListContent(context.funcSignature().typeParamList());
+        var decl = new DeclareFunctionDecl(NewNodeID, SpanFromCtx(context), namePath, methodName, parameters, returnType, isAsync);
+        decl.TypeParams = typeParams;
+        return decl;
     }
 
     public override Node VisitModuleDeclareVariable(LuxParser.ModuleDeclareVariableContext context)
@@ -112,24 +124,34 @@ internal partial class IRVisitor
 
     public override Node VisitDeclareClass(LuxParser.DeclareClassContext context)
     {
-        var names = context.NAME();
-        var name = NameRefFromTerm(names[0]);
+        var name = NameRefFromTerm(context.NAME());
+        var classRefs = context.classRef();
 
         NameRef? baseClass = null;
+        var baseClassTypeArgs = new List<TypeArgRef>();
         var interfaces = new List<NameRef>();
+        var interfaceTypeArgs = new List<List<TypeArgRef>>();
 
-        var nameIdx = 1;
-        if (context.EXTENDS() != null)
+        var refIdx = 0;
+        if (context.EXTENDS() != null && classRefs.Length > refIdx)
         {
-            baseClass = NameRefFromTerm(names[nameIdx]);
-            nameIdx++;
+            var (bcName, bcArgs) = VisitClassRefContent(classRefs[refIdx]);
+            baseClass = bcName;
+            baseClassTypeArgs = bcArgs;
+            refIdx++;
         }
 
         if (context.IMPLEMENTS() != null)
         {
-            for (var i = nameIdx; i < names.Length; i++)
-                interfaces.Add(NameRefFromTerm(names[i]));
+            for (var i = refIdx; i < classRefs.Length; i++)
+            {
+                var (iName, iArgs) = VisitClassRefContent(classRefs[i]);
+                interfaces.Add(iName);
+                interfaceTypeArgs.Add(iArgs);
+            }
         }
+
+        var typeParams = VisitTypeParamListContent(context.typeParamList());
 
         var fields = new List<ClassFieldNode>();
         var methods = new List<ClassMethodNode>();
@@ -162,7 +184,10 @@ internal partial class IRVisitor
                     var isAbstract = method.ABSTRACT() != null;
                     var methodName = NameRefFromTerm(method.NAME());
                     var (parameters, returnType) = VisitFuncSignatureContent(method.funcSignature());
-                    methods.Add(new ClassMethodNode(methodName, parameters, returnType, [], null, isLocal, isStatic, isAsync, isProtected, isOverride, isAbstract, SpanFromCtx(method)));
+                    var methodTypeParams = VisitTypeParamListContent(method.funcSignature().typeParamList());
+                    var cmNode = new ClassMethodNode(methodName, parameters, returnType, [], null, isLocal, isStatic, isAsync, isProtected, isOverride, isAbstract, SpanFromCtx(method));
+                    cmNode.TypeParams = methodTypeParams;
+                    methods.Add(cmNode);
                     break;
                 }
                 case LuxParser.DeclareClassConstructorMemberContext ctor:
@@ -184,20 +209,31 @@ internal partial class IRVisitor
         }
 
         var isClassAbstract = context.ABSTRACT() != null;
-        return new ClassDecl(NewNodeID, SpanFromCtx(context), name, baseClass, interfaces, fields, methods, constructor, accessors, isDeclare: true, isAbstract: isClassAbstract);
+        var decl = new ClassDecl(NewNodeID, SpanFromCtx(context), name, baseClass, interfaces, fields, methods, constructor, accessors, isDeclare: true, isAbstract: isClassAbstract);
+        decl.TypeParams = typeParams;
+        decl.BaseClassTypeArgs = baseClassTypeArgs;
+        decl.InterfaceTypeArgs = interfaceTypeArgs;
+        return decl;
     }
 
     public override Node VisitDeclareInterface(LuxParser.DeclareInterfaceContext context)
     {
-        var names = context.NAME();
-        var name = NameRefFromTerm(names[0]);
+        var name = NameRefFromTerm(context.NAME());
+        var classRefs = context.classRef();
 
         var baseInterfaces = new List<NameRef>();
+        var baseInterfaceTypeArgs = new List<List<TypeArgRef>>();
         if (context.EXTENDS() != null)
         {
-            for (var i = 1; i < names.Length; i++)
-                baseInterfaces.Add(NameRefFromTerm(names[i]));
+            foreach (var cr in classRefs)
+            {
+                var (iName, iArgs) = VisitClassRefContent(cr);
+                baseInterfaces.Add(iName);
+                baseInterfaceTypeArgs.Add(iArgs);
+            }
         }
+
+        var typeParams = VisitTypeParamListContent(context.typeParamList());
 
         var fields = new List<InterfaceFieldNode>();
         var methods = new List<InterfaceMethodNode>();
@@ -218,35 +254,51 @@ internal partial class IRVisitor
                     var isAsync = method.ASYNC() != null;
                     var methodName = NameRefFromTerm(method.NAME());
                     var (parameters, returnType) = VisitFuncSignatureContent(method.funcSignature());
-                    methods.Add(new InterfaceMethodNode(methodName, parameters, returnType, isAsync, SpanFromCtx(method)));
+                    var imTypeParams = VisitTypeParamListContent(method.funcSignature().typeParamList());
+                    var imNode = new InterfaceMethodNode(methodName, parameters, returnType, isAsync, SpanFromCtx(method));
+                    imNode.TypeParams = imTypeParams;
+                    methods.Add(imNode);
                     break;
                 }
             }
         }
 
-        return new InterfaceDecl(NewNodeID, SpanFromCtx(context), name, baseInterfaces, fields, methods, isDeclare: true);
+        var ifaceDecl = new InterfaceDecl(NewNodeID, SpanFromCtx(context), name, baseInterfaces, fields, methods, isDeclare: true);
+        ifaceDecl.TypeParams = typeParams;
+        ifaceDecl.BaseInterfaceTypeArgs = baseInterfaceTypeArgs;
+        return ifaceDecl;
     }
 
     public override Node VisitModuleDeclareClass(LuxParser.ModuleDeclareClassContext context)
     {
-        var names = context.NAME();
-        var name = NameRefFromTerm(names[0]);
+        var name = NameRefFromTerm(context.NAME());
+        var classRefs = context.classRef();
 
         NameRef? baseClass = null;
+        var baseClassTypeArgs = new List<TypeArgRef>();
         var interfaces = new List<NameRef>();
+        var interfaceTypeArgs = new List<List<TypeArgRef>>();
 
-        var nameIdx = 1;
-        if (context.EXTENDS() != null)
+        var refIdx = 0;
+        if (context.EXTENDS() != null && classRefs.Length > refIdx)
         {
-            baseClass = NameRefFromTerm(names[nameIdx]);
-            nameIdx++;
+            var (bcName, bcArgs) = VisitClassRefContent(classRefs[refIdx]);
+            baseClass = bcName;
+            baseClassTypeArgs = bcArgs;
+            refIdx++;
         }
 
         if (context.IMPLEMENTS() != null)
         {
-            for (var i = nameIdx; i < names.Length; i++)
-                interfaces.Add(NameRefFromTerm(names[i]));
+            for (var i = refIdx; i < classRefs.Length; i++)
+            {
+                var (iName, iArgs) = VisitClassRefContent(classRefs[i]);
+                interfaces.Add(iName);
+                interfaceTypeArgs.Add(iArgs);
+            }
         }
+
+        var typeParams = VisitTypeParamListContent(context.typeParamList());
 
         var fields = new List<ClassFieldNode>();
         var methods = new List<ClassMethodNode>();
@@ -279,7 +331,10 @@ internal partial class IRVisitor
                     var isAbstract = method.ABSTRACT() != null;
                     var methodName = NameRefFromTerm(method.NAME());
                     var (parameters, returnType) = VisitFuncSignatureContent(method.funcSignature());
-                    methods.Add(new ClassMethodNode(methodName, parameters, returnType, [], null, isLocal, isStatic, isAsync, isProtected, isOverride, isAbstract, SpanFromCtx(method)));
+                    var methodTypeParams = VisitTypeParamListContent(method.funcSignature().typeParamList());
+                    var cmNode = new ClassMethodNode(methodName, parameters, returnType, [], null, isLocal, isStatic, isAsync, isProtected, isOverride, isAbstract, SpanFromCtx(method));
+                    cmNode.TypeParams = methodTypeParams;
+                    methods.Add(cmNode);
                     break;
                 }
                 case LuxParser.DeclareClassConstructorMemberContext ctor:
@@ -301,20 +356,31 @@ internal partial class IRVisitor
         }
 
         var isClassAbstract = context.ABSTRACT() != null;
-        return new ClassDecl(NewNodeID, SpanFromCtx(context), name, baseClass, interfaces, fields, methods, constructor, accessors, isDeclare: true, isAbstract: isClassAbstract);
+        var declMod = new ClassDecl(NewNodeID, SpanFromCtx(context), name, baseClass, interfaces, fields, methods, constructor, accessors, isDeclare: true, isAbstract: isClassAbstract);
+        declMod.TypeParams = typeParams;
+        declMod.BaseClassTypeArgs = baseClassTypeArgs;
+        declMod.InterfaceTypeArgs = interfaceTypeArgs;
+        return declMod;
     }
 
     public override Node VisitModuleDeclareInterface(LuxParser.ModuleDeclareInterfaceContext context)
     {
-        var names = context.NAME();
-        var name = NameRefFromTerm(names[0]);
+        var name = NameRefFromTerm(context.NAME());
+        var classRefs = context.classRef();
 
         var baseInterfaces = new List<NameRef>();
+        var baseInterfaceTypeArgs = new List<List<TypeArgRef>>();
         if (context.EXTENDS() != null)
         {
-            for (var i = 1; i < names.Length; i++)
-                baseInterfaces.Add(NameRefFromTerm(names[i]));
+            foreach (var cr in classRefs)
+            {
+                var (iName, iArgs) = VisitClassRefContent(cr);
+                baseInterfaces.Add(iName);
+                baseInterfaceTypeArgs.Add(iArgs);
+            }
         }
+
+        var typeParams = VisitTypeParamListContent(context.typeParamList());
 
         var fields = new List<InterfaceFieldNode>();
         var methods = new List<InterfaceMethodNode>();
@@ -335,35 +401,51 @@ internal partial class IRVisitor
                     var isAsync = method.ASYNC() != null;
                     var methodName = NameRefFromTerm(method.NAME());
                     var (parameters, returnType) = VisitFuncSignatureContent(method.funcSignature());
-                    methods.Add(new InterfaceMethodNode(methodName, parameters, returnType, isAsync, SpanFromCtx(method)));
+                    var imTypeParams = VisitTypeParamListContent(method.funcSignature().typeParamList());
+                    var imNode = new InterfaceMethodNode(methodName, parameters, returnType, isAsync, SpanFromCtx(method));
+                    imNode.TypeParams = imTypeParams;
+                    methods.Add(imNode);
                     break;
                 }
             }
         }
 
-        return new InterfaceDecl(NewNodeID, SpanFromCtx(context), name, baseInterfaces, fields, methods, isDeclare: true);
+        var ifaceModDecl = new InterfaceDecl(NewNodeID, SpanFromCtx(context), name, baseInterfaces, fields, methods, isDeclare: true);
+        ifaceModDecl.TypeParams = typeParams;
+        ifaceModDecl.BaseInterfaceTypeArgs = baseInterfaceTypeArgs;
+        return ifaceModDecl;
     }
 
     public override Node VisitClassDecl(LuxParser.ClassDeclContext context)
     {
-        var names = context.NAME();
-        var name = NameRefFromTerm(names[0]);
+        var name = NameRefFromTerm(context.NAME());
+        var classRefs = context.classRef();
 
         NameRef? baseClass = null;
+        var baseClassTypeArgs = new List<TypeArgRef>();
         var interfaces = new List<NameRef>();
+        var interfaceTypeArgs = new List<List<TypeArgRef>>();
 
-        var nameIdx = 1;
-        if (context.EXTENDS() != null)
+        var refIdx = 0;
+        if (context.EXTENDS() != null && classRefs.Length > refIdx)
         {
-            baseClass = NameRefFromTerm(names[nameIdx]);
-            nameIdx++;
+            var (bcName, bcArgs) = VisitClassRefContent(classRefs[refIdx]);
+            baseClass = bcName;
+            baseClassTypeArgs = bcArgs;
+            refIdx++;
         }
 
         if (context.IMPLEMENTS() != null)
         {
-            for (var i = nameIdx; i < names.Length; i++)
-                interfaces.Add(NameRefFromTerm(names[i]));
+            for (var i = refIdx; i < classRefs.Length; i++)
+            {
+                var (iName, iArgs) = VisitClassRefContent(classRefs[i]);
+                interfaces.Add(iName);
+                interfaceTypeArgs.Add(iArgs);
+            }
         }
+
+        var typeParams = VisitTypeParamListContent(context.typeParamList());
 
         var fields = new List<ClassFieldNode>();
         var methods = new List<ClassMethodNode>();
@@ -396,7 +478,10 @@ internal partial class IRVisitor
                     var isOverride = method.OVERRIDE() != null;
                     var methodName = NameRefFromTerm(method.NAME());
                     var (parameters, returnType, body, ret) = VisitFuncBodyContent(method.funcBody());
-                    methods.Add(new ClassMethodNode(methodName, parameters, returnType, body, ret, isLocal, isStatic, isAsync, isProtected, isOverride, false, SpanFromCtx(method)));
+                    var regMethodTypeParams = VisitTypeParamListContent(method.funcBody().typeParamList());
+                    var regMethodNode = new ClassMethodNode(methodName, parameters, returnType, body, ret, isLocal, isStatic, isAsync, isProtected, isOverride, false, SpanFromCtx(method));
+                    regMethodNode.TypeParams = regMethodTypeParams;
+                    methods.Add(regMethodNode);
                     break;
                 }
                 case LuxParser.ClassAbstractMethodMemberContext absMethod:
@@ -405,7 +490,10 @@ internal partial class IRVisitor
                     var isAsync = absMethod.ASYNC() != null;
                     var methodName = NameRefFromTerm(absMethod.NAME());
                     var (parameters, returnType) = VisitFuncSignatureContent(absMethod.funcSignature());
-                    methods.Add(new ClassMethodNode(methodName, parameters, returnType, [], null, false, false, isAsync, isProtected, false, true, SpanFromCtx(absMethod)));
+                    var absMethodTypeParams = VisitTypeParamListContent(absMethod.funcSignature().typeParamList());
+                    var absMethodNode = new ClassMethodNode(methodName, parameters, returnType, [], null, false, false, isAsync, isProtected, false, true, SpanFromCtx(absMethod));
+                    absMethodNode.TypeParams = absMethodTypeParams;
+                    methods.Add(absMethodNode);
                     break;
                 }
                 case LuxParser.ClassConstructorMemberContext ctor:
@@ -428,20 +516,31 @@ internal partial class IRVisitor
         }
 
         var isClassAbstract = context.ABSTRACT() != null;
-        return new ClassDecl(NewNodeID, SpanFromCtx(context), name, baseClass, interfaces, fields, methods, constructor, accessors, isAbstract: isClassAbstract);
+        var regularDecl = new ClassDecl(NewNodeID, SpanFromCtx(context), name, baseClass, interfaces, fields, methods, constructor, accessors, isAbstract: isClassAbstract);
+        regularDecl.TypeParams = typeParams;
+        regularDecl.BaseClassTypeArgs = baseClassTypeArgs;
+        regularDecl.InterfaceTypeArgs = interfaceTypeArgs;
+        return regularDecl;
     }
 
     public override Node VisitInterfaceDecl(LuxParser.InterfaceDeclContext context)
     {
-        var names = context.NAME();
-        var name = NameRefFromTerm(names[0]);
+        var name = NameRefFromTerm(context.NAME());
+        var classRefs = context.classRef();
 
         var baseInterfaces = new List<NameRef>();
+        var baseInterfaceTypeArgs = new List<List<TypeArgRef>>();
         if (context.EXTENDS() != null)
         {
-            for (var i = 1; i < names.Length; i++)
-                baseInterfaces.Add(NameRefFromTerm(names[i]));
+            foreach (var cr in classRefs)
+            {
+                var (iName, iArgs) = VisitClassRefContent(cr);
+                baseInterfaces.Add(iName);
+                baseInterfaceTypeArgs.Add(iArgs);
+            }
         }
+
+        var typeParams = VisitTypeParamListContent(context.typeParamList());
 
         var fields = new List<InterfaceFieldNode>();
         var methods = new List<InterfaceMethodNode>();
@@ -462,12 +561,18 @@ internal partial class IRVisitor
                     var isAsync = method.ASYNC() != null;
                     var methodName = NameRefFromTerm(method.NAME());
                     var (parameters, returnType) = VisitFuncSignatureContent(method.funcSignature());
-                    methods.Add(new InterfaceMethodNode(methodName, parameters, returnType, isAsync, SpanFromCtx(method)));
+                    var imTypeParams = VisitTypeParamListContent(method.funcSignature().typeParamList());
+                    var imNode = new InterfaceMethodNode(methodName, parameters, returnType, isAsync, SpanFromCtx(method));
+                    imNode.TypeParams = imTypeParams;
+                    methods.Add(imNode);
                     break;
                 }
             }
         }
 
-        return new InterfaceDecl(NewNodeID, SpanFromCtx(context), name, baseInterfaces, fields, methods);
+        var ifaceRegular = new InterfaceDecl(NewNodeID, SpanFromCtx(context), name, baseInterfaces, fields, methods);
+        ifaceRegular.TypeParams = typeParams;
+        ifaceRegular.BaseInterfaceTypeArgs = baseInterfaceTypeArgs;
+        return ifaceRegular;
     }
 }

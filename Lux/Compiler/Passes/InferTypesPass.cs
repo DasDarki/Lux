@@ -811,6 +811,10 @@ public sealed class InferTypesPass() : Pass(PassName, PassScope.PerFile)
                 break;
             case InstanceOfExpr iof:
                 SynthesizeExpr(pc, iof.Inner);
+                if (iof.TargetType is GenericTypeRef)
+                {
+                    pc.Diag.Report(iof.Span, DiagnosticCode.WarnGenericInstanceOfErased, iof.ClassName.Name);
+                }
                 result = tt.PrimBool.ID;
                 break;
             case FunctionDefExpr fde:
@@ -1743,6 +1747,16 @@ public sealed class InferTypesPass() : Pass(PassName, PassScope.PerFile)
         if (dst == TypID.Invalid || src == TypID.Invalid) return false;
         var tt = pc.Types;
         if (dst == tt.PrimAny.ID || src == tt.PrimAny.ID) return true;
+
+        if (pc.Pkg!.Types.GetByID(dst, out var dstTpCheck) && dstTpCheck is TypeParameterType dstTp)
+        {
+            if (dstTp.ExtendsBound is { } eb) return IsTypeAssignable(pc, eb, src);
+            return true;
+        }
+        if (pc.Pkg.Types.GetByID(src, out var srcTpCheck) && srcTpCheck is TypeParameterType)
+        {
+            return true;
+        }
 
         if (!pc.Config.Rules.StrictNil)
         {

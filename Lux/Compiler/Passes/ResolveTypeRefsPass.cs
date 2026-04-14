@@ -13,6 +13,7 @@ public class ResolveTypeRefsPass() : Pass(PassName, PassScope.PerBuild)
 
     private PassContext _ctx = null!;
     private PackageContext _pkg = null!;
+    private ScopeID _currentScope = ScopeID.Invalid;
 
     public override bool Run(PassContext context)
     {
@@ -20,6 +21,7 @@ public class ResolveTypeRefsPass() : Pass(PassName, PassScope.PerBuild)
         foreach (var pkg in context.Pkgs)
         {
             _pkg = pkg;
+            _currentScope = pkg.Root;
             foreach (var f in pkg.Files)
             {
                 DeclareEnumTypes(pkg, f.Hir.Body);
@@ -34,6 +36,11 @@ public class ResolveTypeRefsPass() : Pass(PassName, PassScope.PerBuild)
         }
 
         return true;
+    }
+
+    private ScopeID ScopeOfDecl(NodeID id)
+    {
+        return _pkg.Scopes.EnclosingScope(id, out var s) ? s : _pkg.Root;
     }
 
     /// <summary>
@@ -90,6 +97,7 @@ public class ResolveTypeRefsPass() : Pass(PassName, PassScope.PerBuild)
 
         var classType = pkg.Types.ClassOf(decl.Name.Name, isAbstract: decl.IsAbstract);
         pkg.Syms.SetType(decl.Name.Sym, classType.ID);
+        MaterializeTypeParams(pkg, decl.TypeParams, $"class:{decl.Name.Name}", classType.TypeParams, ScopeOfDecl(decl.ID));
     }
 
     private void DeclareInterfaceType(PackageContext pkg, InterfaceDecl decl)
@@ -100,6 +108,32 @@ public class ResolveTypeRefsPass() : Pass(PassName, PassScope.PerBuild)
 
         var interfaceType = pkg.Types.InterfaceOf(decl.Name.Name);
         pkg.Syms.SetType(decl.Name.Sym, interfaceType.ID);
+        MaterializeTypeParams(pkg, decl.TypeParams, $"iface:{decl.Name.Name}", interfaceType.TypeParams, ScopeOfDecl(decl.ID));
+    }
+
+    private void MaterializeFunctionTypeParams(PackageContext pkg, List<TypeParamDef> defs, string ownerKey, ScopeID declScope)
+    {
+        var sink = new List<TypeParameterType>();
+        MaterializeTypeParams(pkg, defs, ownerKey, sink, declScope);
+    }
+
+    private void MaterializeTypeParams(PackageContext pkg, List<TypeParamDef> defs, string ownerKey, List<TypeParameterType> sink, ScopeID declScope)
+    {
+        for (var i = 0; i < defs.Count; i++)
+        {
+            var def = defs[i];
+            var tp = pkg.Types.TypeParamOf(def.Name.Name, ownerKey, i);
+            def.ResolvedType = tp.ID;
+            sink.Add(tp);
+
+            if (declScope != ScopeID.Invalid
+                && pkg.Scopes.LookupOnlyCurrent(declScope, def.Name.Name, out var tpSymId)
+                && pkg.Syms.GetByID(tpSymId, out var tpSym)
+                && tpSym.Type == TypID.Invalid)
+            {
+                pkg.Syms.SetType(tpSymId, tp.ID);
+            }
+        }
     }
 
     private void DeclareEnumType(PackageContext pkg, EnumDecl decl)
@@ -245,6 +279,11 @@ public class ResolveTypeRefsPass() : Pass(PassName, PassScope.PerBuild)
         switch (decl)
         {
             case FunctionDecl functionDecl:
+            {
+                var prev = _currentScope;
+                _currentScope = ScopeOfDecl(functionDecl.ID);
+                MaterializeFunctionTypeParams(_pkg, functionDecl.TypeParams,
+                    $"fn:{string.Join(".", functionDecl.NamePath.Select(n => n.Name))}@{functionDecl.ID}", _currentScope);
                 foreach (var param in functionDecl.Parameters)
                 {
                     if (param.TypeAnnotation != null)
@@ -257,16 +296,22 @@ public class ResolveTypeRefsPass() : Pass(PassName, PassScope.PerBuild)
                 {
                     ResolveTypeRef(tt, functionDecl.ReturnType);
                 }
-                
+
                 ResolveStmtListTypes(tt, functionDecl.Body);
-                
+
                 if (functionDecl.ReturnStmt != null)
                 {
                     ResolveStmtTypes(tt, functionDecl.ReturnStmt);
                 }
-                
+                _currentScope = prev;
                 break;
+            }
             case LocalFunctionDecl localFunctionDecl:
+            {
+                var prev = _currentScope;
+                _currentScope = ScopeOfDecl(localFunctionDecl.ID);
+                MaterializeFunctionTypeParams(_pkg, localFunctionDecl.TypeParams,
+                    $"lfn:{localFunctionDecl.Name.Name}@{localFunctionDecl.ID}", _currentScope);
                 foreach (var param in localFunctionDecl.Parameters)
                 {
                     if (param.TypeAnnotation != null)
@@ -279,15 +324,16 @@ public class ResolveTypeRefsPass() : Pass(PassName, PassScope.PerBuild)
                 {
                     ResolveTypeRef(tt, localFunctionDecl.ReturnType);
                 }
-                
+
                 ResolveStmtListTypes(tt, localFunctionDecl.Body);
-                
+
                 if (localFunctionDecl.ReturnStmt != null)
                 {
                     ResolveStmtTypes(tt, localFunctionDecl.ReturnStmt);
                 }
-                
+                _currentScope = prev;
                 break;
+            }
             case LocalDecl localDecl:
                 foreach (var variable in localDecl.Variables)
                 {
@@ -304,6 +350,11 @@ public class ResolveTypeRefsPass() : Pass(PassName, PassScope.PerBuild)
                 
                 break;
             case DeclareFunctionDecl declareFunctionDecl:
+            {
+                var prev = _currentScope;
+                _currentScope = ScopeOfDecl(declareFunctionDecl.ID);
+                MaterializeFunctionTypeParams(_pkg, declareFunctionDecl.TypeParams,
+                    $"dfn:{string.Join(".", declareFunctionDecl.NamePath.Select(n => n.Name))}@{declareFunctionDecl.ID}", _currentScope);
                 foreach (var param in declareFunctionDecl.Parameters)
                 {
                     if (param.TypeAnnotation != null)
@@ -316,8 +367,9 @@ public class ResolveTypeRefsPass() : Pass(PassName, PassScope.PerBuild)
                 {
                     ResolveTypeRef(tt, declareFunctionDecl.ReturnType);
                 }
-                
+                _currentScope = prev;
                 break;
+            }
             case DeclareVariableDecl declareVariableDecl:
                 ResolveTypeRef(tt, declareVariableDecl.TypeAnnotation);
                 break;
@@ -342,6 +394,14 @@ public class ResolveTypeRefsPass() : Pass(PassName, PassScope.PerBuild)
                 }
                 break;
             case ClassDecl classDecl:
+            {
+                var prev = _currentScope;
+                _currentScope = ScopeOfDecl(classDecl.ID);
+                foreach (var tp in classDecl.TypeParams)
+                {
+                    if (tp.ExtendsBound != null) ResolveTypeRef(tt, tp.ExtendsBound);
+                    foreach (var ib in tp.ImplementsBounds) ResolveTypeRef(tt, ib);
+                }
                 foreach (var field in classDecl.Fields)
                 {
                     if (field.TypeAnnotation != null) ResolveTypeRef(tt, field.TypeAnnotation);
@@ -376,8 +436,18 @@ public class ResolveTypeRefsPass() : Pass(PassName, PassScope.PerBuild)
                     ResolveStmtListTypes(tt, accessor.Body);
                     if (accessor.ReturnStmt != null) ResolveStmtTypes(tt, accessor.ReturnStmt);
                 }
+                _currentScope = prev;
                 break;
+            }
             case InterfaceDecl interfaceDecl:
+            {
+                var prev = _currentScope;
+                _currentScope = ScopeOfDecl(interfaceDecl.ID);
+                foreach (var tp in interfaceDecl.TypeParams)
+                {
+                    if (tp.ExtendsBound != null) ResolveTypeRef(tt, tp.ExtendsBound);
+                    foreach (var ib in tp.ImplementsBounds) ResolveTypeRef(tt, ib);
+                }
                 foreach (var field in interfaceDecl.Fields)
                 {
                     ResolveTypeRef(tt, field.TypeAnnotation);
@@ -390,7 +460,9 @@ public class ResolveTypeRefsPass() : Pass(PassName, PassScope.PerBuild)
                     }
                     if (method.ReturnType != null) ResolveTypeRef(tt, method.ReturnType);
                 }
+                _currentScope = prev;
                 break;
+            }
             default:
                 throw new InvalidOperationException($"Unknown declaration kind: {decl.GetType().Name}");
         }
@@ -532,9 +604,11 @@ public class ResolveTypeRefsPass() : Pass(PassName, PassScope.PerBuild)
             return resolvedType;
         }
 
+        var lookupScope = _currentScope != ScopeID.Invalid ? _currentScope : _pkg.Root;
+
         if (tr is NamedTypeRef nrt)
         {
-            if (_pkg.Scopes.Lookup(_pkg.Root, nrt.Name.Name, out var symId)
+            if (_pkg.Scopes.Lookup(lookupScope, nrt.Name.Name, out var symId)
                 && _pkg.Syms.GetByID(symId, out var sym)
                 && sym.Type != TypID.Invalid)
             {
@@ -547,6 +621,61 @@ public class ResolveTypeRefsPass() : Pass(PassName, PassScope.PerBuild)
             _ctx.Diag.Report(tr.Span, Lux.Diagnostics.DiagnosticCode.ErrUndeclaredSymbol, nrt.Name.Name);
             tr.ResolvedType = tt.PrimAny.ID;
             return tt.PrimAny;
+        }
+
+        if (tr is GenericTypeRef gtr)
+        {
+            if (!_pkg.Scopes.Lookup(lookupScope, gtr.Name.Name, out var gSym)
+                || !_pkg.Syms.GetByID(gSym, out var gsym)
+                || gsym.Type == TypID.Invalid
+                || !tt.GetByID(gsym.Type, out var gDefType))
+            {
+                _ctx.Diag.Report(tr.Span, Lux.Diagnostics.DiagnosticCode.ErrUndeclaredSymbol, gtr.Name.Name);
+                tr.ResolvedType = tt.PrimAny.ID;
+                return tt.PrimAny;
+            }
+
+            gtr.Name.Sym = gSym;
+
+            int expectedArity;
+            switch (gDefType)
+            {
+                case ClassType ct: expectedArity = ct.TypeParams.Count; break;
+                case InterfaceType it: expectedArity = it.TypeParams.Count; break;
+                default:
+                    _ctx.Diag.Report(tr.Span, Lux.Diagnostics.DiagnosticCode.ErrNonGenericTypeArgs, gtr.Name.Name);
+                    tr.ResolvedType = gDefType.ID;
+                    return gDefType;
+            }
+
+            if (expectedArity == 0)
+            {
+                _ctx.Diag.Report(tr.Span, Lux.Diagnostics.DiagnosticCode.ErrNonGenericTypeArgs, gtr.Name.Name);
+                tr.ResolvedType = gDefType.ID;
+                return gDefType;
+            }
+
+            if (gtr.Arguments.Count != expectedArity)
+            {
+                _ctx.Diag.Report(tr.Span, Lux.Diagnostics.DiagnosticCode.ErrTypeParamArityMismatch,
+                    gtr.Name.Name, expectedArity, gtr.Arguments.Count);
+            }
+
+            foreach (var argRef in gtr.Arguments)
+            {
+                switch (argRef)
+                {
+                    case ConcreteTypeArgRef cta:
+                        ResolveTypeRef(tt, cta.Type);
+                        break;
+                    case WildcardTypeArgRef wta:
+                        if (wta.Bound != null) ResolveTypeRef(tt, wta.Bound);
+                        break;
+                }
+            }
+
+            tr.ResolvedType = gDefType.ID;
+            return gDefType;
         }
 
         if (tr is NullableTypeRef nt)

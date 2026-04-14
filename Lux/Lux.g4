@@ -226,7 +226,7 @@ enumMember
 // ─────────────────────────────────────────────────────────────────────────────
 
 classDecl
-    : ABSTRACT? CLASS NAME (EXTENDS NAME)? (IMPLEMENTS NAME (COMMA NAME)*)?
+    : ABSTRACT? CLASS NAME typeParamList? (EXTENDS classRef)? (IMPLEMENTS classRef (COMMA classRef)*)?
       classMember*
       END
     ;
@@ -240,9 +240,33 @@ classMember
     ;
 
 interfaceDecl
-    : INTERFACE NAME (EXTENDS NAME (COMMA NAME)*)?
+    : INTERFACE NAME typeParamList? (EXTENDS classRef (COMMA classRef)*)?
       interfaceMember*
       END
+    ;
+
+// ─── Generic Type Parameters (on class/interface/function decls) ───
+// Examples:
+//   <T>
+//   <T extends Comparable<T>>
+//   <K, V>
+//   <T extends Base implements IShow, IClone>
+
+typeParamList
+    : LT typeParam (COMMA typeParam)* GT
+    ;
+
+typeParam
+    : NAME (EXTENDS typeExpr)? (IMPLEMENTS typeExpr (COMMA typeExpr)*)?
+    ;
+
+// ─── Reference to a (possibly generic) class or interface in extends/implements ───
+// Examples:
+//   Foo
+//   Pair<K, V>
+
+classRef
+    : NAME typeArgList?
     ;
 
 interfaceMember
@@ -312,10 +336,10 @@ declareBody
     | NAME typeAnnotation                                        # DeclareVariable
     | MODULE str declareModuleBlock END                           # DeclareModule
     | ENUM NAME declareEnumMember+ END                           # DeclareEnum
-    | ABSTRACT? CLASS NAME (EXTENDS NAME)? (IMPLEMENTS NAME (COMMA NAME)*)?
+    | ABSTRACT? CLASS NAME typeParamList? (EXTENDS classRef)? (IMPLEMENTS classRef (COMMA classRef)*)?
       declareClassMember*
       END                                                        # DeclareClass
-    | INTERFACE NAME (EXTENDS NAME (COMMA NAME)*)?
+    | INTERFACE NAME typeParamList? (EXTENDS classRef (COMMA classRef)*)?
       interfaceMember*
       END                                                        # DeclareInterface
     ;
@@ -335,7 +359,7 @@ declareClassMember
 //   ()
 
 funcSignature
-    : LPAREN paramList? RPAREN typeAnnotation?
+    : typeParamList? LPAREN paramList? RPAREN typeAnnotation?
     ;
 
 // ─── Declare Module Block ───
@@ -363,10 +387,10 @@ declareModuleMember
     : ASYNC? FUNCTION funcName funcSignature                     # ModuleDeclareFunction
     | NAME typeAnnotation                                        # ModuleDeclareVariable
     | ENUM NAME declareEnumMember+ END                           # ModuleDeclareEnum
-    | ABSTRACT? CLASS NAME (EXTENDS NAME)? (IMPLEMENTS NAME (COMMA NAME)*)?
+    | ABSTRACT? CLASS NAME typeParamList? (EXTENDS classRef)? (IMPLEMENTS classRef (COMMA classRef)*)?
       declareClassMember*
       END                                                        # ModuleDeclareClass
-    | INTERFACE NAME (EXTENDS NAME (COMMA NAME)*)?
+    | INTERFACE NAME typeParamList? (EXTENDS classRef (COMMA classRef)*)?
       interfaceMember*
       END                                                        # ModuleDeclareInterface
     ;
@@ -386,7 +410,7 @@ funcName
 //   function baz(): (number, string) ... end   -- multi-return
 
 funcBody
-    : LPAREN paramList? RPAREN typeAnnotation? block END
+    : typeParamList? LPAREN paramList? RPAREN typeAnnotation? block END
     ;
 
 // ─── Parameter List ───
@@ -504,10 +528,28 @@ typeSuffix
 
 typeAtom
     : NIL                                                       # NilType
-    | NAME                                                      # NamedType
+    | NAME typeArgList?                                         # NamedType
     | functionType                                              # FuncType
     | tableType                                                 # TableType_
     | LPAREN typeExpr (COMMA typeExpr)* RPAREN                  # GroupedOrTupleType
+    ;
+
+// ─── Generic Type Arguments ───
+// Used when referencing a generic type.
+// Examples:
+//   List<number>
+//   Map<string, Foo>
+//   List<? extends Animal>
+//   Consumer<? super Dog>
+//   Box<?>
+
+typeArgList
+    : LT typeArg (COMMA typeArg)* GT
+    ;
+
+typeArg
+    : typeExpr                                                  # ConcreteTypeArg
+    | QMARK (EXTENDS typeExpr | SUPER typeExpr)?                # WildcardTypeArg
     ;
 
 // ─── Function Types ───
@@ -597,7 +639,7 @@ expr
 
     | expr IS typeExpr                                          # TypeCheckExpr
     | expr AS typeExpr                                          # TypeCastExpr
-    | expr INSTANCEOF NAME                                      # InstanceOfExpr
+    | expr INSTANCEOF typeAtom                                  # InstanceOfExpr
 
     | expr compareOp expr                                       # ComparisonExpr
     | expr AND expr                                             # LogicalAndExpr

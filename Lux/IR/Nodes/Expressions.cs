@@ -54,6 +54,7 @@ public sealed class FunctionDefExpr(
     public List<Stmt> Body { get; } = body;
     public ReturnStmt? ReturnStmt { get; } = returnStmt;
     public bool IsAsync { get; } = isAsync;
+    public List<TypeParamDef> TypeParams { get; set; } = [];
 }
 
 public sealed class BinaryExpr(NodeID id, TextSpan span, BinaryOp op, Expr left, Expr right) : Expr(id, span)
@@ -139,6 +140,12 @@ public sealed class InstanceOfExpr(NodeID id, TextSpan span, Expr inner, NameRef
 {
     public Expr Inner { get; } = inner;
     public NameRef ClassName { get; } = className;
+    /// <summary>
+    /// The full type reference from the source, including any generic type arguments
+    /// (e.g. <c>List&lt;number&gt;</c>). Null if the instanceof target was a bare name.
+    /// Generic arguments are validated at compile time and erased at runtime.
+    /// </summary>
+    public TypeRef? TargetType { get; set; }
 }
 
 public sealed class AwaitExpr(NodeID id, TextSpan span, Expr expression) : Expr(id, span)

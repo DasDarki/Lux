@@ -19,9 +19,10 @@ public sealed class SemanticTokensHandler(LuxWorkspace workspace) : SemanticToke
     private const int TK_OPERATOR = 6;
     private const int TK_TYPE = 7;
     private const int TK_ENUM_MEMBER = 8;
+    private const int TK_TYPE_PARAMETER = 9;
 
     private static readonly string[] TokenTypes =
-        ["keyword", "string", "number", "comment", "variable", "function", "operator", "type", "enumMember"];
+        ["keyword", "string", "number", "comment", "variable", "function", "operator", "type", "enumMember", "typeParameter"];
 
     private static readonly string[] TokenModifiers = ["declaration", "readonly"];
 
@@ -100,6 +101,9 @@ public sealed class SemanticTokensHandler(LuxWorkspace workspace) : SemanticToke
             {
                 LuxSymbolKind.Function => TK_FUNCTION,
                 LuxSymbolKind.Enum => TK_TYPE,
+                LuxSymbolKind.Class => TK_TYPE,
+                LuxSymbolKind.Interface => TK_TYPE,
+                LuxSymbolKind.TypeParam => TK_TYPE_PARAMETER,
                 _ => -1
             };
 
