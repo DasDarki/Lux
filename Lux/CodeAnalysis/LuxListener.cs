@@ -1627,6 +1627,18 @@ public interface ILuxListener : IParseTreeListener {
 	/// <param name="context">The parse tree.</param>
 	void ExitUnaryExpr([NotNull] LuxParser.UnaryExprContext context);
 	/// <summary>
+	/// Enter a parse tree produced by the <c>InstanceOfExpr</c>
+	/// labeled alternative in <see cref="LuxParser.expr"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void EnterInstanceOfExpr([NotNull] LuxParser.InstanceOfExprContext context);
+	/// <summary>
+	/// Exit a parse tree produced by the <c>InstanceOfExpr</c>
+	/// labeled alternative in <see cref="LuxParser.expr"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void ExitInstanceOfExpr([NotNull] LuxParser.InstanceOfExprContext context);
+	/// <summary>
 	/// Enter a parse tree produced by the <c>PrefixExpr</c>
 	/// labeled alternative in <see cref="LuxParser.expr"/>.
 	/// </summary>
@@ -1638,6 +1650,18 @@ public interface ILuxListener : IParseTreeListener {
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	void ExitPrefixExpr([NotNull] LuxParser.PrefixExprContext context);
+	/// <summary>
+	/// Enter a parse tree produced by the <c>TypeOfExpr</c>
+	/// labeled alternative in <see cref="LuxParser.expr"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void EnterTypeOfExpr([NotNull] LuxParser.TypeOfExprContext context);
+	/// <summary>
+	/// Exit a parse tree produced by the <c>TypeOfExpr</c>
+	/// labeled alternative in <see cref="LuxParser.expr"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void ExitTypeOfExpr([NotNull] LuxParser.TypeOfExprContext context);
 	/// <summary>
 	/// Enter a parse tree produced by the <c>PowerExpr</c>
 	/// labeled alternative in <see cref="LuxParser.expr"/>.

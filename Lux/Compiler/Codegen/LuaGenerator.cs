@@ -401,6 +401,47 @@ public sealed class LuaGenerator(Config config)
 
     #endregion
 
+    #region TypeOf / InstanceOf Helpers
+
+    public string GetTypeOfHelper()
+    {
+        return RequireHelper("typeof", name =>
+            $"local function {name}(v) " +
+            $"local t = type(v) " +
+            $"if t == \"table\" then " +
+            $"local mt = getmetatable(v) " +
+            $"while mt ~= nil do " +
+            $"if type(mt) == \"table\" and type(mt.__index) == \"table\" and mt.__index.__name then return mt.__index.__name end " +
+            $"if type(mt) == \"table\" and mt.__name then return mt.__name end " +
+            $"mt = getmetatable(mt) " +
+            $"end " +
+            $"end " +
+            $"return t " +
+            $"end");
+    }
+
+    public string GetInstanceOfHelper()
+    {
+        return RequireHelper("instanceof", name =>
+            $"local function {name}(v, cls) " +
+            $"if type(v) ~= \"table\" or cls == nil then return false end " +
+            $"local mt = getmetatable(v) " +
+            $"while mt ~= nil do " +
+            $"if mt == cls then return true end " +
+            $"if type(mt) == \"table\" and mt.__index == cls then return true end " +
+            $"if type(mt) == \"table\" and type(mt.__index) == \"table\" then " +
+            $"if mt.__index == cls then return true end " +
+            $"mt = getmetatable(mt.__index) " +
+            $"else " +
+            $"mt = getmetatable(mt) " +
+            $"end " +
+            $"end " +
+            $"return false " +
+            $"end");
+    }
+
+    #endregion
+
     #region Floor Div Helper
 
     public string GetFloorDivHelper()

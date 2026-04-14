@@ -1912,6 +1912,20 @@ public partial class LuxBaseListener : ILuxListener {
 	/// <param name="context">The parse tree.</param>
 	public virtual void ExitUnaryExpr([NotNull] LuxParser.UnaryExprContext context) { }
 	/// <summary>
+	/// Enter a parse tree produced by the <c>InstanceOfExpr</c>
+	/// labeled alternative in <see cref="LuxParser.expr"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void EnterInstanceOfExpr([NotNull] LuxParser.InstanceOfExprContext context) { }
+	/// <summary>
+	/// Exit a parse tree produced by the <c>InstanceOfExpr</c>
+	/// labeled alternative in <see cref="LuxParser.expr"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void ExitInstanceOfExpr([NotNull] LuxParser.InstanceOfExprContext context) { }
+	/// <summary>
 	/// Enter a parse tree produced by the <c>PrefixExpr</c>
 	/// labeled alternative in <see cref="LuxParser.expr"/>.
 	/// <para>The default implementation does nothing.</para>
@@ -1925,6 +1939,20 @@ public partial class LuxBaseListener : ILuxListener {
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	public virtual void ExitPrefixExpr([NotNull] LuxParser.PrefixExprContext context) { }
+	/// <summary>
+	/// Enter a parse tree produced by the <c>TypeOfExpr</c>
+	/// labeled alternative in <see cref="LuxParser.expr"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void EnterTypeOfExpr([NotNull] LuxParser.TypeOfExprContext context) { }
+	/// <summary>
+	/// Exit a parse tree produced by the <c>TypeOfExpr</c>
+	/// labeled alternative in <see cref="LuxParser.expr"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void ExitTypeOfExpr([NotNull] LuxParser.TypeOfExprContext context) { }
 	/// <summary>
 	/// Enter a parse tree produced by the <c>PowerExpr</c>
 	/// labeled alternative in <see cref="LuxParser.expr"/>.

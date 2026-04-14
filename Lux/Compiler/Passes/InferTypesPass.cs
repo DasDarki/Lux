@@ -805,6 +805,14 @@ public sealed class InferTypesPass() : Pass(PassName, PassScope.PerFile)
                     ? tcast.TargetType.ResolvedType
                     : tt.PrimAny.ID;
                 break;
+            case TypeOfExpr tof:
+                SynthesizeExpr(pc, tof.Inner);
+                result = tt.PrimString.ID;
+                break;
+            case InstanceOfExpr iof:
+                SynthesizeExpr(pc, iof.Inner);
+                result = tt.PrimBool.ID;
+                break;
             case FunctionDefExpr fde:
                 result = InferFunctionDef(pc, fde);
                 break;

@@ -444,6 +444,16 @@ public sealed class ResolveNamesPass() : Pass(PassName, PassScope.PerFile)
             case TypeCastExpr typeCast:
                 ResolveExprNames(pc, typeCast.Inner, pkg);
                 break;
+            case TypeOfExpr typeOf:
+                ResolveExprNames(pc, typeOf.Inner, pkg);
+                break;
+            case InstanceOfExpr instOf:
+            {
+                pkg.Scopes.EnclosingScope(instOf.ID, out var instScope);
+                ResolveNameRef(pc, instOf.ClassName, instScope, pkg);
+                ResolveExprNames(pc, instOf.Inner, pkg);
+                break;
+            }
             case TableConstructorExpr tableConstructorExpr:
             {
                 foreach (var field in tableConstructorExpr.Fields)

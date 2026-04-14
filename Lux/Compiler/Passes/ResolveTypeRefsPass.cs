@@ -482,6 +482,12 @@ public class ResolveTypeRefsPass() : Pass(PassName, PassScope.PerBuild)
                 ResolveExprTypes(tt, typeCast.Inner);
                 ResolveTypeRef(tt, typeCast.TargetType);
                 break;
+            case TypeOfExpr typeOf:
+                ResolveExprTypes(tt, typeOf.Inner);
+                break;
+            case InstanceOfExpr instOf:
+                ResolveExprTypes(tt, instOf.Inner);
+                break;
             case TableConstructorExpr tableConstructorExpr:
                 foreach (var field in tableConstructorExpr.Fields)
                 {

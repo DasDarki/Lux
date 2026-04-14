@@ -970,12 +970,26 @@ public interface ILuxVisitor<Result> : IParseTreeVisitor<Result> {
 	/// <return>The visitor result.</return>
 	Result VisitUnaryExpr([NotNull] LuxParser.UnaryExprContext context);
 	/// <summary>
+	/// Visit a parse tree produced by the <c>InstanceOfExpr</c>
+	/// labeled alternative in <see cref="LuxParser.expr"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitInstanceOfExpr([NotNull] LuxParser.InstanceOfExprContext context);
+	/// <summary>
 	/// Visit a parse tree produced by the <c>PrefixExpr</c>
 	/// labeled alternative in <see cref="LuxParser.expr"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	/// <return>The visitor result.</return>
 	Result VisitPrefixExpr([NotNull] LuxParser.PrefixExprContext context);
+	/// <summary>
+	/// Visit a parse tree produced by the <c>TypeOfExpr</c>
+	/// labeled alternative in <see cref="LuxParser.expr"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitTypeOfExpr([NotNull] LuxParser.TypeOfExprContext context);
 	/// <summary>
 	/// Visit a parse tree produced by the <c>PowerExpr</c>
 	/// labeled alternative in <see cref="LuxParser.expr"/>.

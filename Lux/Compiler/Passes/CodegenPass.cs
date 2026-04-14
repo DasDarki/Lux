@@ -347,6 +347,13 @@ public sealed class CodegenPass() : Pass(PassName, PassScope.PerBuild, true)
             gen.WriteSemicolon();
         }
 
+        gen.Write(className);
+        gen.Write(".__name = \"");
+        gen.Write(cd.Name.Name);
+        gen.Write("\"");
+        gen.NewLine();
+        gen.WriteSemicolon();
+
         // Getters/setters
         foreach (var accessor in cd.Accessors)
         {
@@ -1165,6 +1172,12 @@ public sealed class CodegenPass() : Pass(PassName, PassScope.PerBuild, true)
             case TypeCheckExpr tchk:
                 EmitTypeCheck(ctx, pkg, gen, tchk);
                 break;
+            case TypeOfExpr tof:
+                EmitTypeOf(ctx, pkg, gen, tof);
+                break;
+            case InstanceOfExpr iof:
+                EmitInstanceOf(ctx, pkg, gen, iof);
+                break;
             case MatchExpr me:
                 EmitMatchExpr(ctx, pkg, gen, me);
                 break;
@@ -1231,6 +1244,56 @@ public sealed class CodegenPass() : Pass(PassName, PassScope.PerBuild, true)
                 gen.Write("false");
                 break;
         }
+    }
+
+    private void EmitTypeOf(PassContext ctx, PackageContext pkg, LuaGenerator gen, TypeOfExpr tof)
+    {
+        var innerType = tof.Inner.Type;
+        if (innerType != TypID.Invalid && pkg.Types.GetByID(innerType, out var t))
+        {
+            switch (t)
+            {
+                case { Kind: TypeKind.PrimitiveString }:
+                    gen.Write("\"string\"");
+                    return;
+                case { Kind: TypeKind.PrimitiveNumber }:
+                    gen.Write("\"number\"");
+                    return;
+                case { Kind: TypeKind.PrimitiveBool }:
+                    gen.Write("\"boolean\"");
+                    return;
+                case { Kind: TypeKind.PrimitiveNil }:
+                    gen.Write("\"nil\"");
+                    return;
+                case ClassType ct:
+                    gen.Write("\"");
+                    gen.Write(ct.Name);
+                    gen.Write("\"");
+                    return;
+                case EnumType et:
+                    gen.Write("\"");
+                    gen.Write(et.Name);
+                    gen.Write("\"");
+                    return;
+            }
+        }
+
+        var helper = gen.GetTypeOfHelper();
+        gen.Write(helper);
+        gen.Write("(");
+        EmitExpr(ctx, pkg, gen, tof.Inner);
+        gen.Write(")");
+    }
+
+    private void EmitInstanceOf(PassContext ctx, PackageContext pkg, LuaGenerator gen, InstanceOfExpr iof)
+    {
+        var helper = gen.GetInstanceOfHelper();
+        gen.Write(helper);
+        gen.Write("(");
+        EmitExpr(ctx, pkg, gen, iof.Inner);
+        gen.Write(", ");
+        gen.Write(ResolveName(ctx, pkg, iof.ClassName));
+        gen.Write(")");
     }
 
     private void EmitTypeOfCheck(PassContext ctx, PackageContext pkg, LuaGenerator gen, Expr inner, string typeName)

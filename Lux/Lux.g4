@@ -573,6 +573,7 @@ expr
     | unaryOp expr                                              # UnaryExpr
     | BANG expr                                                 # AltLogicalNotExpr
     | AWAIT expr                                                # AwaitExpr
+    | TYPEOF expr                                               # TypeOfExpr
     | INC expr                                                  # PreIncExpr
     | DEC expr                                                  # PreDecExpr
 
@@ -596,6 +597,7 @@ expr
 
     | expr IS typeExpr                                          # TypeCheckExpr
     | expr AS typeExpr                                          # TypeCastExpr
+    | expr INSTANCEOF NAME                                      # InstanceOfExpr
 
     | expr compareOp expr                                       # ComparisonExpr
     | expr AND expr                                             # LogicalAndExpr
@@ -795,6 +797,8 @@ NEW         : 'new';
 SUPER       : 'super';
 OVERRIDE    : 'override';
 PROTECTED   : 'protected';
+TYPEOF      : 'typeof';
+INSTANCEOF  : 'instanceof';
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  Operators & Punctuation

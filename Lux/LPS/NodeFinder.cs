@@ -190,6 +190,8 @@ public static class NodeFinder
             case IncDecExpr incDec: SearchExprForCall(incDec.Target, line, col, ref best); break;
             case TypeCheckExpr tchk: SearchExprForCall(tchk.Inner, line, col, ref best); break;
             case TypeCastExpr tcast: SearchExprForCall(tcast.Inner, line, col, ref best); break;
+            case TypeOfExpr tof: SearchExprForCall(tof.Inner, line, col, ref best); break;
+            case InstanceOfExpr iof: SearchExprForCall(iof.Inner, line, col, ref best); break;
         }
     }
 
@@ -365,6 +367,12 @@ public static class NodeFinder
                 break;
             case TypeCastExpr tcast:
                 SearchExpr(tcast.Inner, line, col, ref best);
+                break;
+            case TypeOfExpr tof:
+                SearchExpr(tof.Inner, line, col, ref best);
+                break;
+            case InstanceOfExpr iof:
+                SearchExpr(iof.Inner, line, col, ref best);
                 break;
             case MatchExpr me:
                 SearchExpr(me.Scrutinee, line, col, ref best);
@@ -603,6 +611,13 @@ public static class NodeFinder
             case TypeCastExpr tcast:
                 SearchExprForNameRef(tcast.Inner, line, col, ref best);
                 break;
+            case TypeOfExpr tof:
+                SearchExprForNameRef(tof.Inner, line, col, ref best);
+                break;
+            case InstanceOfExpr iof:
+                CheckNameRef(iof.ClassName, line, col, ref best);
+                SearchExprForNameRef(iof.Inner, line, col, ref best);
+                break;
             case NewExpr ne:
                 CheckNameRef(ne.ClassName, line, col, ref best);
                 foreach (var a in ne.Arguments) SearchExprForNameRef(a, line, col, ref best);
@@ -812,6 +827,13 @@ public static class NodeFinder
             case TypeCastExpr tcast:
                 CollectFromExpr(tcast.Inner, refs);
                 break;
+            case TypeOfExpr tof:
+                CollectFromExpr(tof.Inner, refs);
+                break;
+            case InstanceOfExpr iof:
+                AddRef(iof.ClassName, refs);
+                CollectFromExpr(iof.Inner, refs);
+                break;
             case NewExpr ne:
                 AddRef(ne.ClassName, refs);
                 foreach (var a in ne.Arguments) CollectFromExpr(a, refs);
@@ -969,6 +991,12 @@ public static class NodeFinder
                 break;
             case TypeCastExpr tcast:
                 RegisterExpr(tcast.Inner, reg);
+                break;
+            case TypeOfExpr tof:
+                RegisterExpr(tof.Inner, reg);
+                break;
+            case InstanceOfExpr iof:
+                RegisterExpr(iof.Inner, reg);
                 break;
             case NewExpr ne:
                 foreach (var a in ne.Arguments) RegisterExpr(a, reg);

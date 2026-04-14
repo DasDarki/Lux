@@ -177,3 +177,30 @@ With `concat_operator = "+"` in config, the `+` operator can be used for string 
 ```lux
 local msg = "Hello" + " " + "World"  -- compiles to .. in Lua
 ```
+
+## Runtime Type Introspection
+
+### `typeof`
+
+Returns a string describing the runtime type of a value. For classes and enums the returned string is the declared name; for primitives it matches Lua's `type()` result.
+
+```lux
+typeof 42            -- "number"
+typeof "hi"          -- "string"
+typeof myDog         -- "Dog"
+typeof Colors.Red    -- "Colors" (when static type is known as enum)
+```
+
+When the static type is known at compile time (class or enum), the name is inlined as a string literal. Otherwise a runtime helper walks the metatable chain for a `__name` marker and falls back to `type()`.
+
+### `instanceof`
+
+Runtime check whether a value is an instance of the given class (including subclasses).
+
+```lux
+if pet instanceof Dog then
+    pet:bark()
+end
+```
+
+Walks the metatable chain so both direct and inherited class matches return true. Returns `false` for non-table values or unknown classes.

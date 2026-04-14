@@ -130,6 +130,17 @@ public sealed class TypeCastExpr(NodeID id, TextSpan span, Expr inner, TypeRef t
     public TypeRef TargetType { get; } = targetType;
 }
 
+public sealed class TypeOfExpr(NodeID id, TextSpan span, Expr inner) : Expr(id, span)
+{
+    public Expr Inner { get; } = inner;
+}
+
+public sealed class InstanceOfExpr(NodeID id, TextSpan span, Expr inner, NameRef className) : Expr(id, span)
+{
+    public Expr Inner { get; } = inner;
+    public NameRef ClassName { get; } = className;
+}
+
 public sealed class AwaitExpr(NodeID id, TextSpan span, Expr expression) : Expr(id, span)
 {
     public Expr Expression { get; } = expression;

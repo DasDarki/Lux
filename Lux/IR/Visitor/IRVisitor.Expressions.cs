@@ -178,6 +178,13 @@ internal partial class IRVisitor
         => new TypeCastExpr(NewNodeID, SpanFromCtx(context),
             (Expr)Visit(context.expr()), (TypeRef)Visit(context.typeExpr()));
 
+    public override Node VisitTypeOfExpr(LuxParser.TypeOfExprContext context)
+        => new TypeOfExpr(NewNodeID, SpanFromCtx(context), (Expr)Visit(context.expr()));
+
+    public override Node VisitInstanceOfExpr(LuxParser.InstanceOfExprContext context)
+        => new InstanceOfExpr(NewNodeID, SpanFromCtx(context),
+            (Expr)Visit(context.expr()), NameRefFromTerm(context.NAME()));
+
     #endregion
 
     #region Binary Expressions

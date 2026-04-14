@@ -617,6 +617,10 @@ public sealed class BindDeclarePass() : Pass(PassName, PassScope.PerFile)
             case TypeCastExpr typeCast:
                 pkg.Scopes.BindNode(typeCast.TargetType.ID, scope);
                 return BindExprScopes(ctx, typeCast.Inner, scope);
+            case TypeOfExpr typeOf:
+                return BindExprScopes(ctx, typeOf.Inner, scope);
+            case InstanceOfExpr instOf:
+                return BindExprScopes(ctx, instOf.Inner, scope);
             case TableConstructorExpr tableConstructor:
                 foreach (var field in tableConstructor.Fields)
                 {

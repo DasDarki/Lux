@@ -484,6 +484,14 @@ public sealed class DetectUnusedPass() : Pass(PassName, PassScope.PerBuild)
             case TypeCastExpr typeCast:
                 TrackExprUsage(pc, pkg, typeCast.Inner);
                 break;
+            case TypeOfExpr typeOf:
+                TrackExprUsage(pc, pkg, typeOf.Inner);
+                break;
+            case InstanceOfExpr instOf:
+                if (pkg.Syms.GetByID(instOf.ClassName.Sym, out var instSym))
+                    instSym.Flags &= ~SymbolFlags.Unused;
+                TrackExprUsage(pc, pkg, instOf.Inner);
+                break;
             case TableConstructorExpr tableConstructorExpr:
                 foreach (var field in tableConstructorExpr.Fields)
                 {
