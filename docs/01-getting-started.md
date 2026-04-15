@@ -85,3 +85,23 @@ post_build = ["echo Done!"]
 | `<close>`     | -       | -       | -       | yes     | -      |
 
 When targeting older Lua versions, Lux automatically emits polyfill helpers (e.g. `math.floor(a/b)` for `//` on Lua 5.1).
+
+## Running Lux Code
+
+In addition to transpiling, Lux ships with an embedded Lua 5.4 interpreter
+(KeraLua) so you can compile and execute Lux code in one step:
+
+```bash
+lux run                 # compile the current project and run its entry file
+lux run src/main.lux    # compile and run a single file (compiled output is temporary)
+lux run -- foo bar      # forward arguments to the running script (via the global `arg` table)
+```
+
+In project mode, `lux run` uses the `entry` field from `lux.toml`. If `entry`
+is not set, it looks for `main.lua`, `index.lua`, or `init.lua` in the output
+directory. Imports are resolved through Lua's normal `require` mechanism —
+`lux run` prepends the compiled output directory to `package.path` before
+executing the entry script.
+
+In single-file mode, output is written to a temporary directory and cleaned up
+after the run. Use `lux build` if you want the compiled Lua to persist.

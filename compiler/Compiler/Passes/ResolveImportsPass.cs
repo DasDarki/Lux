@@ -16,7 +16,8 @@ public sealed class ResolveImportsPass() : Pass(PassName, PassScope.PerBuild)
 
         foreach (var pkg in context.Pkgs)
         {
-            foreach (var file in pkg.Files)
+            var filesSnapshot = pkg.Files.ToList();
+            foreach (var file in filesSnapshot)
             {
                 ProcessFileImports(context, pkg, file, newFiles);
             }
@@ -27,7 +28,8 @@ public sealed class ResolveImportsPass() : Pass(PassName, PassScope.PerBuild)
 
         foreach (var pkg in context.Pkgs)
         {
-            foreach (var file in pkg.Files)
+            var filesSnapshot = pkg.Files.ToList();
+            foreach (var file in filesSnapshot)
             {
                 ResolveImportTypes(context, pkg, file);
             }

@@ -24,12 +24,17 @@
 - [x] Async/await and Promises
 - [ ] Add setup scripts allowing to create templates (setup.lux/.lua -> with prompting and then generating the project structure and files): lux create user/repo (auto detect git url - or manually add it, auto detect setup script)
 - [ ] Add a REPL for interactive coding and testing
-- [ ] Add a runtime to execute Lux/Lua Code
+- [x] Add a runtime to execute Lux/Lua Code (via embedded KeraLua, exposed as `lux run`)
+  - [ ] Runtime test of all Lux language features (e.g. pattern matching, async/await, etc.)
 - [ ] Add a compiler to compile Lux/Lua into binary executables
 - [ ] Add a package manager for managing dependencies and libraries (git based)
 - [x] Iteration type checking and type inference for loops (enums are also iterable)
 - [x] BUG: Without explicit parens, a is number and b is string parses as ((a is number) and b) is string. The expr rule's operator alternatives are listed in inverted ANTLR4 precedence order (is/as end up looser than and/or, and similarly mul ends up looser
   than add). The narrowing logic itself handles compound conditions correctly once parens force the right parse — fixing the grammar would touch the entire arithmetic precedence chain and is out of scope here.
+- [ ] BUG: Field defaults in an inheriting class constructor are emitted *before* `local self = Parent.new(...)`, so the generated Lua references `self` before it exists (`attempt to index a nil value (global 'self')`). Seen in CodegenPass.EmitClassDecl around the instance-field-default loop when the class `hasBase`. Fix: emit the inherited `self` initialization first, then the field defaults.
+- [ ] BUG: Calling a cross-file `export function` triggers `ArgumentNullException` in `SymbolArena.SetType` via `InferTypesPass.ResolveFunctionLike` (line ~630). Reproducible with a two-file project where `main.lux` imports a named export from another module and then calls it. Root cause is likely a symbol id not being bound before type inference runs on the imported module's function.
+- [ ] BUG: `ResolveImportsPass.Run` iterated `pkg.Files` while `ModuleResolver.LoadAndInject` mutated it, causing `InvalidOperationException: Collection was modified`. Worked around by snapshotting `pkg.Files` into a list before iterating — consider whether the resolver should instead queue new files and inject them between iterations.
+- [ ] BUG: `lux.toml` with `target = "5.4"` fails to parse (`Expected PropertyName token but was String`). The `LuaVersionConverter` expects a string but Tomlyn seems to reject the quoted form. Either fix the converter to accept quoted strings cleanly, document the exact expected form, or add an enum-style accessor (e.g. `target = "lua54"`).
 - [ ] Extend LSP:
   - [ ] Auto import
   - [ ] Code actions (rename, compile, etc.)
