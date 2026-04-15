@@ -20,21 +20,21 @@ internal sealed class LuaVersionConverter : TomlConverter<LuaVersion>
     public override LuaVersion Read(TomlReader reader)
     {
         var str = reader.GetString()?.ToLowerInvariant()?.Trim();
+        reader.Read();
         if (str == null)
             throw new TomlException("Expected a string value for Lua version, got empty string");
-        
+
         if (!StringToLuaVersion.TryGetValue(str, out var luaVersion))
             throw new TomlException($"Invalid Lua version string: '{str}'. Supported versions are: {string.Join(", ", StringToLuaVersion.Keys)}");
-        
-        return luaVersion;
 
+        return luaVersion;
     }
 
     public override void Write(TomlWriter writer, LuaVersion value)
     {
         if (!LuaVersionToString.TryGetValue(value, out var str))
             throw new TomlException($"Invalid Lua version enum value: '{value}'. Supported versions are: {string.Join(", ", LuaVersionToString.Keys)}");
-        
+
         writer.WriteStringValue(str);
     }
 }

@@ -396,11 +396,13 @@ public sealed class CodegenPass() : Pass(PassName, PassScope.PerBuild, true)
         gen.Indent();
 
         // self initialization
+        // When hasBase && hasSuperCall, `local self = Parent.new(...)` is emitted
+        // inline by EmitClassConstructorBody at the super() site. In that case the
+        // field defaults must also be deferred until after `self` exists, so we
+        // skip the default-init loop below and let EmitClassConstructorBody handle it.
+        var hasSuperCall = hasBase && cd.Constructor != null && HasSuperCall(cd.Constructor.Body);
         if (hasBase)
         {
-            // Emit default: local self = setmetatable({}, ClassName) or proxy
-            // super() calls get replaced inline — we emit a default if there's no super call
-            var hasSuperCall = cd.Constructor != null && HasSuperCall(cd.Constructor.Body);
             if (!hasSuperCall)
             {
                 gen.Write("local self = ");
@@ -431,19 +433,11 @@ public sealed class CodegenPass() : Pass(PassName, PassScope.PerBuild, true)
             gen.WriteSemicolon();
         }
 
-        // Instance field defaults in constructor
-        foreach (var field in cd.Fields)
+        // Instance field defaults (only safe to emit here when `self` already exists).
+        // For the hasBase+hasSuperCall case, EmitClassConstructorBody emits them after super().
+        if (!hasSuperCall)
         {
-            if (field.IsLocal || field.IsStatic) continue;
-            if (field.DefaultValue != null)
-            {
-                gen.Write("self.");
-                gen.Write(field.Name.Name);
-                gen.Write(" = ");
-                EmitExpr(ctx, pkg, gen, field.DefaultValue);
-                gen.NewLine();
-                gen.WriteSemicolon();
-            }
+            EmitInstanceFieldDefaults(ctx, pkg, gen, cd);
         }
 
         // Constructor body
@@ -594,12 +588,30 @@ public sealed class CodegenPass() : Pass(PassName, PassScope.PerBuild, true)
                     }
                     gen.NewLine();
                     gen.WriteSemicolon();
+
+                    // Now that `self` exists, emit the child class's instance field defaults.
+                    EmitInstanceFieldDefaults(ctx, pkg, gen, cd);
                 }
                 continue;
             }
             EmitStmt(ctx, pkg, gen, stmt);
         }
         if (ctor.ReturnStmt != null) EmitReturn(ctx, pkg, gen, ctor.ReturnStmt);
+    }
+
+    private void EmitInstanceFieldDefaults(PassContext ctx, PackageContext pkg, LuaGenerator gen, ClassDecl cd)
+    {
+        foreach (var field in cd.Fields)
+        {
+            if (field.IsLocal || field.IsStatic) continue;
+            if (field.DefaultValue == null) continue;
+            gen.Write("self.");
+            gen.Write(field.Name.Name);
+            gen.Write(" = ");
+            EmitExpr(ctx, pkg, gen, field.DefaultValue);
+            gen.NewLine();
+            gen.WriteSemicolon();
+        }
     }
 
     private bool ClassNeedsProxy(PassContext ctx, PackageContext pkg, ClassDecl cd)

@@ -138,24 +138,22 @@ public sealed class ResolveNamesPass() : Pass(PassName, PassScope.PerFile)
                 break;
             case ImportStmt importStmt:
             {
+                // Note: importStmt.Module is a module path string (e.g. "math_util"), not
+                // a symbol reference — it must not be resolved via the scope graph.
+                // For specifiers, only the locally-declared name (the alias if present,
+                // otherwise the specifier name) is declared by BindDeclarePass, so that's
+                // the only one we can resolve here.
                 pkg.Scopes.EnclosingScope(importStmt.ID, out var specifierScope);
-                
+
                 foreach (var specifier in importStmt.Specifiers)
                 {
-                    ResolveNameRef(pc, specifier.Name, specifierScope, pkg);
-                    
-                    if (specifier.Alias != null)
-                    {
-                        ResolveNameRef(pc, specifier.Alias, specifierScope, pkg);
-                    }
+                    var localName = specifier.Alias ?? specifier.Name;
+                    ResolveNameRef(pc, localName, specifierScope, pkg);
                 }
-                
-                pkg.Scopes.EnclosingScope(importStmt.ID, out var scope);
-                ResolveNameRef(pc, importStmt.Module, scope, pkg);
 
                 if (importStmt.Alias != null)
                 {
-                    ResolveNameRef(pc, importStmt.Alias, scope, pkg);
+                    ResolveNameRef(pc, importStmt.Alias, specifierScope, pkg);
                 }
             }
                 break;
@@ -521,9 +519,11 @@ public sealed class ResolveNamesPass() : Pass(PassName, PassScope.PerFile)
         var all = pkg.Scopes.LookupAll(start, nameRef.Name);
         if (all.Count > 0)
         {
+            // FirstOrDefault returns null for reference-type SymID when no element matches,
+            // so guard against null explicitly before comparing against SymID.Invalid.
             var matched = all.FirstOrDefault(id =>
                 pkg.Syms.GetByID(id, out var s) && s.DeclaringNode == declNode);
-            nameRef.Sym = matched != SymID.Invalid ? matched : all[0];
+            nameRef.Sym = matched != null && matched != SymID.Invalid ? matched : all[0];
             if (all.Count > 1)
             {
                 nameRef.Overloads = all;

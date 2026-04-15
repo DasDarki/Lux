@@ -625,9 +625,9 @@ public sealed class InferTypesPass() : Pass(PassName, PassScope.PerFile)
 
         var funcTyp = pc.Types.FuncOf(paramTypes, returnType, isVararg, varargType,
             defaultIndices.Count > 0 ? defaultIndices : null, isAsync);
-        if (funcName != null && funcName.Sym != SymID.Invalid)
+        if (funcName is { Sym: { } funcSym } && funcSym != SymID.Invalid)
         {
-            pc.Pkg!.Syms.SetType(funcName.Sym, funcTyp);
+            pc.Pkg!.Syms.SetType(funcSym, funcTyp);
         }
     }
 
