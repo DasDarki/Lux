@@ -665,6 +665,18 @@ public interface ILuxListener : IParseTreeListener {
 	/// <param name="context">The parse tree.</param>
 	void ExitClassConstructorMember([NotNull] LuxParser.ClassConstructorMemberContext context);
 	/// <summary>
+	/// Enter a parse tree produced by the <c>ClassOperatorMember</c>
+	/// labeled alternative in <see cref="LuxParser.classMember"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void EnterClassOperatorMember([NotNull] LuxParser.ClassOperatorMemberContext context);
+	/// <summary>
+	/// Exit a parse tree produced by the <c>ClassOperatorMember</c>
+	/// labeled alternative in <see cref="LuxParser.classMember"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void ExitClassOperatorMember([NotNull] LuxParser.ClassOperatorMemberContext context);
+	/// <summary>
 	/// Enter a parse tree produced by the <c>ClassAccessorMember</c>
 	/// labeled alternative in <see cref="LuxParser.classMember"/>.
 	/// </summary>
@@ -676,6 +688,150 @@ public interface ILuxListener : IParseTreeListener {
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	void ExitClassAccessorMember([NotNull] LuxParser.ClassAccessorMemberContext context);
+	/// <summary>
+	/// Enter a parse tree produced by the <c>OpSymPlus</c>
+	/// labeled alternative in <see cref="LuxParser.operatorSymbol"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void EnterOpSymPlus([NotNull] LuxParser.OpSymPlusContext context);
+	/// <summary>
+	/// Exit a parse tree produced by the <c>OpSymPlus</c>
+	/// labeled alternative in <see cref="LuxParser.operatorSymbol"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void ExitOpSymPlus([NotNull] LuxParser.OpSymPlusContext context);
+	/// <summary>
+	/// Enter a parse tree produced by the <c>OpSymMinus</c>
+	/// labeled alternative in <see cref="LuxParser.operatorSymbol"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void EnterOpSymMinus([NotNull] LuxParser.OpSymMinusContext context);
+	/// <summary>
+	/// Exit a parse tree produced by the <c>OpSymMinus</c>
+	/// labeled alternative in <see cref="LuxParser.operatorSymbol"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void ExitOpSymMinus([NotNull] LuxParser.OpSymMinusContext context);
+	/// <summary>
+	/// Enter a parse tree produced by the <c>OpSymStar</c>
+	/// labeled alternative in <see cref="LuxParser.operatorSymbol"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void EnterOpSymStar([NotNull] LuxParser.OpSymStarContext context);
+	/// <summary>
+	/// Exit a parse tree produced by the <c>OpSymStar</c>
+	/// labeled alternative in <see cref="LuxParser.operatorSymbol"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void ExitOpSymStar([NotNull] LuxParser.OpSymStarContext context);
+	/// <summary>
+	/// Enter a parse tree produced by the <c>OpSymSlash</c>
+	/// labeled alternative in <see cref="LuxParser.operatorSymbol"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void EnterOpSymSlash([NotNull] LuxParser.OpSymSlashContext context);
+	/// <summary>
+	/// Exit a parse tree produced by the <c>OpSymSlash</c>
+	/// labeled alternative in <see cref="LuxParser.operatorSymbol"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void ExitOpSymSlash([NotNull] LuxParser.OpSymSlashContext context);
+	/// <summary>
+	/// Enter a parse tree produced by the <c>OpSymDSlash</c>
+	/// labeled alternative in <see cref="LuxParser.operatorSymbol"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void EnterOpSymDSlash([NotNull] LuxParser.OpSymDSlashContext context);
+	/// <summary>
+	/// Exit a parse tree produced by the <c>OpSymDSlash</c>
+	/// labeled alternative in <see cref="LuxParser.operatorSymbol"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void ExitOpSymDSlash([NotNull] LuxParser.OpSymDSlashContext context);
+	/// <summary>
+	/// Enter a parse tree produced by the <c>OpSymPercent</c>
+	/// labeled alternative in <see cref="LuxParser.operatorSymbol"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void EnterOpSymPercent([NotNull] LuxParser.OpSymPercentContext context);
+	/// <summary>
+	/// Exit a parse tree produced by the <c>OpSymPercent</c>
+	/// labeled alternative in <see cref="LuxParser.operatorSymbol"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void ExitOpSymPercent([NotNull] LuxParser.OpSymPercentContext context);
+	/// <summary>
+	/// Enter a parse tree produced by the <c>OpSymCaret</c>
+	/// labeled alternative in <see cref="LuxParser.operatorSymbol"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void EnterOpSymCaret([NotNull] LuxParser.OpSymCaretContext context);
+	/// <summary>
+	/// Exit a parse tree produced by the <c>OpSymCaret</c>
+	/// labeled alternative in <see cref="LuxParser.operatorSymbol"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void ExitOpSymCaret([NotNull] LuxParser.OpSymCaretContext context);
+	/// <summary>
+	/// Enter a parse tree produced by the <c>OpSymConcat</c>
+	/// labeled alternative in <see cref="LuxParser.operatorSymbol"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void EnterOpSymConcat([NotNull] LuxParser.OpSymConcatContext context);
+	/// <summary>
+	/// Exit a parse tree produced by the <c>OpSymConcat</c>
+	/// labeled alternative in <see cref="LuxParser.operatorSymbol"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void ExitOpSymConcat([NotNull] LuxParser.OpSymConcatContext context);
+	/// <summary>
+	/// Enter a parse tree produced by the <c>OpSymEq</c>
+	/// labeled alternative in <see cref="LuxParser.operatorSymbol"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void EnterOpSymEq([NotNull] LuxParser.OpSymEqContext context);
+	/// <summary>
+	/// Exit a parse tree produced by the <c>OpSymEq</c>
+	/// labeled alternative in <see cref="LuxParser.operatorSymbol"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void ExitOpSymEq([NotNull] LuxParser.OpSymEqContext context);
+	/// <summary>
+	/// Enter a parse tree produced by the <c>OpSymLt</c>
+	/// labeled alternative in <see cref="LuxParser.operatorSymbol"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void EnterOpSymLt([NotNull] LuxParser.OpSymLtContext context);
+	/// <summary>
+	/// Exit a parse tree produced by the <c>OpSymLt</c>
+	/// labeled alternative in <see cref="LuxParser.operatorSymbol"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void ExitOpSymLt([NotNull] LuxParser.OpSymLtContext context);
+	/// <summary>
+	/// Enter a parse tree produced by the <c>OpSymLte</c>
+	/// labeled alternative in <see cref="LuxParser.operatorSymbol"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void EnterOpSymLte([NotNull] LuxParser.OpSymLteContext context);
+	/// <summary>
+	/// Exit a parse tree produced by the <c>OpSymLte</c>
+	/// labeled alternative in <see cref="LuxParser.operatorSymbol"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void ExitOpSymLte([NotNull] LuxParser.OpSymLteContext context);
+	/// <summary>
+	/// Enter a parse tree produced by the <c>OpSymHash</c>
+	/// labeled alternative in <see cref="LuxParser.operatorSymbol"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void EnterOpSymHash([NotNull] LuxParser.OpSymHashContext context);
+	/// <summary>
+	/// Exit a parse tree produced by the <c>OpSymHash</c>
+	/// labeled alternative in <see cref="LuxParser.operatorSymbol"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void ExitOpSymHash([NotNull] LuxParser.OpSymHashContext context);
 	/// <summary>
 	/// Enter a parse tree produced by <see cref="LuxParser.interfaceDecl"/>.
 	/// </summary>

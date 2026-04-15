@@ -301,6 +301,77 @@ end
 
 See [Interfaces](10-interfaces.md).
 
+## Operator Overloading
+
+Classes can define how built-in operators behave on their instances using the
+`operator` keyword. Each overload compiles to a Lua metamethod on the class
+table, so operator dispatch happens through Lua's normal metatable mechanism.
+
+```lux
+class Vector2
+    x: number
+    y: number
+
+    constructor(x: number, y: number)
+        self.x = x
+        self.y = y
+    end
+
+    operator +(other: Vector2): Vector2
+        return new Vector2(self.x + other.x, self.y + other.y)
+    end
+
+    operator -(other: Vector2): Vector2
+        return new Vector2(self.x - other.x, self.y - other.y)
+    end
+
+    operator -(): Vector2
+        return new Vector2(-self.x, -self.y)
+    end
+
+    operator ==(other: Vector2): boolean
+        return self.x == other.x and self.y == other.y
+    end
+end
+
+local a = new Vector2(1, 2)
+local b = new Vector2(3, 4)
+local sum = a + b      -- calls Vector2:__add
+local neg = -a         -- calls Vector2:__unm
+local eq  = a == b     -- calls Vector2:__eq
+```
+
+### Supported Operators
+
+| Operator | Arity  | Metamethod  |
+|----------|--------|-------------|
+| `+`      | binary | `__add`     |
+| `-`      | binary | `__sub`     |
+| `-`      | unary  | `__unm`     |
+| `*`      | binary | `__mul`     |
+| `/`      | binary | `__div`     |
+| `//`     | binary | `__idiv`    |
+| `%`      | binary | `__mod`     |
+| `^`      | binary | `__pow`     |
+| `..`     | binary | `__concat`  |
+| `==`     | binary | `__eq`      |
+| `<`      | binary | `__lt`      |
+| `<=`     | binary | `__le`      |
+| `#`      | unary  | `__len`     |
+
+Unary vs. binary `-` is disambiguated by parameter count: zero parameters means
+unary negation (`__unm`); one parameter means subtraction (`__sub`).
+
+Inside an operator body, `self` refers to the left-hand operand (or the sole
+operand for unary overloads). Binary overloads receive the right-hand operand
+as the single parameter.
+
+### Inheritance
+
+Operator overloads are inherited: a subclass automatically picks up its base
+class's operators unless it defines its own. Re-declaring an operator in a
+subclass overrides the inherited one.
+
 ## Exported Classes
 
 ```lux

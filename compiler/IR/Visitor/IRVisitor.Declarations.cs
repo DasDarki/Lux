@@ -512,6 +512,25 @@ internal partial class IRVisitor
                     accessors.Add(new ClassAccessorNode(kind, propName, parameters, returnType, body, ret, isOverride, SpanFromCtx(accessor)));
                     break;
                 }
+                case LuxParser.ClassOperatorMemberContext opMember:
+                {
+                    var (parameters, returnType, body, ret) = VisitFuncBodyContent(opMember.funcBody());
+                    var symText = opMember.operatorSymbol().GetText();
+                    var metaName = OperatorSymbolToMetamethod(symText, parameters.Count, out var diagMsg);
+                    if (metaName == null)
+                    {
+                        diag.Report(SpanFromCtx(opMember.operatorSymbol()), Diagnostics.DiagnosticCode.ErrInvalidOperator, diagMsg ?? symText);
+                        break;
+                    }
+                    var opNameRef = NameRefFromText(metaName, SpanFromCtx(opMember.operatorSymbol()));
+                    var opMethodNode = new ClassMethodNode(
+                        opNameRef, parameters, returnType, body, ret,
+                        isLocal: false, isStatic: false, isAsync: false,
+                        isProtected: false, isOverride: false, isAbstract: false,
+                        SpanFromCtx(opMember), isOperator: true, operatorSymbol: symText);
+                    methods.Add(opMethodNode);
+                    break;
+                }
             }
         }
 

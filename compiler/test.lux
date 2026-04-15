@@ -1,15 +1,27 @@
-local arr = {1, 2, 3}
+class Point
+    x: number = 0
+    y: number = 0
 
-enum Status
-    Ok
-    Error
-    SomethingElse
+    constructor(x: number, y: number)
+        self.x = x
+        self.y = y
+    end
+
+    operator +(other: Point): Point
+        return new Point(self.x + other.x, self.y + other.y)
+    end
 end
 
-local status = Status.Ok
+class Vec3 extends Point
+    z: number = 0
 
-local msg = match arr
-    case Status.Ok then "success"
-    case Status.Error then "failure"
-    case _ then 1
+    constructor(x: number, y: number, z: number)
+        super(x, y)
+        self.z = z
+    end
 end
+
+local a = new Vec3(1, 2, 3)
+local b = new Vec3(4, 5, 6)
+local c = a + b
+print(c.x, c.y)

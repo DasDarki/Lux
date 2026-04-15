@@ -225,6 +225,7 @@ public sealed class CompletionHandler(LuxWorkspace workspace) : CompletionHandle
             }
             foreach (var (name, method) in classType.Methods)
             {
+                if (name.StartsWith("__")) continue;
                 classItems.Add(new CompletionItem
                 {
                     Label = name,

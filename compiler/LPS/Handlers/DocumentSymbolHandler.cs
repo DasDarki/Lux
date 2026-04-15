@@ -77,10 +77,13 @@ public sealed class DocumentSymbolHandler(LuxWorkspace workspace) : DocumentSymb
                     }
                     foreach (var method in cd.Methods)
                     {
+                        var label = method.IsOperator && method.OperatorSymbol != null
+                            ? "operator " + method.OperatorSymbol
+                            : method.Name.Name;
                         children.Add(new DocumentSymbol
                         {
-                            Name = method.Name.Name,
-                            Kind = LspSymbolKind.Method,
+                            Name = label,
+                            Kind = method.IsOperator ? LspSymbolKind.Operator : LspSymbolKind.Method,
                             Range = LuxWorkspace.SpanToRange(method.Span),
                             SelectionRange = LuxWorkspace.SpanToRange(method.Name.Span)
                         });

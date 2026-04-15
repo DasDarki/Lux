@@ -373,7 +373,7 @@ public sealed class LuaGenerator(Config config)
     {
         return RequireHelper("class_proxy", name =>
             $"local function {name}(cls, parent) " +
-            $"return {{ " +
+            $"local mt = {{ " +
             $"__index = function(t, k) " +
             $"local g = cls[\"__get_\" .. k] " +
             $"if g then return g(t) end " +
@@ -396,7 +396,14 @@ public sealed class LuaGenerator(Config config)
             $"end " +
             $"rawset(t, k, v) " +
             $"end " +
-            $"}} end");
+            $"}} " +
+            $"local __ops = {{\"__add\",\"__sub\",\"__mul\",\"__div\",\"__mod\",\"__pow\",\"__unm\",\"__concat\",\"__len\",\"__eq\",\"__lt\",\"__le\",\"__idiv\"}} " +
+            $"for i = 1, #__ops do " +
+            $"local k = __ops[i] " +
+            $"if rawget(cls, k) then mt[k] = cls[k] " +
+            $"elseif parent and rawget(parent, k) then mt[k] = parent[k] end " +
+            $"end " +
+            $"return mt end");
     }
 
     #endregion

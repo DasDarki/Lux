@@ -16,6 +16,7 @@
   - [x] Override members
   - [x] Protected local access modifier: maybe just `protected` which will me transformed into like local or something?
   - [x] instanceof operator for type checking at runtime and typeof operator for getting the type of a value at runtime (also working with enums and classes)
+  - [x] Operator overloading for classes (via `operator +` etc.; compiles to Lua metamethods)
 - [ ] Annotations
 - [x] Pattern matching
 - [x] Pre/post increment and decrement operators (`++` and `~~`; `~~` instead of `--` to avoid conflict with Lua comments)

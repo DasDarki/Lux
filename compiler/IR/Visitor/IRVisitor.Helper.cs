@@ -212,6 +212,37 @@ internal partial class IRVisitor
     }
 
     /// <summary>
+    /// Maps a Lux operator symbol (written after the <c>operator</c> keyword in a class)
+    /// to its corresponding Lua metamethod name. Arity is used to disambiguate
+    /// <c>-</c> (binary <c>__sub</c> vs. unary <c>__unm</c>).
+    /// </summary>
+    private static string? OperatorSymbolToMetamethod(string sym, int paramCount, out string? diagMessage)
+    {
+        diagMessage = null;
+        switch (sym)
+        {
+            case "+": return paramCount == 1 ? "__add" : Err(out diagMessage, "binary '+' operator must take exactly one parameter");
+            case "-":
+                if (paramCount == 0) return "__unm";
+                if (paramCount == 1) return "__sub";
+                return Err(out diagMessage, "'-' operator must take zero (unary) or one (binary) parameter");
+            case "*": return paramCount == 1 ? "__mul" : Err(out diagMessage, "binary '*' operator must take exactly one parameter");
+            case "/": return paramCount == 1 ? "__div" : Err(out diagMessage, "binary '/' operator must take exactly one parameter");
+            case "//": return paramCount == 1 ? "__idiv" : Err(out diagMessage, "binary '//' operator must take exactly one parameter");
+            case "%": return paramCount == 1 ? "__mod" : Err(out diagMessage, "binary '%' operator must take exactly one parameter");
+            case "^": return paramCount == 1 ? "__pow" : Err(out diagMessage, "binary '^' operator must take exactly one parameter");
+            case "..": return paramCount == 1 ? "__concat" : Err(out diagMessage, "binary '..' operator must take exactly one parameter");
+            case "==": return paramCount == 1 ? "__eq" : Err(out diagMessage, "binary '==' operator must take exactly one parameter");
+            case "<": return paramCount == 1 ? "__lt" : Err(out diagMessage, "binary '<' operator must take exactly one parameter");
+            case "<=": return paramCount == 1 ? "__le" : Err(out diagMessage, "binary '<=' operator must take exactly one parameter");
+            case "#": return paramCount == 0 ? "__len" : Err(out diagMessage, "unary '#' operator must take no parameters");
+            default: diagMessage = sym; return null;
+        }
+
+        static string? Err(out string? msg, string m) { msg = m; return null; }
+    }
+
+    /// <summary>
     /// Visits a <c>typeParamList</c> grammar node and produces a list of <see cref="TypeParamDef"/> IR nodes.
     /// Returns an empty list if the context is null.
     /// </summary>

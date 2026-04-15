@@ -373,7 +373,7 @@ public sealed class InferTypesPass() : Pass(PassName, PassScope.PerFile)
                 pc.Diag.Report(method.Span, Diagnostics.DiagnosticCode.ErrOverrideNoParent, method.Name.Name);
             }
 
-            if (!method.IsOverride && !method.IsAbstract && classType.BaseClass != null
+            if (!method.IsOperator && !method.IsOverride && !method.IsAbstract && classType.BaseClass != null
                 && ParentHasMethod(classType.BaseClass, method.Name.Name))
             {
                 pc.Diag.Report(method.Span, Diagnostics.DiagnosticCode.WarnMissingShadowOverride, method.Name.Name, classType.BaseClass.Name);
@@ -1905,10 +1905,23 @@ public sealed class InferTypesPass() : Pass(PassName, PassScope.PerFile)
     private TypID? TryGetMetamethodReturn(PassContext pc, TypID operandType, string metamethodName)
     {
         if (!pc.Pkg!.Types.GetByID(operandType, out var t)) return null;
-        if (t is not StructType st) return null;
-        var metaField = st.Fields.FirstOrDefault(f => f.IsMeta && f.Name.Name == metamethodName);
-        if (metaField?.Type is not FunctionType ft) return null;
-        return ft.ReturnType.ID;
+        if (t is StructType st)
+        {
+            var metaField = st.Fields.FirstOrDefault(f => f.IsMeta && f.Name.Name == metamethodName);
+            if (metaField?.Type is FunctionType ft) return ft.ReturnType.ID;
+            return null;
+        }
+        if (t is ClassType ct)
+        {
+            var cur = ct;
+            while (cur != null)
+            {
+                if (cur.Methods.TryGetValue(metamethodName, out var fn)) return fn.ReturnType.ID;
+                cur = cur.BaseClass;
+            }
+            return null;
+        }
+        return null;
     }
 
     private static string? BinaryOpToMetamethod(BinaryOp op) => op switch

@@ -529,6 +529,25 @@ public sealed class CodegenPass() : Pass(PassName, PassScope.PerBuild, true)
             gen.NewLine();
             gen.WriteSemicolon();
         }
+
+        // Inherit operator metamethods from base class.
+        // Lua's metamethod lookup uses rawget on the metatable, so __index chaining
+        // does not propagate operator overloads from parent to child automatically.
+        if (hasBase)
+        {
+            gen.Write("for _, __k in ipairs({\"__add\",\"__sub\",\"__mul\",\"__div\",\"__mod\",\"__pow\",\"__unm\",\"__concat\",\"__len\",\"__eq\",\"__lt\",\"__le\",\"__idiv\"}) do ");
+            gen.Write("if rawget(");
+            gen.Write(baseName!);
+            gen.Write(", __k) and not rawget(");
+            gen.Write(className);
+            gen.Write(", __k) then ");
+            gen.Write(className);
+            gen.Write("[__k] = ");
+            gen.Write(baseName!);
+            gen.Write("[__k] end end");
+            gen.NewLine();
+            gen.WriteSemicolon();
+        }
     }
 
     private void EmitClassConstructorBody(PassContext ctx, PackageContext pkg, LuaGenerator gen, ClassDecl cd, ClassConstructorNode ctor)

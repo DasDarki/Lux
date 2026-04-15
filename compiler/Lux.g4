@@ -236,7 +236,27 @@ classMember
     | (LOCAL | PROTECTED)? STATIC? OVERRIDE? ASYNC? FUNCTION NAME funcBody           # ClassMethodMember
     | PROTECTED? ABSTRACT ASYNC? FUNCTION NAME funcSignature                         # ClassAbstractMethodMember
     | CONSTRUCTOR funcBody                                                            # ClassConstructorMember
+    | OPERATOR operatorSymbol funcBody                                                # ClassOperatorMember
     | OVERRIDE? NAME NAME funcBody                                                    # ClassAccessorMember
+    ;
+
+// ─── Overloadable Operators ───
+// Binary arity:  +  -  *  /  //  %  ^  ..  ==  <  <=
+// Unary arity:   -  #   (disambiguated from binary by parameter count)
+
+operatorSymbol
+    : PLUS                                                       # OpSymPlus
+    | MINUS                                                      # OpSymMinus
+    | STAR                                                       # OpSymStar
+    | SLASH                                                      # OpSymSlash
+    | DSLASH                                                     # OpSymDSlash
+    | PERCENT                                                    # OpSymPercent
+    | CARET                                                      # OpSymCaret
+    | CONCAT                                                     # OpSymConcat
+    | EQ                                                         # OpSymEq
+    | LT                                                         # OpSymLt
+    | LTE                                                        # OpSymLte
+    | HASH                                                       # OpSymHash
     ;
 
 interfaceDecl
@@ -841,6 +861,7 @@ OVERRIDE    : 'override';
 PROTECTED   : 'protected';
 TYPEOF      : 'typeof';
 INSTANCEOF  : 'instanceof';
+OPERATOR    : 'operator';
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  Operators & Punctuation

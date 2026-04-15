@@ -94,7 +94,7 @@ public sealed class ClassMethodNode(
     List<Stmt> body, ReturnStmt? returnStmt,
     bool isLocal, bool isStatic, bool isAsync,
     bool isProtected, bool isOverride, bool isAbstract,
-    TextSpan span)
+    TextSpan span, bool isOperator = false, string? operatorSymbol = null)
 {
     public NameRef Name { get; } = name;
     public List<Parameter> Parameters { get; } = parameters;
@@ -109,6 +109,10 @@ public sealed class ClassMethodNode(
     public bool IsAbstract { get; } = isAbstract;
     public TextSpan Span { get; } = span;
     public List<TypeParamDef> TypeParams { get; set; } = [];
+    /// <summary>True when this method is an operator overload (e.g. <c>operator +</c>).</summary>
+    public bool IsOperator { get; } = isOperator;
+    /// <summary>The original operator symbol as written in source (e.g. <c>+</c>, <c>-</c>, <c>..</c>). Null for non-operators.</summary>
+    public string? OperatorSymbol { get; } = operatorSymbol;
 }
 
 public sealed class ClassConstructorNode(
