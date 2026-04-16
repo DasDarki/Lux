@@ -272,6 +272,7 @@ public sealed class SemanticTokensHandler(LuxWorkspace workspace) : SemanticToke
                 or LuxLexer.STATIC or LuxLexer.NEW or LuxLexer.SUPER
                 or LuxLexer.ABSTRACT or LuxLexer.OVERRIDE or LuxLexer.PROTECTED
                 or LuxLexer.TYPEOF or LuxLexer.INSTANCEOF
+                or LuxLexer.DEFER or LuxLexer.GUARD or LuxLexer.CONTINUE
                 => 0, // keyword
 
             LuxLexer.NORMAL_STRING or LuxLexer.CHAR_STRING or LuxLexer.LONG_STRING

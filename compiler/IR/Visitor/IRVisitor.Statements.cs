@@ -35,7 +35,36 @@ internal partial class IRVisitor
             new IncDecExpr(NewNodeID, SpanFromCtx(context), (Expr)Visit(context.var()), isPre: true, isIncrement: false));
 
     public override Node VisitLabelStat(LuxParser.LabelStatContext context) => Visit(context.label());
-    public override Node VisitBreakStat(LuxParser.BreakStatContext context) => new BreakStmt(NewNodeID, SpanFromCtx(context));
+    public override Node VisitBreakStat(LuxParser.BreakStatContext context)
+    {
+        var depth = 1;
+        if (context.INT() != null && int.TryParse(context.INT().GetText(), out var d) && d >= 1) depth = d;
+        return new BreakStmt(NewNodeID, SpanFromCtx(context), depth);
+    }
+
+    public override Node VisitContinueStat(LuxParser.ContinueStatContext context)
+        => new ContinueStmt(NewNodeID, SpanFromCtx(context));
+
+    public override Node VisitDeferStat_(LuxParser.DeferStat_Context context) => Visit(context.deferStat());
+
+    public override Node VisitDeferCallStat(LuxParser.DeferCallStatContext context)
+        => new DeferStmt(NewNodeID, SpanFromCtx(context), (Expr)Visit(context.functionCall()), null);
+
+    public override Node VisitDeferBlockStat(LuxParser.DeferBlockStatContext context)
+    {
+        var (body, _) = VisitBlockContent(context.doBlock().block());
+        return new DeferStmt(NewNodeID, SpanFromCtx(context), null, body);
+    }
+
+    public override Node VisitGuardStat_(LuxParser.GuardStat_Context context) => Visit(context.guardStat());
+
+    public override Node VisitGuardStat(LuxParser.GuardStatContext context)
+    {
+        var exprs = context.expr();
+        var condition = (Expr)Visit(exprs[0]);
+        Expr? elseExpr = exprs.Length > 1 ? (Expr)Visit(exprs[1]) : null;
+        return new GuardStmt(NewNodeID, SpanFromCtx(context), condition, elseExpr);
+    }
     public override Node VisitGotoStat(LuxParser.GotoStatContext context) => new GotoStmt(NewNodeID, SpanFromCtx(context), NameRefFromTerm(context.NAME()));
     public override Node VisitDoStat(LuxParser.DoStatContext context) => Visit(context.doBlock());
     public override Node VisitWhileStat(LuxParser.WhileStatContext context) => Visit(context.whileLoop());

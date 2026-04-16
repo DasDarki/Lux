@@ -128,6 +128,13 @@ public sealed class DetectUnusedPass() : Pass(PassName, PassScope.PerBuild)
                     MarkStmtListUnused(pc, pkg, arm.Body);
                 }
                 break;
+            case BreakStmt:
+            case ContinueStmt:
+            case GuardStmt:
+                break;
+            case DeferStmt ds:
+                if (ds.Block != null) MarkStmtListUnused(pc, pkg, ds.Block);
+                break;
         }
     }
 
@@ -303,6 +310,17 @@ public sealed class DetectUnusedPass() : Pass(PassName, PassScope.PerBuild)
             case AssignStmt assignStmt:
                 foreach (var target in assignStmt.Targets) TrackExprUsage(pc, pkg, target);
                 foreach (var value in assignStmt.Values) TrackExprUsage(pc, pkg, value);
+                break;
+            case BreakStmt:
+            case ContinueStmt:
+                break;
+            case DeferStmt ds:
+                if (ds.Call != null) TrackExprUsage(pc, pkg, ds.Call);
+                if (ds.Block != null) TrackStmtListUsage(pc, pkg, ds.Block);
+                break;
+            case GuardStmt gs:
+                TrackExprUsage(pc, pkg, gs.Condition);
+                if (gs.ElseExpr != null) TrackExprUsage(pc, pkg, gs.ElseExpr);
                 break;
         }
     }

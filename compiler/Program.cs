@@ -14,7 +14,7 @@ internal class Program
 #if DEBUG
         if (args.Length > 0 && args[0] == "--test")
         {
-            var testFile = Path.Combine(Environment.CurrentDirectory, "..", "..", "..", "test.lux");
+            var testFile = Path.Combine(Environment.CurrentDirectory, "..", "..", "test.lux");
             return await RunBuildFilesAsync([testFile]);
         }
 #endif

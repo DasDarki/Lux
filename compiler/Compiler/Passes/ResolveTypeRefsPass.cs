@@ -204,6 +204,7 @@ public class ResolveTypeRefsPass() : Pass(PassName, PassScope.PerBuild)
                 break;
             case LabelStmt:
             case BreakStmt:
+            case ContinueStmt:
             case GotoStmt:
                 break;
             case DoBlockStmt doBlockStmt:
@@ -268,6 +269,14 @@ public class ResolveTypeRefsPass() : Pass(PassName, PassScope.PerBuild)
                     if (arm.Guard != null) ResolveExprTypes(tt, arm.Guard);
                     ResolveStmtListTypes(tt, arm.Body);
                 }
+                break;
+            case DeferStmt ds:
+                if (ds.Call != null) ResolveExprTypes(tt, ds.Call);
+                if (ds.Block != null) ResolveStmtListTypes(tt, ds.Block);
+                break;
+            case GuardStmt gs:
+                ResolveExprTypes(tt, gs.Condition);
+                if (gs.ElseExpr != null) ResolveExprTypes(tt, gs.ElseExpr);
                 break;
             default:
                 throw new InvalidOperationException($"Unknown statement kind: {stmt.GetType().Name}");

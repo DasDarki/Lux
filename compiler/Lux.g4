@@ -64,8 +64,11 @@ stmt
     | functionCall                                              # FunctionCallStat
     | incDecStat                                                # IncDecStat_
     | label                                                     # LabelStat
-    | BREAK                                                     # BreakStat
+    | BREAK INT?                                                 # BreakStat
+    | CONTINUE                                                   # ContinueStat
     | GOTO NAME                                                 # GotoStat
+    | deferStat                                                  # DeferStat_
+    | guardStat                                                  # GuardStat_
     | doBlock                                                   # DoStat
     | whileLoop                                                 # WhileStat
     | repeatLoop                                                # RepeatStat
@@ -144,6 +147,32 @@ incDecStat
     | var DEC                                                   # PostDecStat
     | INC var                                                   # PreIncStat
     | DEC var                                                   # PreDecStat
+    ;
+
+// ─── Defer ───
+// Defers the execution of a function call or block until the surrounding
+// function returns.  Deferred calls execute in LIFO order.
+//
+// Examples:
+//   defer file:close()
+//   defer do cleanup() end
+
+deferStat
+    : DEFER functionCall                                         # DeferCallStat
+    | DEFER doBlock                                              # DeferBlockStat
+    ;
+
+// ─── Guard ───
+// Early exit from a function if a condition is not met.  In void functions
+// the bare form `guard <cond>` returns nothing; in non-void functions the
+// `else <expr>` clause provides the return value.
+//
+// Examples:
+//   guard x > 0
+//   guard x > 0 else -1
+
+guardStat
+    : GUARD expr (ELSE expr)?
     ;
 
 // ─── Return ───
@@ -889,6 +918,9 @@ PROTECTED   : 'protected';
 TYPEOF      : 'typeof';
 INSTANCEOF  : 'instanceof';
 OPERATOR    : 'operator';
+DEFER       : 'defer';
+GUARD       : 'guard';
+CONTINUE    : 'continue';
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  Operators & Punctuation

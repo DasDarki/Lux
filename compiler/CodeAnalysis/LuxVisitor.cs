@@ -86,12 +86,33 @@ public interface ILuxVisitor<Result> : IParseTreeVisitor<Result> {
 	/// <return>The visitor result.</return>
 	Result VisitBreakStat([NotNull] LuxParser.BreakStatContext context);
 	/// <summary>
+	/// Visit a parse tree produced by the <c>ContinueStat</c>
+	/// labeled alternative in <see cref="LuxParser.stmt"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitContinueStat([NotNull] LuxParser.ContinueStatContext context);
+	/// <summary>
 	/// Visit a parse tree produced by the <c>GotoStat</c>
 	/// labeled alternative in <see cref="LuxParser.stmt"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	/// <return>The visitor result.</return>
 	Result VisitGotoStat([NotNull] LuxParser.GotoStatContext context);
+	/// <summary>
+	/// Visit a parse tree produced by the <c>DeferStat_</c>
+	/// labeled alternative in <see cref="LuxParser.stmt"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitDeferStat_([NotNull] LuxParser.DeferStat_Context context);
+	/// <summary>
+	/// Visit a parse tree produced by the <c>GuardStat_</c>
+	/// labeled alternative in <see cref="LuxParser.stmt"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitGuardStat_([NotNull] LuxParser.GuardStat_Context context);
 	/// <summary>
 	/// Visit a parse tree produced by the <c>DoStat</c>
 	/// labeled alternative in <see cref="LuxParser.stmt"/>.
@@ -293,6 +314,26 @@ public interface ILuxVisitor<Result> : IParseTreeVisitor<Result> {
 	/// <param name="context">The parse tree.</param>
 	/// <return>The visitor result.</return>
 	Result VisitPreDecStat([NotNull] LuxParser.PreDecStatContext context);
+	/// <summary>
+	/// Visit a parse tree produced by the <c>DeferCallStat</c>
+	/// labeled alternative in <see cref="LuxParser.deferStat"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitDeferCallStat([NotNull] LuxParser.DeferCallStatContext context);
+	/// <summary>
+	/// Visit a parse tree produced by the <c>DeferBlockStat</c>
+	/// labeled alternative in <see cref="LuxParser.deferStat"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitDeferBlockStat([NotNull] LuxParser.DeferBlockStatContext context);
+	/// <summary>
+	/// Visit a parse tree produced by <see cref="LuxParser.guardStat"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitGuardStat([NotNull] LuxParser.GuardStatContext context);
 	/// <summary>
 	/// Visit a parse tree produced by <see cref="LuxParser.returnStat"/>.
 	/// </summary>

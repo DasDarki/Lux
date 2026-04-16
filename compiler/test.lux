@@ -1,29 +1,12 @@
-class Vector2
-    x: number
-    y: number
-
-    constructor(x: number, y: number)
-        self.x = x
-        self.y = y
+function call()
+    defer do 
+        print("defer")
     end
-
-    operator +(other: Vector2): Vector2
-        return new Vector2(self.x + other.x, self.y + other.y)
-    end
-
-    operator -(): Vector2
-        return new Vector2(-self.x, -self.y)
-    end
-
-    function show(): string
-        return "(" .. self.x .. ", " .. self.y .. ")"
-    end
+    
+    local x = 0
+    guard x < 10
+    
+    print("guarded")
 end
 
-local a = new Vector2(1, 2)
-local b = new Vector2(3, 4)
-local c = a + b
-local d = -a
-print("sum:", c:show())
-print("neg:", d:show())
-print("hello from lux run!")
+call()

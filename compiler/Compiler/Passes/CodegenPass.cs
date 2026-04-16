@@ -1,4 +1,5 @@
 using Lux.Compiler.Codegen;
+using Lux.Diagnostics;
 using Lux.IR;
 
 namespace Lux.Compiler.Passes;
@@ -6,6 +7,11 @@ namespace Lux.Compiler.Passes;
 public sealed class CodegenPass() : Pass(PassName, PassScope.PerBuild, true)
 {
     public const string PassName = "CodegenPass";
+
+    private int _loopLabelCounter;
+    private readonly Stack<int> _loopLabelStack = new();
+    private readonly Stack<List<DeferStmt>> _deferStack = new();
+    private readonly HashSet<int> _neededBreakLabels = [];
 
     public override bool Run(PassContext context)
     {
@@ -131,8 +137,7 @@ public sealed class CodegenPass() : Pass(PassName, PassScope.PerBuild, true)
         var actual = stmt is ExportStmt es ? es.Declaration : stmt;
         return actual switch
         {
-            FunctionDecl fd when fd.NamePath.Count == 1 && fd.MethodName == null
-                => ResolveName(ctx, pkg, fd.NamePath[0]),
+            FunctionDecl { NamePath.Count: 1, MethodName: null } fd => ResolveName(ctx, pkg, fd.NamePath[0]),
             LocalFunctionDecl lfd => ResolveName(ctx, pkg, lfd.Name),
             _ => null
         };
@@ -188,37 +193,34 @@ public sealed class CodegenPass() : Pass(PassName, PassScope.PerBuild, true)
                 gen.EndBlock();
                 break;
             case WhileStmt ws:
-                gen.Write("while ");
-                EmitExpr(ctx, pkg, gen, ws.Condition);
-                gen.BeginBlock(" do");
-                EmitStmtList(ctx, pkg, gen, ws.Body);
-                gen.EndBlock();
+                EmitWhileLoop(ctx, pkg, gen, ws);
                 break;
             case RepeatStmt rs:
-                gen.BeginBlock("repeat");
-                EmitStmtList(ctx, pkg, gen, rs.Body);
-                gen.Dedent();
-                gen.Write("until ");
-                EmitExpr(ctx, pkg, gen, rs.Condition);
-                gen.NewLine();
-                gen.Indent();
-                gen.Dedent();
+                EmitRepeatLoop(ctx, pkg, gen, rs);
                 break;
             case IfStmt ifStmt:
                 EmitIf(ctx, pkg, gen, ifStmt);
                 break;
             case NumericForStmt nf:
-                EmitNumericFor(ctx, pkg, gen, nf);
+                EmitNumericForWithLabel(ctx, pkg, gen, nf);
                 break;
             case GenericForStmt gf:
-                EmitGenericFor(ctx, pkg, gen, gf);
+                EmitGenericForWithLabel(ctx, pkg, gen, gf);
                 break;
             case ReturnStmt ret:
                 EmitReturn(ctx, pkg, gen, ret);
                 break;
-            case BreakStmt:
-                gen.WriteLine("break");
-                gen.WriteSemicolon();
+            case BreakStmt bs:
+                EmitBreak(ctx, pkg, gen, bs);
+                break;
+            case ContinueStmt:
+                EmitContinue(gen);
+                break;
+            case DeferStmt ds:
+                EmitDefer(ds);
+                break;
+            case GuardStmt gs:
+                EmitGuard(ctx, pkg, gen, gs);
                 break;
             case GotoStmt gs:
                 if (gen.Features.HasGoto)
@@ -307,7 +309,6 @@ public sealed class CodegenPass() : Pass(PassName, PassScope.PerBuild, true)
         var hasBase = cd.BaseClass != null;
         var baseName = hasBase ? ResolveName(ctx, pkg, cd.BaseClass!) : null;
 
-        // Emit local fields as regular locals
         foreach (var field in cd.Fields)
         {
             if (!field.IsLocal) continue;
@@ -322,7 +323,6 @@ public sealed class CodegenPass() : Pass(PassName, PassScope.PerBuild, true)
             gen.WriteSemicolon();
         }
 
-        // Class table
         gen.Write("local ");
         gen.Write(className);
         if (hasBase)
@@ -354,7 +354,6 @@ public sealed class CodegenPass() : Pass(PassName, PassScope.PerBuild, true)
         gen.NewLine();
         gen.WriteSemicolon();
 
-        // Getters/setters
         foreach (var accessor in cd.Accessors)
         {
             var prefix = accessor.Kind == AccessorKind.Getter ? "__get_" : "__set_";
@@ -379,7 +378,6 @@ public sealed class CodegenPass() : Pass(PassName, PassScope.PerBuild, true)
             gen.WriteSemicolon();
         }
 
-        // Constructor
         gen.Write("function ");
         gen.Write(className);
         gen.Write(".new(");
@@ -395,11 +393,6 @@ public sealed class CodegenPass() : Pass(PassName, PassScope.PerBuild, true)
         gen.NewLine();
         gen.Indent();
 
-        // self initialization
-        // When hasBase && hasSuperCall, `local self = Parent.new(...)` is emitted
-        // inline by EmitClassConstructorBody at the super() site. In that case the
-        // field defaults must also be deferred until after `self` exists, so we
-        // skip the default-init loop below and let EmitClassConstructorBody handle it.
         var hasSuperCall = hasBase && cd.Constructor != null && HasSuperCall(cd.Constructor.Body);
         if (hasBase)
         {
@@ -675,10 +668,7 @@ public sealed class CodegenPass() : Pass(PassName, PassScope.PerBuild, true)
             return actual is LocalFunctionDecl;
         });
 
-        if (isLocal)
-            gen.Write("local function ");
-        else
-            gen.Write("function ");
+        gen.Write(isLocal ? "local function " : "function ");
         gen.Write(name);
         gen.Write("(...)");
         gen.NewLine();
@@ -717,8 +707,7 @@ public sealed class CodegenPass() : Pass(PassName, PassScope.PerBuild, true)
             gen.Write(first ? "if " : "elseif ");
             first = false;
 
-            var conditions = new List<string>();
-            conditions.Add($"__n == {regularParams.Count}");
+            var conditions = new List<string> { $"__n == {regularParams.Count}" };
             foreach (var param in regularParams)
             {
                 var luaType = GetLuaTypeCheck(ctx, pkg, param);
@@ -814,11 +803,15 @@ public sealed class CodegenPass() : Pass(PassName, PassScope.PerBuild, true)
         }
         else
         {
+            PushDeferScope();
             EmitDefaultParamPreamble(ctx, pkg, gen, fd.Parameters);
             EmitNamedVarargPreamble(ctx, pkg, gen, fd.Parameters);
             EmitStmtList(ctx, pkg, gen, fd.Body);
             if (fd.ReturnStmt != null)
                 EmitReturn(ctx, pkg, gen, fd.ReturnStmt);
+            else
+                EmitDeferredCode(ctx, pkg, gen);
+            PopDeferScope();
         }
         gen.EndBlock();
     }
@@ -852,11 +845,15 @@ public sealed class CodegenPass() : Pass(PassName, PassScope.PerBuild, true)
         }
         else
         {
+            PushDeferScope();
             EmitDefaultParamPreamble(ctx, pkg, gen, lfd.Parameters);
             EmitNamedVarargPreamble(ctx, pkg, gen, lfd.Parameters);
             EmitStmtList(ctx, pkg, gen, lfd.Body);
             if (lfd.ReturnStmt != null)
                 EmitReturn(ctx, pkg, gen, lfd.ReturnStmt);
+            else
+                EmitDeferredCode(ctx, pkg, gen);
+            PopDeferScope();
         }
         gen.EndBlock();
     }
@@ -960,42 +957,8 @@ public sealed class CodegenPass() : Pass(PassName, PassScope.PerBuild, true)
         gen.WriteLine("end");
     }
 
-    private void EmitNumericFor(PassContext ctx, PackageContext pkg, LuaGenerator gen, NumericForStmt nf)
-    {
-        gen.Write("for ");
-        gen.Write(ResolveName(ctx, pkg, nf.VarName));
-        gen.Write(" = ");
-        EmitExpr(ctx, pkg, gen, nf.Start);
-        gen.Write(", ");
-        EmitExpr(ctx, pkg, gen, nf.Limit);
-        if (nf.Step != null)
-        {
-            gen.Write(", ");
-            EmitExpr(ctx, pkg, gen, nf.Step);
-        }
-        gen.Write(" do");
-        gen.NewLine();
-        gen.Indent();
-        EmitStmtList(ctx, pkg, gen, nf.Body);
-        gen.EndBlock();
-    }
-
-    private void EmitGenericFor(PassContext ctx, PackageContext pkg, LuaGenerator gen, GenericForStmt gf)
-    {
-        gen.Write("for ");
-        for (var i = 0; i < gf.VarNames.Count; i++)
-        {
-            if (i > 0) gen.Write(", ");
-            gen.Write(ResolveName(ctx, pkg, gf.VarNames[i]));
-        }
-        gen.Write(" in ");
-        EmitGenericForIterators(ctx, pkg, gen, gf.Iterators);
-        gen.Write(" do");
-        gen.NewLine();
-        gen.Indent();
-        EmitStmtList(ctx, pkg, gen, gf.Body);
-        gen.EndBlock();
-    }
+    // EmitNumericFor and EmitGenericFor have been replaced by
+    // EmitNumericForWithLabel and EmitGenericForWithLabel above.
 
     private void EmitGenericForIterators(PassContext ctx, PackageContext pkg, LuaGenerator gen, List<Expr> iterators)
     {
@@ -1018,6 +981,219 @@ public sealed class CodegenPass() : Pass(PassName, PassScope.PerBuild, true)
         }
     }
 
+    // ─── Loop helpers (continue / break N) ───
+
+    private int PushLoop()
+    {
+        var label = ++_loopLabelCounter;
+        _loopLabelStack.Push(label);
+        return label;
+    }
+
+    private void PopLoop() => _loopLabelStack.Pop();
+
+    private bool LoopBodyNeedsContinueLabel(List<Stmt> body)
+    {
+        foreach (var s in body)
+        {
+            if (s is ContinueStmt) return true;
+            if (s is IfStmt ifs)
+            {
+                if (LoopBodyNeedsContinueLabel(ifs.Body)) return true;
+                foreach (var ei in ifs.ElseIfs)
+                    if (LoopBodyNeedsContinueLabel(ei.Body)) return true;
+                if (ifs.ElseBody != null && LoopBodyNeedsContinueLabel(ifs.ElseBody)) return true;
+            }
+            if (s is DoBlockStmt db && LoopBodyNeedsContinueLabel(db.Body)) return true;
+            if (s is MatchStmt ms && ms.Arms.Any(a => LoopBodyNeedsContinueLabel(a.Body))) return true;
+        }
+        return false;
+    }
+
+    private void EmitLoopBody(PassContext ctx, PackageContext pkg, LuaGenerator gen, List<Stmt> body, int label)
+    {
+        var needsContinue = LoopBodyNeedsContinueLabel(body);
+        if (needsContinue && !gen.Features.HasGoto)
+        {
+            gen.BeginBlock("repeat");
+            EmitStmtList(ctx, pkg, gen, body);
+            gen.Dedent();
+            gen.WriteLine("until true");
+            gen.Indent();
+            gen.Dedent();
+        }
+        else
+        {
+            EmitStmtList(ctx, pkg, gen, body);
+            if (needsContinue) gen.WriteLine($"::__continue_{label}::");
+        }
+    }
+
+    private void EmitWhileLoop(PassContext ctx, PackageContext pkg, LuaGenerator gen, WhileStmt ws)
+    {
+        var label = PushLoop();
+        gen.Write("while ");
+        EmitExpr(ctx, pkg, gen, ws.Condition);
+        gen.BeginBlock(" do");
+        EmitLoopBody(ctx, pkg, gen, ws.Body, label);
+        gen.EndBlock();
+        EmitBreakLabel(gen, label);
+        PopLoop();
+    }
+
+    private void EmitRepeatLoop(PassContext ctx, PackageContext pkg, LuaGenerator gen, RepeatStmt rs)
+    {
+        var label = PushLoop();
+        gen.BeginBlock("repeat");
+        EmitLoopBody(ctx, pkg, gen, rs.Body, label);
+        gen.Dedent();
+        gen.Write("until ");
+        EmitExpr(ctx, pkg, gen, rs.Condition);
+        gen.NewLine();
+        gen.Indent();
+        gen.Dedent();
+        EmitBreakLabel(gen, label);
+        PopLoop();
+    }
+
+    private void EmitNumericForWithLabel(PassContext ctx, PackageContext pkg, LuaGenerator gen, NumericForStmt nf)
+    {
+        var label = PushLoop();
+        gen.Write("for ");
+        gen.Write(ResolveName(ctx, pkg, nf.VarName));
+        gen.Write(" = ");
+        EmitExpr(ctx, pkg, gen, nf.Start);
+        gen.Write(", ");
+        EmitExpr(ctx, pkg, gen, nf.Limit);
+        if (nf.Step != null)
+        {
+            gen.Write(", ");
+            EmitExpr(ctx, pkg, gen, nf.Step);
+        }
+        gen.Write(" do");
+        gen.NewLine();
+        gen.Indent();
+        EmitLoopBody(ctx, pkg, gen, nf.Body, label);
+        gen.EndBlock();
+        EmitBreakLabel(gen, label);
+        PopLoop();
+    }
+
+    private void EmitGenericForWithLabel(PassContext ctx, PackageContext pkg, LuaGenerator gen, GenericForStmt gf)
+    {
+        var label = PushLoop();
+        gen.Write("for ");
+        for (var i = 0; i < gf.VarNames.Count; i++)
+        {
+            if (i > 0) gen.Write(", ");
+            gen.Write(ResolveName(ctx, pkg, gf.VarNames[i]));
+        }
+        gen.Write(" in ");
+        EmitGenericForIterators(ctx, pkg, gen, gf.Iterators);
+        gen.Write(" do");
+        gen.NewLine();
+        gen.Indent();
+        EmitLoopBody(ctx, pkg, gen, gf.Body, label);
+        gen.EndBlock();
+        EmitBreakLabel(gen, label);
+        PopLoop();
+    }
+
+    private void EmitBreakLabel(LuaGenerator gen, int label)
+    {
+        if (_neededBreakLabels.Remove(label) && gen.Features.HasGoto)
+            gen.WriteLine($"::__break_{label}::");
+    }
+
+    private void EmitBreak(PassContext ctx, PackageContext pkg, LuaGenerator gen, BreakStmt bs)
+    {
+        if (bs.Depth <= 1 || !gen.Features.HasGoto)
+        {
+            gen.WriteLine("break");
+            gen.WriteSemicolon();
+            return;
+        }
+
+        var stack = _loopLabelStack.ToArray();
+        var targetIdx = bs.Depth - 1;
+        if (targetIdx < stack.Length)
+        {
+            var targetLabel = stack[targetIdx];
+            _neededBreakLabels.Add(targetLabel);
+            gen.WriteLine($"goto __break_{targetLabel}");
+        }
+        else
+        {
+            gen.WriteLine("break");
+            gen.WriteSemicolon();
+        }
+    }
+
+    private void EmitContinue(LuaGenerator gen)
+    {
+        if (!gen.Features.HasGoto)
+        {
+            gen.WriteLine("break");
+            gen.WriteSemicolon();
+            return;
+        }
+
+        if (_loopLabelStack.Count > 0)
+            gen.WriteLine($"goto __continue_{_loopLabelStack.Peek()}");
+    }
+
+
+    private void EmitGuard(PassContext ctx, PackageContext pkg, LuaGenerator gen, GuardStmt gs)
+    {
+        gen.Write("if not (");
+        EmitExpr(ctx, pkg, gen, gs.Condition);
+        gen.Write(") then");
+        gen.NewLine();
+        gen.Indent();
+        var ret = new ReturnStmt(NodeID.Invalid, TextSpan.Empty, []);
+        if (gs.ElseExpr != null)
+        {
+            ret.Values.Add(gs.ElseExpr);
+        }
+        EmitReturn(ctx, pkg, gen, ret);
+        gen.EndBlock();
+    }
+
+
+    private void PushDeferScope() => _deferStack.Push([]);
+
+    private void PopDeferScope() => _deferStack.Pop();
+
+    private void EmitDefer(DeferStmt ds)
+    {
+        if (_deferStack.Count > 0)
+            _deferStack.Peek().Add(ds);
+    }
+
+    private void EmitDeferredCode(PassContext ctx, PackageContext pkg, LuaGenerator gen)
+    {
+        if (_deferStack.Count == 0) return;
+        var defers = _deferStack.Peek();
+        for (var i = defers.Count - 1; i >= 0; i--)
+        {
+            var ds = defers[i];
+            if (ds.Call != null)
+            {
+                EmitExpr(ctx, pkg, gen, ds.Call);
+                gen.NewLine();
+                gen.WriteSemicolon();
+            }
+            else if (ds.Block != null)
+            {
+                gen.BeginBlock("do");
+                EmitStmtList(ctx, pkg, gen, ds.Block);
+                gen.EndBlock();
+            }
+        }
+    }
+
+    private bool HasDeferredCode() => _deferStack.Count > 0 && _deferStack.Peek().Count > 0;
+
     private bool IsIpairsCall(PassContext ctx, PackageContext pkg, FunctionCallExpr call)
     {
         if (call.Callee is NameExpr nameExpr)
@@ -1030,15 +1206,45 @@ public sealed class CodegenPass() : Pass(PassName, PassScope.PerBuild, true)
 
     private void EmitReturn(PassContext ctx, PackageContext pkg, LuaGenerator gen, ReturnStmt ret)
     {
-        if (ret.Values.Count == 0)
+        if (HasDeferredCode())
         {
-            gen.WriteLine("return");
+            if (ret.Values.Count > 0)
+            {
+                var temps = new List<string>();
+                for (var i = 0; i < ret.Values.Count; i++)
+                {
+                    var tmp = gen.FreshTemp("__ret");
+                    temps.Add(tmp);
+                }
+                gen.Write("local ");
+                gen.Write(string.Join(", ", temps));
+                gen.Write(" = ");
+                EmitExprList(ctx, pkg, gen, ret.Values);
+                gen.NewLine();
+                gen.WriteSemicolon();
+                EmitDeferredCode(ctx, pkg, gen);
+                gen.Write("return ");
+                gen.Write(string.Join(", ", temps));
+                gen.NewLine();
+            }
+            else
+            {
+                EmitDeferredCode(ctx, pkg, gen);
+                gen.WriteLine("return");
+            }
         }
         else
         {
-            gen.Write("return ");
-            EmitExprList(ctx, pkg, gen, ret.Values);
-            gen.NewLine();
+            if (ret.Values.Count == 0)
+            {
+                gen.WriteLine("return");
+            }
+            else
+            {
+                gen.Write("return ");
+                EmitExprList(ctx, pkg, gen, ret.Values);
+                gen.NewLine();
+            }
         }
         gen.WriteSemicolon();
     }

@@ -19,10 +19,10 @@
   - [x] Operator overloading for classes (via `operator +` etc.; compiles to Lua metamethods)
 - [x] Annotations
 - [x] Pattern matching
-- [ ] `defer` statement for deferring the execution of a block of code until the surrounding function returns (similar to Go's defer)
-- [ ] `guard` statement for early exit from a function if a condition is not met (similar to Swift's guard)
-- [ ] `continue` statement
-- [ ] Adding depth to `break` to allow breaking out of multiple nested loops (e.g. `break 2` would break out of the current loop and the parent loop)
+- [x] `defer` statement for deferring the execution of a block of code until the surrounding function returns (similar to Go's defer, works on function calls and a block of code like `defer do ... end`)
+- [x] `guard` statement for early exit from a function if a condition is not met (similar to Swift's guard). `guard <condition>` just returns when void, if function has a return type, `guard <condition> else <expr>` must be used and returns the result of `<expr>` (LSP error if `else <expr>` is missing in a non-void function and/or the value of `<expr>` is not compatible with the function's return type)
+- [x] `continue` statement (label based wont work for < 5.2)
+- [x] Adding depth to `break` to allow breaking out of multiple nested loops (e.g. `break 2` would break out of the current loop and the parent loop)
 - [x] Pre/post increment and decrement operators (`++` and `~~`; `~~` instead of `--` to avoid conflict with Lua comments)
 - [x] Alternative boolean operators (`&&` for and, `||` for or, `!` for not and `!=` for ~=) - should be configurable via the config (currently only the Lua operators are supported) ; IMPORTANT: prevent conflict with existing syntax
 - [x] Async/await and Promises

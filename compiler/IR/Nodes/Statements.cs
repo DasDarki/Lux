@@ -18,7 +18,36 @@ public sealed class LabelStmt(NodeID id, TextSpan span, NameRef name) : Stmt(id,
     public NameRef Name { get; } = name;
 }
 
-public sealed class BreakStmt(NodeID id, TextSpan span) : Stmt(id, span);
+public sealed class BreakStmt(NodeID id, TextSpan span, int depth = 1) : Stmt(id, span)
+{
+    /// <summary>Number of enclosing loops to break out of. 1 = current loop only.</summary>
+    public int Depth { get; } = depth;
+}
+
+public sealed class ContinueStmt(NodeID id, TextSpan span) : Stmt(id, span);
+
+/// <summary>
+/// Defers execution of a function call or block until the enclosing function returns.
+/// Deferred actions execute in LIFO (last-defer-first) order.
+/// </summary>
+public sealed class DeferStmt(NodeID id, TextSpan span, Expr? call, List<Stmt>? block) : Stmt(id, span)
+{
+    /// <summary>Non-null when <c>defer fn()</c> form is used.</summary>
+    public Expr? Call { get; } = call;
+    /// <summary>Non-null when <c>defer do ... end</c> form is used.</summary>
+    public List<Stmt>? Block { get; } = block;
+}
+
+/// <summary>
+/// Early exit from a function when a condition is not met.
+/// <c>guard x > 0</c> returns nothing (void functions).
+/// <c>guard x > 0 else -1</c> returns the else expression.
+/// </summary>
+public sealed class GuardStmt(NodeID id, TextSpan span, Expr condition, Expr? elseExpr) : Stmt(id, span)
+{
+    public Expr Condition { get; } = condition;
+    public Expr? ElseExpr { get; } = elseExpr;
+}
 
 public sealed class GotoStmt(NodeID id, TextSpan span, NameRef labelName) : Stmt(id, span)
 {

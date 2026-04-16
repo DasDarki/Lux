@@ -144,6 +144,20 @@ public partial class LuxBaseListener : ILuxListener {
 	/// <param name="context">The parse tree.</param>
 	public virtual void ExitBreakStat([NotNull] LuxParser.BreakStatContext context) { }
 	/// <summary>
+	/// Enter a parse tree produced by the <c>ContinueStat</c>
+	/// labeled alternative in <see cref="LuxParser.stmt"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void EnterContinueStat([NotNull] LuxParser.ContinueStatContext context) { }
+	/// <summary>
+	/// Exit a parse tree produced by the <c>ContinueStat</c>
+	/// labeled alternative in <see cref="LuxParser.stmt"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void ExitContinueStat([NotNull] LuxParser.ContinueStatContext context) { }
+	/// <summary>
 	/// Enter a parse tree produced by the <c>GotoStat</c>
 	/// labeled alternative in <see cref="LuxParser.stmt"/>.
 	/// <para>The default implementation does nothing.</para>
@@ -157,6 +171,34 @@ public partial class LuxBaseListener : ILuxListener {
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	public virtual void ExitGotoStat([NotNull] LuxParser.GotoStatContext context) { }
+	/// <summary>
+	/// Enter a parse tree produced by the <c>DeferStat_</c>
+	/// labeled alternative in <see cref="LuxParser.stmt"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void EnterDeferStat_([NotNull] LuxParser.DeferStat_Context context) { }
+	/// <summary>
+	/// Exit a parse tree produced by the <c>DeferStat_</c>
+	/// labeled alternative in <see cref="LuxParser.stmt"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void ExitDeferStat_([NotNull] LuxParser.DeferStat_Context context) { }
+	/// <summary>
+	/// Enter a parse tree produced by the <c>GuardStat_</c>
+	/// labeled alternative in <see cref="LuxParser.stmt"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void EnterGuardStat_([NotNull] LuxParser.GuardStat_Context context) { }
+	/// <summary>
+	/// Exit a parse tree produced by the <c>GuardStat_</c>
+	/// labeled alternative in <see cref="LuxParser.stmt"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void ExitGuardStat_([NotNull] LuxParser.GuardStat_Context context) { }
 	/// <summary>
 	/// Enter a parse tree produced by the <c>DoStat</c>
 	/// labeled alternative in <see cref="LuxParser.stmt"/>.
@@ -559,6 +601,46 @@ public partial class LuxBaseListener : ILuxListener {
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	public virtual void ExitPreDecStat([NotNull] LuxParser.PreDecStatContext context) { }
+	/// <summary>
+	/// Enter a parse tree produced by the <c>DeferCallStat</c>
+	/// labeled alternative in <see cref="LuxParser.deferStat"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void EnterDeferCallStat([NotNull] LuxParser.DeferCallStatContext context) { }
+	/// <summary>
+	/// Exit a parse tree produced by the <c>DeferCallStat</c>
+	/// labeled alternative in <see cref="LuxParser.deferStat"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void ExitDeferCallStat([NotNull] LuxParser.DeferCallStatContext context) { }
+	/// <summary>
+	/// Enter a parse tree produced by the <c>DeferBlockStat</c>
+	/// labeled alternative in <see cref="LuxParser.deferStat"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void EnterDeferBlockStat([NotNull] LuxParser.DeferBlockStatContext context) { }
+	/// <summary>
+	/// Exit a parse tree produced by the <c>DeferBlockStat</c>
+	/// labeled alternative in <see cref="LuxParser.deferStat"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void ExitDeferBlockStat([NotNull] LuxParser.DeferBlockStatContext context) { }
+	/// <summary>
+	/// Enter a parse tree produced by <see cref="LuxParser.guardStat"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void EnterGuardStat([NotNull] LuxParser.GuardStatContext context) { }
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="LuxParser.guardStat"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void ExitGuardStat([NotNull] LuxParser.GuardStatContext context) { }
 	/// <summary>
 	/// Enter a parse tree produced by <see cref="LuxParser.returnStat"/>.
 	/// <para>The default implementation does nothing.</para>

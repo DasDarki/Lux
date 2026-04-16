@@ -123,6 +123,18 @@ public interface ILuxListener : IParseTreeListener {
 	/// <param name="context">The parse tree.</param>
 	void ExitBreakStat([NotNull] LuxParser.BreakStatContext context);
 	/// <summary>
+	/// Enter a parse tree produced by the <c>ContinueStat</c>
+	/// labeled alternative in <see cref="LuxParser.stmt"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void EnterContinueStat([NotNull] LuxParser.ContinueStatContext context);
+	/// <summary>
+	/// Exit a parse tree produced by the <c>ContinueStat</c>
+	/// labeled alternative in <see cref="LuxParser.stmt"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void ExitContinueStat([NotNull] LuxParser.ContinueStatContext context);
+	/// <summary>
 	/// Enter a parse tree produced by the <c>GotoStat</c>
 	/// labeled alternative in <see cref="LuxParser.stmt"/>.
 	/// </summary>
@@ -134,6 +146,30 @@ public interface ILuxListener : IParseTreeListener {
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	void ExitGotoStat([NotNull] LuxParser.GotoStatContext context);
+	/// <summary>
+	/// Enter a parse tree produced by the <c>DeferStat_</c>
+	/// labeled alternative in <see cref="LuxParser.stmt"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void EnterDeferStat_([NotNull] LuxParser.DeferStat_Context context);
+	/// <summary>
+	/// Exit a parse tree produced by the <c>DeferStat_</c>
+	/// labeled alternative in <see cref="LuxParser.stmt"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void ExitDeferStat_([NotNull] LuxParser.DeferStat_Context context);
+	/// <summary>
+	/// Enter a parse tree produced by the <c>GuardStat_</c>
+	/// labeled alternative in <see cref="LuxParser.stmt"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void EnterGuardStat_([NotNull] LuxParser.GuardStat_Context context);
+	/// <summary>
+	/// Exit a parse tree produced by the <c>GuardStat_</c>
+	/// labeled alternative in <see cref="LuxParser.stmt"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void ExitGuardStat_([NotNull] LuxParser.GuardStat_Context context);
 	/// <summary>
 	/// Enter a parse tree produced by the <c>DoStat</c>
 	/// labeled alternative in <see cref="LuxParser.stmt"/>.
@@ -476,6 +512,40 @@ public interface ILuxListener : IParseTreeListener {
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	void ExitPreDecStat([NotNull] LuxParser.PreDecStatContext context);
+	/// <summary>
+	/// Enter a parse tree produced by the <c>DeferCallStat</c>
+	/// labeled alternative in <see cref="LuxParser.deferStat"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void EnterDeferCallStat([NotNull] LuxParser.DeferCallStatContext context);
+	/// <summary>
+	/// Exit a parse tree produced by the <c>DeferCallStat</c>
+	/// labeled alternative in <see cref="LuxParser.deferStat"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void ExitDeferCallStat([NotNull] LuxParser.DeferCallStatContext context);
+	/// <summary>
+	/// Enter a parse tree produced by the <c>DeferBlockStat</c>
+	/// labeled alternative in <see cref="LuxParser.deferStat"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void EnterDeferBlockStat([NotNull] LuxParser.DeferBlockStatContext context);
+	/// <summary>
+	/// Exit a parse tree produced by the <c>DeferBlockStat</c>
+	/// labeled alternative in <see cref="LuxParser.deferStat"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void ExitDeferBlockStat([NotNull] LuxParser.DeferBlockStatContext context);
+	/// <summary>
+	/// Enter a parse tree produced by <see cref="LuxParser.guardStat"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void EnterGuardStat([NotNull] LuxParser.GuardStatContext context);
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="LuxParser.guardStat"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void ExitGuardStat([NotNull] LuxParser.GuardStatContext context);
 	/// <summary>
 	/// Enter a parse tree produced by <see cref="LuxParser.returnStat"/>.
 	/// </summary>

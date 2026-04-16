@@ -66,6 +66,7 @@ public sealed class ResolveNamesPass() : Pass(PassName, PassScope.PerFile)
             }
                 break;
             case BreakStmt:
+            case ContinueStmt:
                 break;
             case GotoStmt gotoStmt:
             {
@@ -168,6 +169,14 @@ public sealed class ResolveNamesPass() : Pass(PassName, PassScope.PerFile)
                     if (arm.Guard != null) ResolveExprNames(pc, arm.Guard, pkg);
                     ResolveStmtListNames(pc, arm.Body, pkg);
                 }
+                break;
+            case DeferStmt ds:
+                if (ds.Call != null) ResolveExprNames(pc, ds.Call, pkg);
+                if (ds.Block != null) ResolveStmtListNames(pc, ds.Block, pkg);
+                break;
+            case GuardStmt gs:
+                ResolveExprNames(pc, gs.Condition, pkg);
+                if (gs.ElseExpr != null) ResolveExprNames(pc, gs.ElseExpr, pkg);
                 break;
             default:
                 throw new InvalidOperationException($"Unexpected statement type: {stmt.GetType().Name}");
@@ -519,8 +528,6 @@ public sealed class ResolveNamesPass() : Pass(PassName, PassScope.PerFile)
         var all = pkg.Scopes.LookupAll(start, nameRef.Name);
         if (all.Count > 0)
         {
-            // FirstOrDefault returns null for reference-type SymID when no element matches,
-            // so guard against null explicitly before comparing against SymID.Invalid.
             var matched = all.FirstOrDefault(id =>
                 pkg.Syms.GetByID(id, out var s) && s.DeclaringNode == declNode);
             nameRef.Sym = matched != null && matched != SymID.Invalid ? matched : all[0];

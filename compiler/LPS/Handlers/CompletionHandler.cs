@@ -16,7 +16,8 @@ public sealed class CompletionHandler(LuxWorkspace workspace) : CompletionHandle
         "repeat", "return", "then", "true", "until", "while",
         "as", "async", "await", "case", "class", "constructor", "declare", "export", "extends", "from",
         "abstract", "implements", "import", "interface", "match", "meta", "module", "mut", "new", "override",
-        "protected", "static", "super", "when", "typeof", "instanceof"
+        "protected", "static", "super", "when", "typeof", "instanceof",
+        "defer", "guard", "continue"
     ];
 
     public override Task<CompletionList> Handle(CompletionParams request, CancellationToken ct)

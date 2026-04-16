@@ -189,6 +189,16 @@ public sealed class InferTypesPass() : Pass(PassName, PassScope.PerFile)
                 CheckExhaustiveMatch(pc, matchStmt);
                 break;
             }
+            case ContinueStmt:
+                break;
+            case DeferStmt ds:
+                if (ds.Call != null) SynthesizeExpr(pc, ds.Call);
+                if (ds.Block != null) ResolveStmts(pc, ds.Block);
+                break;
+            case GuardStmt gs:
+                SynthesizeExpr(pc, gs.Condition);
+                if (gs.ElseExpr != null) SynthesizeExpr(pc, gs.ElseExpr);
+                break;
             default:
                 throw new InvalidOperationException($"Unknown statement kind: {stmt.GetType().Name}");
         }
@@ -1738,7 +1748,7 @@ public sealed class InferTypesPass() : Pass(PassName, PassScope.PerFile)
 
     private bool IsTerminator(Stmt stmt)
     {
-        return stmt is ReturnStmt or BreakStmt or GotoStmt;
+        return stmt is ReturnStmt or BreakStmt or ContinueStmt or GotoStmt;
     }
 
     private bool IsTypeAssignable(PassContext pc, TypID dst, TypID src)

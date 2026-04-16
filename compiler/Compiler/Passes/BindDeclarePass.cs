@@ -243,6 +243,17 @@ public sealed class BindDeclarePass() : Pass(PassName, PassScope.PerFile)
                 return true;
             }
 
+            case ContinueStmt:
+                return true;
+            case DeferStmt deferStmt:
+                if (deferStmt.Call != null) return BindExprScopes(ctx, deferStmt.Call, scope);
+                if (deferStmt.Block != null) return BindStmtListScopes(ctx, deferStmt.Block, pkg.Scopes.NewScope(scope));
+                return true;
+            case GuardStmt guardStmt:
+                if (!BindExprScopes(ctx, guardStmt.Condition, scope)) return false;
+                if (guardStmt.ElseExpr != null) return BindExprScopes(ctx, guardStmt.ElseExpr, scope);
+                return true;
+
             default:
                 throw new InvalidOperationException($"Unsupported statement type: {stmt.GetType().Name}");
         }

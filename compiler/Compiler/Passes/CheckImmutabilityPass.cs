@@ -117,6 +117,18 @@ public sealed class CheckImmutabilityPass() : Pass(PassName, PassScope.PerFile)
                 }
                 break;
             case InterfaceDecl:
+            case BreakStmt:
+            case ContinueStmt:
+            case LabelStmt:
+            case GotoStmt:
+                break;
+            case DeferStmt ds:
+                if (ds.Call != null) CheckExpr(ctx, pkg, ds.Call);
+                if (ds.Block != null) CheckStmtList(ctx, pkg, ds.Block);
+                break;
+            case GuardStmt gs:
+                CheckExpr(ctx, pkg, gs.Condition);
+                if (gs.ElseExpr != null) CheckExpr(ctx, pkg, gs.ElseExpr);
                 break;
         }
     }
