@@ -318,6 +318,38 @@ public interface ILuxVisitor<Result> : IParseTreeVisitor<Result> {
 	/// <return>The visitor result.</return>
 	Result VisitLocalDecl([NotNull] LuxParser.LocalDeclContext context);
 	/// <summary>
+	/// Visit a parse tree produced by <see cref="LuxParser.annotationList"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitAnnotationList([NotNull] LuxParser.AnnotationListContext context);
+	/// <summary>
+	/// Visit a parse tree produced by <see cref="LuxParser.annotation"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitAnnotation([NotNull] LuxParser.AnnotationContext context);
+	/// <summary>
+	/// Visit a parse tree produced by <see cref="LuxParser.annotationArgList"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitAnnotationArgList([NotNull] LuxParser.AnnotationArgListContext context);
+	/// <summary>
+	/// Visit a parse tree produced by the <c>NamedAnnotationArg</c>
+	/// labeled alternative in <see cref="LuxParser.annotationArg"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitNamedAnnotationArg([NotNull] LuxParser.NamedAnnotationArgContext context);
+	/// <summary>
+	/// Visit a parse tree produced by the <c>PositionalAnnotationArg</c>
+	/// labeled alternative in <see cref="LuxParser.annotationArg"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitPositionalAnnotationArg([NotNull] LuxParser.PositionalAnnotationArgContext context);
+	/// <summary>
 	/// Visit a parse tree produced by the <c>ImportFrom</c>
 	/// labeled alternative in <see cref="LuxParser.importStat"/>.
 	/// </summary>

@@ -279,8 +279,6 @@ public enum DiagnosticCode
     [Format("Method '{0}' shadows a method in parent class '{1}'; use 'override' to indicate this is intentional")]
     WarnMissingShadowOverride = 0x4012,
 
-    // ─── Generics ───
-
     [Level(DiagnosticLevel.Error)]
     [Category(DiagnosticCategory.Type)]
     [Format("Primitive type '{0}' cannot take generic type arguments")]
@@ -325,6 +323,75 @@ public enum DiagnosticCode
     [Category(DiagnosticCategory.Semantic)]
     [Format("Duplicate type parameter '{0}'")]
     ErrDuplicateTypeParam = 0x4028,
+
+    #endregion
+
+    #region Annotations
+
+    [Level(DiagnosticLevel.Error)]
+    [Category(DiagnosticCategory.Semantic)]
+    [Format("Annotation path '{0}' does not exist")]
+    ErrAnnotationPathNotFound = 0x5001,
+
+    [Level(DiagnosticLevel.Error)]
+    [Category(DiagnosticCategory.Semantic)]
+    [Format("Failed to compile annotation definition '{0}'")]
+    ErrAnnotationCompileFailed = 0x5002,
+
+    [Level(DiagnosticLevel.Error)]
+    [Category(DiagnosticCategory.Semantic)]
+    [Format("Annotation '{0}' has invalid meta: {1}")]
+    ErrAnnotationMetaInvalid = 0x5003,
+
+    [Level(DiagnosticLevel.Error)]
+    [Category(DiagnosticCategory.Semantic)]
+    [Format("Annotation '{0}' is missing an exported `apply` function")]
+    ErrAnnotationMissingApply = 0x5004,
+
+    [Level(DiagnosticLevel.Error)]
+    [Category(DiagnosticCategory.Semantic)]
+    [Format("Duplicate annotation '{0}' — two definition files share the same name")]
+    ErrAnnotationDuplicateName = 0x5005,
+
+    [Level(DiagnosticLevel.Error)]
+    [Category(DiagnosticCategory.Semantic)]
+    [Format("Unknown annotation '@{0}'")]
+    ErrUnknownAnnotation = 0x5006,
+
+    [Level(DiagnosticLevel.Error)]
+    [Category(DiagnosticCategory.Semantic)]
+    [Format("Annotation '@{0}' cannot be applied to {1}")]
+    ErrAnnotationTargetMismatch = 0x5007,
+
+    [Level(DiagnosticLevel.Error)]
+    [Category(DiagnosticCategory.Semantic)]
+    [Format("Annotation '@{0}' argument '{1}' must be a constant literal")]
+    ErrAnnotationArgNotLiteral = 0x5008,
+
+    [Level(DiagnosticLevel.Error)]
+    [Category(DiagnosticCategory.Semantic)]
+    [Format("Annotation '@{0}' is missing required argument '{1}'")]
+    ErrAnnotationArgMissing = 0x5009,
+
+    [Level(DiagnosticLevel.Error)]
+    [Category(DiagnosticCategory.Semantic)]
+    [Format("Annotation '@{0}' does not accept argument '{1}'")]
+    ErrAnnotationArgUnknown = 0x500A,
+
+    [Level(DiagnosticLevel.Error)]
+    [Category(DiagnosticCategory.Semantic)]
+    [Format("Annotation '@{0}' runtime error: {1}")]
+    ErrAnnotationRuntimeError = 0x500B,
+
+    [Level(DiagnosticLevel.Error)]
+    [Category(DiagnosticCategory.Semantic)]
+    [Format("Annotation '@{0}' returned malformed IR: {1}")]
+    ErrAnnotationMalformedResult = 0x500C,
+
+    [Level(DiagnosticLevel.Error)]
+    [Category(DiagnosticCategory.Semantic)]
+    [Format("Annotations are not allowed inside annotation definition files")]
+    ErrAnnotationInAnnotationFile = 0x500D,
 
     #endregion
 }

@@ -147,9 +147,6 @@ public sealed class ModuleResolver(Config config)
     private PreparsedFile? LoadAndInject(string filePath, List<PackageContext> pkgs,
         DiagnosticsBag diag, IDAlloc<NodeID> nodeAlloc)
     {
-        // If the file is already part of any package (the user added it via AddSource
-        // directly, or another import already pulled it in), reuse that existing
-        // PreparsedFile instead of reparsing and re-binding it.
         foreach (var existingPkg in pkgs)
         {
             var existing = existingPkg.Files.FirstOrDefault(f => f.Filename == filePath);

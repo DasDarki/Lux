@@ -109,7 +109,6 @@ internal partial class IRVisitor
             return new MatchPattern(MatchPatternKind.TypeBinding, null, typeRef, name, SpanFromCtx(ctx));
         }
 
-        // ValuePattern — check for wildcard `_`
         var vp = (LuxParser.ValuePatternContext)ctx;
         var expr = (Expr)Visit(vp.expr());
         if (expr is NameExpr ne && ne.Name.Name == "_")
@@ -188,9 +187,7 @@ internal partial class IRVisitor
         var values = context.exprList()?.expr().Select(e => (Expr)Visit(e)).ToList() ?? [];
         return new ReturnStmt(NewNodeID, SpanFromCtx(context), values);
     }
-
-    // --- Imports ---
-
+    
     public override Node VisitImportFrom(LuxParser.ImportFromContext context)
     {
         var module = NameRefFromString(context.str());
@@ -228,9 +225,7 @@ internal partial class IRVisitor
 
     public override Node VisitImportSideEffect(LuxParser.ImportSideEffectContext context)
         => new ImportStmt(NewNodeID, SpanFromCtx(context), ImportKind.SideEffect, NameRefFromString(context.str()));
-
-    // --- Exports ---
-
+    
     public override Node VisitExportFunction(LuxParser.ExportFunctionContext context)
     {
         var decl = (Decl)Visit(context.functionDecl());

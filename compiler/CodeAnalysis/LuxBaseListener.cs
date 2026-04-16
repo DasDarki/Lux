@@ -608,6 +608,70 @@ public partial class LuxBaseListener : ILuxListener {
 	/// <param name="context">The parse tree.</param>
 	public virtual void ExitLocalDecl([NotNull] LuxParser.LocalDeclContext context) { }
 	/// <summary>
+	/// Enter a parse tree produced by <see cref="LuxParser.annotationList"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void EnterAnnotationList([NotNull] LuxParser.AnnotationListContext context) { }
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="LuxParser.annotationList"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void ExitAnnotationList([NotNull] LuxParser.AnnotationListContext context) { }
+	/// <summary>
+	/// Enter a parse tree produced by <see cref="LuxParser.annotation"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void EnterAnnotation([NotNull] LuxParser.AnnotationContext context) { }
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="LuxParser.annotation"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void ExitAnnotation([NotNull] LuxParser.AnnotationContext context) { }
+	/// <summary>
+	/// Enter a parse tree produced by <see cref="LuxParser.annotationArgList"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void EnterAnnotationArgList([NotNull] LuxParser.AnnotationArgListContext context) { }
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="LuxParser.annotationArgList"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void ExitAnnotationArgList([NotNull] LuxParser.AnnotationArgListContext context) { }
+	/// <summary>
+	/// Enter a parse tree produced by the <c>NamedAnnotationArg</c>
+	/// labeled alternative in <see cref="LuxParser.annotationArg"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void EnterNamedAnnotationArg([NotNull] LuxParser.NamedAnnotationArgContext context) { }
+	/// <summary>
+	/// Exit a parse tree produced by the <c>NamedAnnotationArg</c>
+	/// labeled alternative in <see cref="LuxParser.annotationArg"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void ExitNamedAnnotationArg([NotNull] LuxParser.NamedAnnotationArgContext context) { }
+	/// <summary>
+	/// Enter a parse tree produced by the <c>PositionalAnnotationArg</c>
+	/// labeled alternative in <see cref="LuxParser.annotationArg"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void EnterPositionalAnnotationArg([NotNull] LuxParser.PositionalAnnotationArgContext context) { }
+	/// <summary>
+	/// Exit a parse tree produced by the <c>PositionalAnnotationArg</c>
+	/// labeled alternative in <see cref="LuxParser.annotationArg"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void ExitPositionalAnnotationArg([NotNull] LuxParser.PositionalAnnotationArgContext context) { }
+	/// <summary>
 	/// Enter a parse tree produced by the <c>ImportFrom</c>
 	/// labeled alternative in <see cref="LuxParser.importStat"/>.
 	/// <para>The default implementation does nothing.</para>

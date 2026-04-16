@@ -562,6 +562,62 @@ public sealed class LuxWorkspace
         }
     }
 
+    /// <summary>
+    /// Discovers annotation names from the <c>Config.Annotations</c> directories by scanning
+    /// for <c>.lux</c> files and returning their base names (filename without extension).
+    /// Used by the completion handler to offer <c>@</c> completion.
+    /// </summary>
+    /// <summary>
+    /// Returns a human-readable description of the annotation for hover info.
+    /// Scans the annotation file and extracts the <c>annotation = { target = ..., params = ... }</c> table.
+    /// </summary>
+    public string? GetAnnotationInfo(string annotationName)
+    {
+        if (_config.Annotations.Count == 0 || _rootPath == null) return null;
+
+        foreach (var entry in _config.Annotations)
+        {
+            var fullPath = Path.IsPathRooted(entry) ? entry : Path.Combine(_rootPath, entry);
+            if (Directory.Exists(fullPath))
+            {
+                var file = Directory.EnumerateFiles(fullPath, "*.lux", SearchOption.AllDirectories)
+                    .FirstOrDefault(f => Path.GetFileNameWithoutExtension(f) == annotationName);
+                if (file != null) return BuildAnnotationHoverText(annotationName, file);
+            }
+            else if (File.Exists(fullPath) && Path.GetFileNameWithoutExtension(fullPath) == annotationName)
+            {
+                return BuildAnnotationHoverText(annotationName, fullPath);
+            }
+        }
+        return null;
+    }
+
+    private static string BuildAnnotationHoverText(string name, string filePath)
+    {
+        return $"(annotation) @{name}\nSource: {Path.GetFileName(filePath)}";
+    }
+
+    public List<string> DiscoverAnnotationNames()
+    {
+        var names = new List<string>();
+        if (_config.Annotations.Count == 0 || _rootPath == null) return names;
+
+        foreach (var entry in _config.Annotations)
+        {
+            var fullPath = Path.IsPathRooted(entry) ? entry : Path.Combine(_rootPath, entry);
+            if (Directory.Exists(fullPath))
+            {
+                foreach (var file in Directory.EnumerateFiles(fullPath, "*.lux", SearchOption.AllDirectories))
+                    names.Add(Path.GetFileNameWithoutExtension(file));
+            }
+            else if (File.Exists(fullPath))
+            {
+                names.Add(Path.GetFileNameWithoutExtension(fullPath));
+            }
+        }
+        return names;
+    }
+
     public List<Symbol> CollectVisibleSymbols(AnalysisResult result, ScopeID scopeId)
     {
         var symbols = new List<Symbol>();

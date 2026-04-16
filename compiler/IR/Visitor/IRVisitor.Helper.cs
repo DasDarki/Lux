@@ -103,14 +103,18 @@ internal partial class IRVisitor
         {
             case LuxParser.ParamListWithNamesContext withNames:
             {
-                var result = withNames.param().Select(p => new Parameter(
-                    NewNodeID,
-                    NameRefFromTerm(p.NAME()),
-                    VisitTypeAnnotationOpt(p.typeAnnotation()),
-                    false,
-                    p.expr() != null ? (Expr)Visit(p.expr()) : null,
-                    SpanFromCtx(p)
-                )).ToList();
+                var result = withNames.param().Select(p =>
+                {
+                    var param = new Parameter(
+                        NewNodeID,
+                        NameRefFromTerm(p.NAME()),
+                        VisitTypeAnnotationOpt(p.typeAnnotation()),
+                        false,
+                        p.expr() != null ? (Expr)Visit(p.expr()) : null,
+                        SpanFromCtx(p));
+                    param.Annotations = VisitAnnotationListContent(p.annotationList());
+                    return param;
+                }).ToList();
 
                 if (withNames.varargParam() != null)
                 {
@@ -155,6 +159,45 @@ internal partial class IRVisitor
             VisitTypeAnnotationOpt(a.typeAnnotation()),
             SpanFromCtx(a)
         )).ToList();
+    }
+
+    /// <summary>
+    /// Visits an <c>annotationList</c> grammar node and produces a list of <see cref="Annotation"/>
+    /// IR nodes. Returns an empty list if the context is null or contains no annotations.
+    /// </summary>
+    private List<Annotation> VisitAnnotationListContent(LuxParser.AnnotationListContext? ctx)
+    {
+        if (ctx == null) return [];
+        var result = new List<Annotation>();
+        foreach (var a in ctx.annotation())
+        {
+            var name = NameRefFromTerm(a.NAME());
+            var args = new List<AnnotationArg>();
+            var argList = a.annotationArgList();
+            if (argList != null)
+            {
+                foreach (var argCtx in argList.annotationArg())
+                {
+                    switch (argCtx)
+                    {
+                        case LuxParser.NamedAnnotationArgContext named:
+                            args.Add(new AnnotationArg(
+                                named.NAME().GetText(),
+                                (Expr)Visit(named.expr()),
+                                SpanFromCtx(named)));
+                            break;
+                        case LuxParser.PositionalAnnotationArgContext positional:
+                            args.Add(new AnnotationArg(
+                                null,
+                                (Expr)Visit(positional.expr()),
+                                SpanFromCtx(positional)));
+                            break;
+                    }
+                }
+            }
+            result.Add(new Annotation(NewNodeID, SpanFromCtx(a), name, args));
+        }
+        return result;
     }
 
     private List<Expr> VisitArgsContent(LuxParser.ArgsContext ctx)

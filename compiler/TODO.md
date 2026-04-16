@@ -17,8 +17,12 @@
   - [x] Protected local access modifier: maybe just `protected` which will me transformed into like local or something?
   - [x] instanceof operator for type checking at runtime and typeof operator for getting the type of a value at runtime (also working with enums and classes)
   - [x] Operator overloading for classes (via `operator +` etc.; compiles to Lua metamethods)
-- [ ] Annotations
+- [x] Annotations
 - [x] Pattern matching
+- [ ] `defer` statement for deferring the execution of a block of code until the surrounding function returns (similar to Go's defer)
+- [ ] `guard` statement for early exit from a function if a condition is not met (similar to Swift's guard)
+- [ ] `continue` statement
+- [ ] Adding depth to `break` to allow breaking out of multiple nested loops (e.g. `break 2` would break out of the current loop and the parent loop)
 - [x] Pre/post increment and decrement operators (`++` and `~~`; `~~` instead of `--` to avoid conflict with Lua comments)
 - [x] Alternative boolean operators (`&&` for and, `||` for or, `!` for not and `!=` for ~=) - should be configurable via the config (currently only the Lua operators are supported) ; IMPORTANT: prevent conflict with existing syntax
 - [x] Async/await and Promises

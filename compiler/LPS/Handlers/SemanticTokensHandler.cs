@@ -20,9 +20,10 @@ public sealed class SemanticTokensHandler(LuxWorkspace workspace) : SemanticToke
     private const int TK_TYPE = 7;
     private const int TK_ENUM_MEMBER = 8;
     private const int TK_TYPE_PARAMETER = 9;
+    private const int TK_DECORATOR = 10;
 
     private static readonly string[] TokenTypes =
-        ["keyword", "string", "number", "comment", "variable", "function", "operator", "type", "enumMember", "typeParameter"];
+        ["keyword", "string", "number", "comment", "variable", "function", "operator", "type", "enumMember", "typeParameter", "decorator"];
 
     private static readonly string[] TokenModifiers = ["declaration", "readonly"];
 
@@ -115,6 +116,7 @@ public sealed class SemanticTokensHandler(LuxWorkspace workspace) : SemanticToke
         }
 
         CollectEnumMemberTokens(result, result.Hir.Body, overrides);
+        CollectAnnotationTokens(result, overrides);
 
         return overrides;
     }
@@ -281,9 +283,93 @@ public sealed class SemanticTokensHandler(LuxWorkspace workspace) : SemanticToke
             LuxLexer.LONG_COMMENT or LuxLexer.LINE_COMMENT
                 => 3, // comment
 
+            LuxLexer.AT => TK_DECORATOR, // annotation @
+
             LuxLexer.NAME => 4, // variable (default for identifiers)
 
             _ => -1
         };
+    }
+
+    /// <summary>
+    /// Adds semantic overrides for annotation names (the NAME token directly after <c>@</c>)
+    /// so they highlight as decorators instead of plain variables.
+    /// </summary>
+    private static void CollectAnnotationTokens(AnalysisResult result, Dictionary<(int, int), int> overrides)
+    {
+        void WalkAnnotations(List<Annotation> annotations)
+        {
+            foreach (var ann in annotations)
+            {
+                var line = ann.Name.Span.StartLn - 1;
+                var col = ann.Name.Span.StartCol - 1;
+                overrides[(line, col)] = TK_DECORATOR;
+            }
+        }
+
+        void WalkStmts(List<Stmt> stmts)
+        {
+            foreach (var stmt in stmts)
+            {
+                var decl = stmt switch
+                {
+                    ExportStmt ex => ex.Declaration,
+                    Decl d => d,
+                    _ => null,
+                };
+                if (decl == null) continue;
+
+                switch (decl)
+                {
+                    case FunctionDecl fd:
+                        WalkAnnotations(fd.Annotations);
+                        foreach (var p in fd.Parameters) WalkAnnotations(p.Annotations);
+                        WalkStmts(fd.Body);
+                        break;
+                    case LocalFunctionDecl lfd:
+                        WalkAnnotations(lfd.Annotations);
+                        foreach (var p in lfd.Parameters) WalkAnnotations(p.Annotations);
+                        WalkStmts(lfd.Body);
+                        break;
+                    case LocalDecl ld:
+                        WalkAnnotations(ld.Annotations);
+                        break;
+                    case ClassDecl cd:
+                        WalkAnnotations(cd.Annotations);
+                        foreach (var f in cd.Fields) WalkAnnotations(f.Annotations);
+                        foreach (var m in cd.Methods)
+                        {
+                            WalkAnnotations(m.Annotations);
+                            foreach (var p in m.Parameters) WalkAnnotations(p.Annotations);
+                        }
+                        if (cd.Constructor != null)
+                        {
+                            WalkAnnotations(cd.Constructor.Annotations);
+                            foreach (var p in cd.Constructor.Parameters) WalkAnnotations(p.Annotations);
+                        }
+                        foreach (var a in cd.Accessors)
+                        {
+                            WalkAnnotations(a.Annotations);
+                            foreach (var p in a.Parameters) WalkAnnotations(p.Annotations);
+                        }
+                        break;
+                    case EnumDecl ed:
+                        WalkAnnotations(ed.Annotations);
+                        foreach (var m in ed.Members) WalkAnnotations(m.Annotations);
+                        break;
+                    case InterfaceDecl id:
+                        WalkAnnotations(id.Annotations);
+                        foreach (var f in id.Fields) WalkAnnotations(f.Annotations);
+                        foreach (var m in id.Methods)
+                        {
+                            WalkAnnotations(m.Annotations);
+                            foreach (var p in m.Parameters) WalkAnnotations(p.Annotations);
+                        }
+                        break;
+                }
+            }
+        }
+
+        WalkStmts(result.Hir.Body);
     }
 }

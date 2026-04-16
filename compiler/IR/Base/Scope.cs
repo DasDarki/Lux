@@ -173,7 +173,7 @@ public sealed class ScopeGraph
             return false;
         }
 
-        if (name == "_") // special symbol, discarding may be redeclared
+        if (name == "_") 
         {
             sc.AddSymbol(name, sym);
             return true;

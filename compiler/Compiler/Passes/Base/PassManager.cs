@@ -13,6 +13,8 @@ public sealed class PassManager
     /// The full compiler pipeline, which is the default order of passes that are executed when the compiler is run without any custom pass selection.
     /// </summary>
     public static readonly string[] CompilerPipeline = [
+        ResolveAnnotationsPass.PassName,
+        ApplyAnnotationsPass.PassName,
         ResolveLibsPass.PassName,
         BindDeclarePass.PassName,
         ResolveImportsPass.PassName,
@@ -30,6 +32,8 @@ public sealed class PassManager
     /// This pipeline can be used for faster feedback during development, as it skips the passes that are responsible for code generation and mangling.
     /// </summary>
     public static readonly string[] CheckPipeline = [
+        ResolveAnnotationsPass.PassName,
+        ApplyAnnotationsPass.PassName,
         ResolveLibsPass.PassName,
         BindDeclarePass.PassName,
         ResolveImportsPass.PassName,
@@ -62,6 +66,17 @@ public sealed class PassManager
         InferTypesPass.PassName,
         DetectUnusedPass.PassName
     ];
+
+    /// <summary>
+    /// Pipeline used by <see cref="ResolveAnnotationsPass"/> to sub-compile annotation definition files.
+    /// Skips <see cref="ResolveAnnotationsPass"/> and <see cref="ApplyAnnotationsPass"/> to prevent
+    /// recursive loading and also skips imports (annotation files are standalone).
+    /// </summary>
+    public static readonly string[] AnnotationFilePipeline = [
+        ResolveLibsPass.PassName,
+        BindDeclarePass.PassName,
+        CodegenPass.PassName
+    ];
     
     private readonly Dictionary<string, Pass> _passes = new();
     private readonly List<string> _passOrder = [];
@@ -71,6 +86,8 @@ public sealed class PassManager
     /// </summary>
     public PassManager()
     {
+        Register(new ResolveAnnotationsPass());
+        Register(new ApplyAnnotationsPass());
         Register(new ResolveLibsPass());
         Register(new BindDeclarePass());
         Register(new ResolveImportsPass());

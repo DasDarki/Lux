@@ -8,6 +8,26 @@ public sealed class Parameter(NodeID id, NameRef name, TypeRef? typeAnnotation, 
     public TypeRef? TypeAnnotation { get; } = typeAnnotation;
     public bool IsVararg { get; } = isVararg;
     public Expr? DefaultValue { get; } = defaultValue;
+    public List<Annotation> Annotations { get; set; } = [];
+}
+
+/// <summary>
+/// A compile-time annotation attached to a declaration (e.g. <c>@Memoize(ttl = 60)</c>).
+/// Executed by the <c>ApplyAnnotationsPass</c> which calls into a user-provided Lux/Lua
+/// script via the <c>LuxRuntime</c> to transform the target IR subtree.
+/// </summary>
+public sealed class Annotation(NodeID id, TextSpan span, NameRef name, List<AnnotationArg> args) : Node(id, span)
+{
+    public NameRef Name { get; } = name;
+    public List<AnnotationArg> Args { get; } = args;
+}
+
+public sealed class AnnotationArg(string? name, Expr value, TextSpan span)
+{
+    /// <summary>The argument name for <c>k = v</c> form; <c>null</c> for positional.</summary>
+    public string? Name { get; } = name;
+    public Expr Value { get; } = value;
+    public TextSpan Span { get; } = span;
 }
 
 public sealed class AttribVar(NameRef name, string? attribute, TypeRef? typeAnnotation, TextSpan span)
@@ -87,6 +107,7 @@ public sealed class ClassFieldNode(
     public bool IsStatic { get; } = isStatic;
     public bool IsProtected { get; } = isProtected;
     public TextSpan Span { get; } = span;
+    public List<Annotation> Annotations { get; set; } = [];
 }
 
 public sealed class ClassMethodNode(
@@ -113,6 +134,7 @@ public sealed class ClassMethodNode(
     public bool IsOperator { get; } = isOperator;
     /// <summary>The original operator symbol as written in source (e.g. <c>+</c>, <c>-</c>, <c>..</c>). Null for non-operators.</summary>
     public string? OperatorSymbol { get; } = operatorSymbol;
+    public List<Annotation> Annotations { get; set; } = [];
 }
 
 public sealed class ClassConstructorNode(
@@ -122,6 +144,7 @@ public sealed class ClassConstructorNode(
     public List<Stmt> Body { get; } = body;
     public ReturnStmt? ReturnStmt { get; } = returnStmt;
     public TextSpan Span { get; } = span;
+    public List<Annotation> Annotations { get; set; } = [];
 }
 
 public enum AccessorKind { Getter, Setter }
@@ -140,6 +163,7 @@ public sealed class ClassAccessorNode(
     public ReturnStmt? ReturnStmt { get; } = returnStmt;
     public bool IsOverride { get; } = isOverride;
     public TextSpan Span { get; } = span;
+    public List<Annotation> Annotations { get; set; } = [];
 }
 
 public sealed class InterfaceFieldNode(NameRef name, TypeRef typeAnnotation, TextSpan span)
@@ -147,6 +171,7 @@ public sealed class InterfaceFieldNode(NameRef name, TypeRef typeAnnotation, Tex
     public NameRef Name { get; } = name;
     public TypeRef TypeAnnotation { get; } = typeAnnotation;
     public TextSpan Span { get; } = span;
+    public List<Annotation> Annotations { get; set; } = [];
 }
 
 public sealed class InterfaceMethodNode(
@@ -159,4 +184,5 @@ public sealed class InterfaceMethodNode(
     public bool IsAsync { get; } = isAsync;
     public TextSpan Span { get; } = span;
     public List<TypeParamDef> TypeParams { get; set; } = [];
+    public List<Annotation> Annotations { get; set; } = [];
 }

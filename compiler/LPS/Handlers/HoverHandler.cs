@@ -111,6 +111,22 @@ public sealed class HoverHandler(LuxWorkspace workspace) : HoverHandlerBase
             });
         }
 
+        var annotation = FindAnnotationAt(result.Hir, line, col);
+        if (annotation != null)
+        {
+            var info = workspace.GetAnnotationInfo(annotation.Name.Name);
+            var display = info ?? $"@{annotation.Name.Name}";
+            return Task.FromResult<Hover?>(new Hover
+            {
+                Contents = new MarkedStringsOrMarkupContent(new MarkupContent
+                {
+                    Kind = MarkupKind.Markdown,
+                    Value = $"```lux\n{display}\n```"
+                }),
+                Range = LuxWorkspace.SpanToRange(annotation.Span)
+            });
+        }
+
         if (hoveredNode is Expr expr && expr.Type != TypID.Invalid)
         {
             var typeStr = workspace.FormatType(result.Types, expr.Type);
@@ -126,6 +142,59 @@ public sealed class HoverHandler(LuxWorkspace workspace) : HoverHandlerBase
         }
 
         return Task.FromResult<Hover?>(null);
+    }
+
+    private static Annotation? FindAnnotationAt(IRScript hir, int line, int col)
+    {
+        Annotation? Check(List<Annotation> anns)
+        {
+            foreach (var a in anns)
+            {
+                if (a.Span.StartLn <= line && a.Span.EndLn >= line
+                    && a.Span.StartCol <= col && a.Span.EndCol >= col)
+                    return a;
+            }
+            return null;
+        }
+
+        foreach (var stmt in hir.Body)
+        {
+            var decl = stmt switch
+            {
+                ExportStmt ex => ex.Declaration,
+                Decl d => d,
+                _ => null,
+            };
+            if (decl == null) continue;
+
+            Annotation? found = decl switch
+            {
+                FunctionDecl fd => Check(fd.Annotations),
+                LocalFunctionDecl lfd => Check(lfd.Annotations),
+                LocalDecl ld => Check(ld.Annotations),
+                ClassDecl cd => Check(cd.Annotations),
+                EnumDecl ed => Check(ed.Annotations),
+                InterfaceDecl id => Check(id.Annotations),
+                _ => null,
+            };
+            if (found != null) return found;
+
+            if (decl is ClassDecl cls)
+            {
+                foreach (var f in cls.Fields) { found = Check(f.Annotations); if (found != null) return found; }
+                foreach (var m in cls.Methods) { found = Check(m.Annotations); if (found != null) return found; }
+            }
+            if (decl is EnumDecl en)
+            {
+                foreach (var m in en.Members) { found = Check(m.Annotations); if (found != null) return found; }
+            }
+            if (decl is InterfaceDecl iface)
+            {
+                foreach (var f in iface.Fields) { found = Check(f.Annotations); if (found != null) return found; }
+                foreach (var m in iface.Methods) { found = Check(m.Annotations); if (found != null) return found; }
+            }
+        }
+        return null;
     }
 
     protected override HoverRegistrationOptions CreateRegistrationOptions(

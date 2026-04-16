@@ -14,11 +14,6 @@ public sealed class ResolveImportsPass() : Pass(PassName, PassScope.PerBuild)
 
         var newFiles = new List<PreparsedFile>();
 
-        // Snapshot the set of files that were already in each package before this pass
-        // began. ProcessFileImports can trigger ModuleResolver to inject additional
-        // files (for imported .lux modules), and BindDeclarePass must only be re-run
-        // on files it has not already processed — otherwise already-bound symbols are
-        // declared a second time and surface as ErrRedeclaration.
         var preexisting = new HashSet<PreparsedFile>();
         foreach (var pkg in context.Pkgs)
             foreach (var f in pkg.Files) preexisting.Add(f);
@@ -32,7 +27,6 @@ public sealed class ResolveImportsPass() : Pass(PassName, PassScope.PerBuild)
             }
         }
 
-        // Only bind files that were actually freshly injected by the resolver.
         var freshlyInjected = newFiles.Where(f => !preexisting.Contains(f)).ToList();
         if (freshlyInjected.Count > 0)
             BindAndResolveNewFiles(context, freshlyInjected);

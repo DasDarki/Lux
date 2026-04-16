@@ -14,6 +14,10 @@
       <PackageReference Include="Tomlyn" Version="2.3.0" />
     </ItemGroup>
 
+    <ItemGroup>
+      <EmbeddedResource Include="stdlib\ir_helpers.lua" />
+    </ItemGroup>
+
     <PropertyGroup>
         <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
     </PropertyGroup>

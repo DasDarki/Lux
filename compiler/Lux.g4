@@ -155,11 +155,11 @@ returnStat
 // ─── Function Declarations ───
 
 functionDecl
-    : ASYNC? FUNCTION funcName funcBody
+    : annotationList ASYNC? FUNCTION funcName funcBody
     ;
 
 localFunctionDecl
-    : LOCAL ASYNC? FUNCTION NAME funcBody
+    : annotationList LOCAL ASYNC? FUNCTION NAME funcBody
     ;
 
 // ─── Local Declaration ───
@@ -170,7 +170,34 @@ localFunctionDecl
 //   local x <const>: number = 42
 
 localDecl
-    : LOCAL MUT? attribNameList (ASSIGN exprList)?
+    : annotationList LOCAL MUT? attribNameList (ASSIGN exprList)?
+    ;
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  Annotations (compile-time plugins)
+// ─────────────────────────────────────────────────────────────────────────────
+//
+// Examples:
+//   @Memoize
+//   @Memoize(ttl = 60)
+//   @Inject("UserService")
+//   @Event(name = "onClick", once = true)
+
+annotationList
+    : annotation*
+    ;
+
+annotation
+    : AT NAME (LPAREN annotationArgList? RPAREN)?
+    ;
+
+annotationArgList
+    : annotationArg (COMMA annotationArg)* COMMA?
+    ;
+
+annotationArg
+    : NAME ASSIGN expr                                           # NamedAnnotationArg
+    | expr                                                        # PositionalAnnotationArg
     ;
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -214,11 +241,11 @@ importName
 // ─── Enum Declarations ───
 
 enumDecl
-    : ENUM NAME enumMember+ END
+    : annotationList ENUM NAME enumMember+ END
     ;
 
 enumMember
-    : NAME (ASSIGN expr)?
+    : annotationList NAME (ASSIGN expr)?
     ;
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -226,18 +253,18 @@ enumMember
 // ─────────────────────────────────────────────────────────────────────────────
 
 classDecl
-    : ABSTRACT? CLASS NAME typeParamList? (EXTENDS classRef)? (IMPLEMENTS classRef (COMMA classRef)*)?
+    : annotationList ABSTRACT? CLASS NAME typeParamList? (EXTENDS classRef)? (IMPLEMENTS classRef (COMMA classRef)*)?
       classMember*
       END
     ;
 
 classMember
-    : (LOCAL | PROTECTED)? STATIC? NAME typeAnnotation? (ASSIGN expr)?               # ClassFieldMember
-    | (LOCAL | PROTECTED)? STATIC? OVERRIDE? ASYNC? FUNCTION NAME funcBody           # ClassMethodMember
-    | PROTECTED? ABSTRACT ASYNC? FUNCTION NAME funcSignature                         # ClassAbstractMethodMember
-    | CONSTRUCTOR funcBody                                                            # ClassConstructorMember
-    | OPERATOR operatorSymbol funcBody                                                # ClassOperatorMember
-    | OVERRIDE? NAME NAME funcBody                                                    # ClassAccessorMember
+    : annotationList (LOCAL | PROTECTED)? STATIC? NAME typeAnnotation? (ASSIGN expr)?     # ClassFieldMember
+    | annotationList (LOCAL | PROTECTED)? STATIC? OVERRIDE? ASYNC? FUNCTION NAME funcBody # ClassMethodMember
+    | annotationList PROTECTED? ABSTRACT ASYNC? FUNCTION NAME funcSignature               # ClassAbstractMethodMember
+    | annotationList CONSTRUCTOR funcBody                                                  # ClassConstructorMember
+    | annotationList OPERATOR operatorSymbol funcBody                                      # ClassOperatorMember
+    | annotationList OVERRIDE? NAME NAME funcBody                                          # ClassAccessorMember
     ;
 
 // ─── Overloadable Operators ───
@@ -260,7 +287,7 @@ operatorSymbol
     ;
 
 interfaceDecl
-    : INTERFACE NAME typeParamList? (EXTENDS classRef (COMMA classRef)*)?
+    : annotationList INTERFACE NAME typeParamList? (EXTENDS classRef (COMMA classRef)*)?
       interfaceMember*
       END
     ;
@@ -290,8 +317,8 @@ classRef
     ;
 
 interfaceMember
-    : NAME typeAnnotation                                          # InterfaceFieldMember
-    | ASYNC? FUNCTION NAME funcSignature                           # InterfaceMethodMember
+    : annotationList NAME typeAnnotation                           # InterfaceFieldMember
+    | annotationList ASYNC? FUNCTION NAME funcSignature            # InterfaceMethodMember
     ;
 
 exportStat
@@ -447,7 +474,7 @@ paramList
     ;
 
 param
-    : NAME typeAnnotation? (ASSIGN expr)?
+    : annotationList NAME typeAnnotation? (ASSIGN expr)?
     ;
 
 varargParam
@@ -905,6 +932,7 @@ GT       : '>';
 ASSIGN   : '=';
 QMARK    : '?';
 BANG     : '!';
+AT       : '@';
 
 // Delimiters
 

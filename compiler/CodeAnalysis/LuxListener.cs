@@ -517,6 +517,60 @@ public interface ILuxListener : IParseTreeListener {
 	/// <param name="context">The parse tree.</param>
 	void ExitLocalDecl([NotNull] LuxParser.LocalDeclContext context);
 	/// <summary>
+	/// Enter a parse tree produced by <see cref="LuxParser.annotationList"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void EnterAnnotationList([NotNull] LuxParser.AnnotationListContext context);
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="LuxParser.annotationList"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void ExitAnnotationList([NotNull] LuxParser.AnnotationListContext context);
+	/// <summary>
+	/// Enter a parse tree produced by <see cref="LuxParser.annotation"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void EnterAnnotation([NotNull] LuxParser.AnnotationContext context);
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="LuxParser.annotation"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void ExitAnnotation([NotNull] LuxParser.AnnotationContext context);
+	/// <summary>
+	/// Enter a parse tree produced by <see cref="LuxParser.annotationArgList"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void EnterAnnotationArgList([NotNull] LuxParser.AnnotationArgListContext context);
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="LuxParser.annotationArgList"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void ExitAnnotationArgList([NotNull] LuxParser.AnnotationArgListContext context);
+	/// <summary>
+	/// Enter a parse tree produced by the <c>NamedAnnotationArg</c>
+	/// labeled alternative in <see cref="LuxParser.annotationArg"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void EnterNamedAnnotationArg([NotNull] LuxParser.NamedAnnotationArgContext context);
+	/// <summary>
+	/// Exit a parse tree produced by the <c>NamedAnnotationArg</c>
+	/// labeled alternative in <see cref="LuxParser.annotationArg"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void ExitNamedAnnotationArg([NotNull] LuxParser.NamedAnnotationArgContext context);
+	/// <summary>
+	/// Enter a parse tree produced by the <c>PositionalAnnotationArg</c>
+	/// labeled alternative in <see cref="LuxParser.annotationArg"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void EnterPositionalAnnotationArg([NotNull] LuxParser.PositionalAnnotationArgContext context);
+	/// <summary>
+	/// Exit a parse tree produced by the <c>PositionalAnnotationArg</c>
+	/// labeled alternative in <see cref="LuxParser.annotationArg"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void ExitPositionalAnnotationArg([NotNull] LuxParser.PositionalAnnotationArgContext context);
+	/// <summary>
 	/// Enter a parse tree produced by the <c>ImportFrom</c>
 	/// labeled alternative in <see cref="LuxParser.importStat"/>.
 	/// </summary>

@@ -18,6 +18,7 @@ public sealed class FunctionDecl(
     public ReturnStmt? ReturnStmt { get; } = returnStmt;
     public bool IsAsync { get; } = isAsync;
     public List<TypeParamDef> TypeParams { get; set; } = [];
+    public List<Annotation> Annotations { get; set; } = [];
 }
 
 public sealed class LocalFunctionDecl(
@@ -35,6 +36,7 @@ public sealed class LocalFunctionDecl(
     public ReturnStmt? ReturnStmt { get; } = returnStmt;
     public bool IsAsync { get; } = isAsync;
     public List<TypeParamDef> TypeParams { get; set; } = [];
+    public List<Annotation> Annotations { get; set; } = [];
 }
 
 public sealed class LocalDecl(
@@ -46,6 +48,7 @@ public sealed class LocalDecl(
     public List<AttribVar> Variables { get; } = variables;
     public List<Expr> Values { get; } = values;
     public bool IsMutable { get; } = isMutable;
+    public List<Annotation> Annotations { get; set; } = [];
 }
 
 public sealed class DeclareFunctionDecl(
@@ -89,6 +92,7 @@ public sealed class EnumDecl(
     public NameRef Name { get; } = name;
     public List<EnumMember> Members { get; } = members;
     public bool IsDeclare { get; } = isDeclare;
+    public List<Annotation> Annotations { get; set; } = [];
 }
 
 public sealed class EnumMember(NameRef name, Expr? value, TypeRef? typeAnnotation, TextSpan span)
@@ -97,6 +101,7 @@ public sealed class EnumMember(NameRef name, Expr? value, TypeRef? typeAnnotatio
     public Expr? Value { get; set; } = value;
     public TypeRef? TypeAnnotation { get; } = typeAnnotation;
     public TextSpan Span { get; } = span;
+    public List<Annotation> Annotations { get; set; } = [];
 }
 
 public sealed class ClassDecl(
@@ -125,6 +130,7 @@ public sealed class ClassDecl(
     public List<TypeArgRef> BaseClassTypeArgs { get; set; } = [];
     /// <summary>Parallel to <see cref="Interfaces"/>: type arguments for each implemented interface.</summary>
     public List<List<TypeArgRef>> InterfaceTypeArgs { get; set; } = [];
+    public List<Annotation> Annotations { get; set; } = [];
 }
 
 public sealed class InterfaceDecl(
@@ -143,4 +149,5 @@ public sealed class InterfaceDecl(
     public List<TypeParamDef> TypeParams { get; set; } = [];
     /// <summary>Parallel to <see cref="BaseInterfaces"/>: type arguments for each extended interface.</summary>
     public List<List<TypeArgRef>> BaseInterfaceTypeArgs { get; set; } = [];
+    public List<Annotation> Annotations { get; set; } = [];
 }

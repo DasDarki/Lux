@@ -45,11 +45,10 @@ internal partial class IRVisitor
 
         if (typeArgList != null)
         {
-            // Generic instantiation, e.g. List<number>. Primitives cannot take type arguments.
-            if (PrimitiveTypes.ContainsKey(nameText))
+            if (PrimitiveTypes.TryGetValue(nameText, out var value))
             {
                 diag.Report(SpanFromCtx(context), DiagnosticCode.ErrGenericOnPrimitive, nameText);
-                return new PrimitiveTypeRef(NewNodeID, SpanFromCtx(context), PrimitiveTypes[nameText]);
+                return new PrimitiveTypeRef(NewNodeID, SpanFromCtx(context), value);
             }
 
             var args = VisitTypeArgListContent(typeArgList);

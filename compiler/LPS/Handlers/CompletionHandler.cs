@@ -2,7 +2,6 @@ using Lux.IR;
 using OmniSharp.Extensions.LanguageServer.Protocol.Client.Capabilities;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
-
 using LuxSymbolKind = Lux.IR.SymbolKind;
 using LuxType = Lux.IR.Type;
 
@@ -29,6 +28,10 @@ public sealed class CompletionHandler(LuxWorkspace workspace) : CompletionHandle
         {
             var line = request.Position.Line + 1;
             var col = request.Position.Character + 1;
+
+            var annotationItems = TryAnnotationCompletion(result, request.Position);
+            if (annotationItems != null)
+                return Task.FromResult(new CompletionList(annotationItems));
 
             var importItems = TryImportPathCompletion(result, request.Position);
             if (importItems != null)
@@ -99,7 +102,8 @@ public sealed class CompletionHandler(LuxWorkspace workspace) : CompletionHandle
     /// resolves the receiver chain to a type, and returns its struct fields as completion items.
     /// Returns null if this is not a member-completion context.
     /// </summary>
-    private List<CompletionItem>? TryMemberCompletion(AnalysisResult result, OmniSharp.Extensions.LanguageServer.Protocol.Models.Position pos)
+    private List<CompletionItem>? TryMemberCompletion(AnalysisResult result,
+        OmniSharp.Extensions.LanguageServer.Protocol.Models.Position pos)
     {
         var lines = result.SourceText.Split('\n');
         if (pos.Line < 0 || pos.Line >= lines.Length) return null;
@@ -108,26 +112,22 @@ public sealed class CompletionHandler(LuxWorkspace workspace) : CompletionHandle
 
         var cursor = Math.Min(pos.Character, lineText.Length);
 
-        // Skip the partially-typed member name immediately before the cursor.
         var nameEnd = cursor;
         var i = cursor;
         while (i > 0 && (char.IsLetterOrDigit(lineText[i - 1]) || lineText[i - 1] == '_')) i--;
         var nameStart = i;
 
-        // Now require a `.` or `?.` immediately before the (optional) name.
         if (i <= 0 || lineText[i - 1] != '.') return null;
         i--;
         if (i > 0 && lineText[i - 1] == '?') i--;
 
-        // Walk back the receiver chain: (NAME (\??\.NAME)*).
         var chainEnd = i;
         var j = i;
         while (true)
         {
-            // Consume a NAME segment.
             var segEnd = j;
             while (j > 0 && (char.IsLetterOrDigit(lineText[j - 1]) || lineText[j - 1] == '_')) j--;
-            if (j == segEnd) return null; // expected an identifier
+            if (j == segEnd) return null;
 
             if (j > 0 && lineText[j - 1] == '.')
             {
@@ -135,13 +135,13 @@ public sealed class CompletionHandler(LuxWorkspace workspace) : CompletionHandle
                 if (j > 0 && lineText[j - 1] == '?') j--;
                 continue;
             }
+
             break;
         }
 
         var chainText = lineText.Substring(j, chainEnd - j);
         if (string.IsNullOrEmpty(chainText)) return null;
 
-        // Parse chainText into segments.
         var segments = new List<(string Name, bool Optional)>();
         var k = 0;
         while (k < chainText.Length)
@@ -163,14 +163,15 @@ public sealed class CompletionHandler(LuxWorkspace workspace) : CompletionHandle
                     return null;
                 }
             }
+
             var nStart = k;
             while (k < chainText.Length && (char.IsLetterOrDigit(chainText[k]) || chainText[k] == '_')) k++;
             if (k == nStart) return null;
             segments.Add((chainText.Substring(nStart, k - nStart), optional));
         }
+
         if (segments.Count == 0) return null;
 
-        // Resolve head symbol via the enclosing scope at the cursor.
         var lspLine = pos.Line + 1;
         var lspCol = Math.Max(1, pos.Character);
         var node = NodeFinder.Find(result.Hir, lspLine, lspCol);
@@ -181,7 +182,6 @@ public sealed class CompletionHandler(LuxWorkspace workspace) : CompletionHandle
         if (!result.Syms.GetByID(headSym, out var headSymbol)) return null;
         var currentTypeId = headSymbol.Type;
 
-        // Walk the chain.
         for (var s = 1; s < segments.Count; s++)
         {
             currentTypeId = StripNil(result.Types, currentTypeId);
@@ -192,7 +192,6 @@ public sealed class CompletionHandler(LuxWorkspace workspace) : CompletionHandle
             currentTypeId = field.Type.ID;
         }
 
-        // Final type at the position right before the trailing `.` / `?.`.
         var finalTypeId = StripNil(result.Types, currentTypeId);
         if (!result.Types.GetByID(finalTypeId, out var finalType)) return null;
 
@@ -208,6 +207,7 @@ public sealed class CompletionHandler(LuxWorkspace workspace) : CompletionHandle
                     Detail = m.Value != null ? $"{enumType.Name}.{m.Name} = {m.Value}" : $"{enumType.Name}.{m.Name}"
                 });
             }
+
             return items;
         }
 
@@ -223,6 +223,7 @@ public sealed class CompletionHandler(LuxWorkspace workspace) : CompletionHandle
                     Detail = workspace.FormatType(result.Types, field.Type.ID)
                 });
             }
+
             foreach (var (name, method) in classType.Methods)
             {
                 if (name.StartsWith("__")) continue;
@@ -233,6 +234,7 @@ public sealed class CompletionHandler(LuxWorkspace workspace) : CompletionHandle
                     Detail = workspace.FormatType(result.Types, method.ID)
                 });
             }
+
             foreach (var (name, method) in classType.StaticMethods)
             {
                 classItems.Add(new CompletionItem
@@ -242,6 +244,7 @@ public sealed class CompletionHandler(LuxWorkspace workspace) : CompletionHandle
                     Detail = workspace.FormatType(result.Types, method.ID)
                 });
             }
+
             foreach (var (name, getter) in classType.Getters)
             {
                 classItems.Add(new CompletionItem
@@ -251,6 +254,7 @@ public sealed class CompletionHandler(LuxWorkspace workspace) : CompletionHandle
                     Detail = workspace.FormatType(result.Types, getter.ReturnType.ID)
                 });
             }
+
             if (classType.ConstructorType != null)
             {
                 classItems.Add(new CompletionItem
@@ -260,6 +264,7 @@ public sealed class CompletionHandler(LuxWorkspace workspace) : CompletionHandle
                     Detail = workspace.FormatType(result.Types, classType.ConstructorType.ID)
                 });
             }
+
             return classItems;
         }
 
@@ -275,11 +280,12 @@ public sealed class CompletionHandler(LuxWorkspace workspace) : CompletionHandle
                 Detail = workspace.FormatType(result.Types, f.Type.ID)
             });
         }
+
         return structItems;
     }
 
     private List<CompletionItem>? TryImportPathCompletion(AnalysisResult result,
-        OmniSharp.Extensions.LanguageServer.Protocol.Models.Position pos)
+        Position pos)
     {
         var lines = result.SourceText.Split('\n');
         if (pos.Line < 0 || pos.Line >= lines.Length) return null;
@@ -419,6 +425,40 @@ public sealed class CompletionHandler(LuxWorkspace workspace) : CompletionHandle
         return items;
     }
 
+    /// <summary>
+    /// Detects whether the cursor is in an annotation context (after <c>@</c>) and returns
+    /// completion items for known annotation names discovered from <c>Config.Annotations</c>.
+    /// </summary>
+    private List<CompletionItem>? TryAnnotationCompletion(AnalysisResult result,
+        Position pos)
+    {
+        var lines = result.SourceText.Split('\n');
+        if (pos.Line < 0 || pos.Line >= lines.Length) return null;
+        var lineText = lines[pos.Line].TrimEnd('\r');
+        var cursor = Math.Min(pos.Character, lineText.Length);
+
+        var i = cursor;
+        while (i > 0 && (char.IsLetterOrDigit(lineText[i - 1]) || lineText[i - 1] == '_')) i--;
+        if (i <= 0 || lineText[i - 1] != '@') return null;
+
+        var annotationNames = workspace.DiscoverAnnotationNames();
+        if (annotationNames.Count == 0) return null;
+
+        var items = new List<CompletionItem>();
+        foreach (var name in annotationNames)
+        {
+            items.Add(new CompletionItem
+            {
+                Label = name,
+                Kind = CompletionItemKind.Function,
+                Detail = "Annotation",
+                InsertText = name,
+            });
+        }
+
+        return items;
+    }
+
     private static TypID StripNil(TypeTable types, TypID id)
     {
         if (!types.GetByID(id, out var t)) return id;
@@ -428,6 +468,7 @@ public sealed class CompletionHandler(LuxWorkspace workspace) : CompletionHandle
             if (nonNil.Count == 1) return nonNil[0].ID;
             if (nonNil.Count > 1) return types.UnionOf(nonNil);
         }
+
         return id;
     }
 
@@ -440,7 +481,7 @@ public sealed class CompletionHandler(LuxWorkspace workspace) : CompletionHandle
         return new CompletionRegistrationOptions
         {
             DocumentSelector = TextDocumentSelector.ForLanguage("lux"),
-            TriggerCharacters = new Container<string>(".", "?", "/", "\"", "'", " "),
+            TriggerCharacters = new Container<string>(".", "?", "/", "\"", "'", " ", "@"),
             ResolveProvider = false
         };
     }
